@@ -26,24 +26,40 @@ const Index = () => {
 
     setIsLoading(true);
     setProgress(0);
+    setGeneratedImages([]); // Clear previous images
     const progressInterval = setInterval(() => {
       setProgress((prev) => Math.min(prev + 10, 90));
     }, 500);
 
     try {
+      console.log('Sending request to generate images...');
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { prompt }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      console.log('Response received:', data);
+
+      if (!data.data || !Array.isArray(data.data)) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format from API');
+      }
+
+      console.log('Number of images received:', data.data.length);
 
       const images = data.data.map((img: { b64_json: string }) => 
         `data:image/webp;base64,${img.b64_json}`
       );
+
+      console.log('Processed images:', images.length);
       setGeneratedImages(images);
       toast({
         title: "Success",
-        description: "Images generated successfully!",
+        description: `Successfully generated ${images.length} images!`,
       });
     } catch (error) {
       console.error('Error generating images:', error);
