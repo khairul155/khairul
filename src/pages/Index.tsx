@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [prompt, setPrompt] = useState("");
@@ -30,31 +31,12 @@ const Index = () => {
     }, 500);
 
     try {
-      const response = await fetch("https://api.studio.nebius.com/v1/images/generations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "*/*",
-          "Authorization": "Bearer YOUR_API_KEY", // This should be replaced with a secure way to handle the API key
-        },
-        body: JSON.stringify({
-          model: "black-forest-labs/flux-schnell",
-          response_format: "b64_json",
-          response_extension: "webp",
-          width: 1024,
-          height: 1024,
-          num_inference_steps: 4,
-          negative_prompt: "",
-          seed: -1,
-          prompt: prompt,
-        }),
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: { prompt }
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate image");
-      }
+      if (error) throw error;
 
-      const data = await response.json();
       const imageBase64 = data.data[0].b64_json;
       setGeneratedImage(`data:image/webp;base64,${imageBase64}`);
       toast({
@@ -62,6 +44,7 @@ const Index = () => {
         description: "Image generated successfully!",
       });
     } catch (error) {
+      console.error('Error generating image:', error);
       toast({
         title: "Error",
         description: "Failed to generate image. Please try again.",
