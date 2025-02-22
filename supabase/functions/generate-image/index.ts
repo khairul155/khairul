@@ -20,7 +20,7 @@ serve(async (req) => {
       throw new Error('API key not found')
     }
 
-    console.log('Generating image for prompt:', prompt)
+    console.log('Generating 2 images for prompt:', prompt)
 
     const response = await fetch("https://api.studio.nebius.com/v1/images/generations", {
       method: "POST",
@@ -39,13 +39,14 @@ serve(async (req) => {
         negative_prompt: "",
         seed: -1,
         prompt: prompt,
+        n: 2  // Generate 2 images
       }),
     })
 
     if (!response.ok) {
       const error = await response.text()
       console.error('Nebius API error:', error)
-      throw new Error('Failed to generate image')
+      throw new Error('Failed to generate images')
     }
 
     const data = await response.json()
