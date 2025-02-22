@@ -63,7 +63,14 @@ const Index = () => {
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-8">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold">AI Image Generator</h1>
+        <h1 className="text-4xl font-bold">
+          Welcome to{" "}
+          <span className="relative inline-block">
+            <span className="absolute inset-0 blur-sm bg-purple-400/50 animate-pulse rounded-lg"></span>
+            <span className="relative text-purple-600 font-bold">Khairul's</span>
+          </span>{" "}
+          AI Image Generator
+        </h1>
         <p className="text-muted-foreground">Enter a prompt to generate an image using Stable Diffusion</p>
       </div>
 
