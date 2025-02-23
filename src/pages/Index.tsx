@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [prompt, setPrompt] = useState("");
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
@@ -26,46 +26,28 @@ const Index = () => {
 
     setIsLoading(true);
     setProgress(0);
-    setGeneratedImages([]); // Clear previous images
     const progressInterval = setInterval(() => {
       setProgress((prev) => Math.min(prev + 10, 90));
     }, 500);
 
     try {
-      console.log('Sending request to generate images...');
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { prompt }
       });
 
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Response received:', data);
-
-      if (!data.data || !Array.isArray(data.data)) {
-        console.error('Invalid response format:', data);
-        throw new Error('Invalid response format from API');
-      }
-
-      console.log('Number of images received:', data.data.length);
-
-      const images = data.data.map((img: { b64_json: string }) => 
-        `data:image/webp;base64,${img.b64_json}`
-      );
-
-      console.log('Processed images:', images.length);
-      setGeneratedImages(images);
+      const imageBase64 = data.data[0].b64_json;
+      setGeneratedImage(`data:image/webp;base64,${imageBase64}`);
       toast({
         title: "Success",
-        description: `Successfully generated ${images.length} images!`,
+        description: "Image generated successfully!",
       });
     } catch (error) {
-      console.error('Error generating images:', error);
+      console.error('Error generating image:', error);
       toast({
         title: "Error",
-        description: "Failed to generate images. Please try again.",
+        description: "Failed to generate image. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -89,7 +71,7 @@ const Index = () => {
           </span>{" "}
           AI Image Generator
         </h1>
-        <p className="text-muted-foreground">Enter a prompt to generate two images using Stable Diffusion</p>
+        <p className="text-muted-foreground">Enter a prompt to generate an image using Stable Diffusion</p>
       </div>
 
       <div className="space-y-4">
@@ -117,23 +99,19 @@ const Index = () => {
           <div className="space-y-2">
             <Progress value={progress} />
             <p className="text-sm text-center text-muted-foreground">
-              Generating your images...
+              Generating your image...
             </p>
           </div>
         )}
 
-        {generatedImages.length > 0 && !isLoading && (
+        {generatedImage && !isLoading && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {generatedImages.map((image, index) => (
-                <div key={index} className="border rounded-lg overflow-hidden">
-                  <img
-                    src={image}
-                    alt={`Generated image ${index + 1}`}
-                    className="w-full h-auto"
-                  />
-                </div>
-              ))}
+            <div className="border rounded-lg overflow-hidden">
+              <img
+                src={generatedImage}
+                alt="Generated image"
+                className="w-full h-auto"
+              />
             </div>
             <p className="text-sm text-muted-foreground text-center">
               Prompt: {prompt}
