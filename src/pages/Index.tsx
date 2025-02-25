@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Image, Wand2, LightbulbIcon, ArrowRight } from "lucide-react";
+import { Loader2, Sparkles, Image, Wand2, LightbulbIcon, ArrowRight, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
@@ -224,9 +224,20 @@ const Index = () => {
           </div>
         </div>
 
-        <div className="text-center text-sm text-gray-500 dark:text-gray-400 pt-8">
-          <p>Powered by advanced AI technology • Create stunning visuals instantly</p>
+        <div className="text-center space-y-4 pt-8">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Powered by advanced AI technology • Create stunning visuals instantly
+          </p>
+          <div className="relative inline-block group">
+            <div className="absolute inset-0 blur-xl bg-gradient-to-r from-purple-400 via-pink-500 to-purple-600 opacity-75 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
+            <h3 className="relative text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center gap-2">
+              <Star className="w-5 h-5 text-yellow-500 animate-sparkle" />
+              Created by Khairul
+              <Star className="w-5 h-5 text-yellow-500 animate-sparkle" />
+            </h3>
+          </div>
         </div>
+
       </div>
     </div>
   );
