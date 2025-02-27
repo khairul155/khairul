@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -18,6 +18,11 @@ const Index = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [generatedImage, setGeneratedImage] = useState("");
   const [imageError, setImageError] = useState(false);
+
+  // To log when component mounts - for debugging
+  useEffect(() => {
+    console.log("Index component mounted");
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -45,6 +50,7 @@ const Index = () => {
   };
 
   const handleImageError = () => {
+    console.log("Image failed to load, using fallback");
     setImageError(true);
     toast({
       title: "Image loading error",
@@ -60,15 +66,20 @@ const Index = () => {
     setProgress(0);
     setImageError(false);
 
+    console.log("Starting image generation simulation");
+    
+    // We'll use a direct URL to ensure the image loads properly
+    const imageUrl = "https://images.unsplash.com/photo-1506477331477-33d5d8b3dc85?q=80&w=1000&auto=format&fit=crop";
+
     const interval = setInterval(() => {
       setProgress((prevProgress) => {
         if (prevProgress >= 100) {
           clearInterval(interval);
           setIsGenerating(false);
           
-          // Use a reliable image source that's definitely accessible
-          // You can change this to your actual AI generation endpoint later
-          setGeneratedImage("https://images.unsplash.com/photo-1639322537504-6427a16b0a28?q=80&w=1000&auto=format&fit=crop");
+          console.log("Setting generated image URL:", imageUrl);
+          setGeneratedImage(imageUrl);
+          
           return 100;
         }
         return prevProgress + 5;
@@ -78,6 +89,8 @@ const Index = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Form submitted with prompt:", prompt);
+    
     if (!prompt.trim()) {
       toast({
         title: "Empty prompt",
@@ -98,6 +111,8 @@ const Index = () => {
   const handleDownload = () => {
     if (!generatedImage) return;
     
+    console.log("Downloading image:", generatedImage);
+    
     // Create a temporary anchor element
     const link = document.createElement('a');
     link.href = generatedImage;
@@ -115,6 +130,8 @@ const Index = () => {
   const handleShare = () => {
     if (!generatedImage) return;
     
+    console.log("Sharing image:", generatedImage);
+    
     if (navigator.share) {
       navigator.share({
         title: 'My AI Generated Image',
@@ -128,6 +145,7 @@ const Index = () => {
         });
       })
       .catch((error) => {
+        console.error("Error sharing:", error);
         toast({
           title: "Error sharing",
           description: "There was an error sharing your image.",
