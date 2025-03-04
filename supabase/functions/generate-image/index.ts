@@ -31,13 +31,21 @@ serve(async (req) => {
     console.log('Generating image for prompt:', prompt);
     console.log('Using API key:', apiKey.substring(0, 5) + '...');  // Log first few chars of API key for debugging
 
+    // Make sure we're properly formatting the Authorization header
+    const headers = {
+      "Content-Type": "application/json",
+      "Accept": "*/*",
+      "Authorization": `Bearer ${apiKey}`,
+    };
+    
+    console.log('Request headers:', JSON.stringify({
+      ...headers,
+      "Authorization": "Bearer [REDACTED]" // Don't log the full token
+    }));
+
     const response = await fetch("https://api.studio.nebius.com/v1/images/generations", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "*/*",
-        "Authorization": `Bearer ${apiKey}`,
-      },
+      headers: headers,
       body: JSON.stringify({
         model: "black-forest-labs/flux-schnell",
         response_format: "b64_json",
@@ -57,7 +65,7 @@ serve(async (req) => {
     
     if (!response.ok) {
       console.error('Nebius API error:', responseText);
-      throw new Error(`Failed to generate image: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to generate image: ${response.status} ${response.statusText} - ${responseText}`);
     }
 
     try {
