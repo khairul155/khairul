@@ -13,14 +13,22 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json()
-    const apiKey = Deno.env.get('NEBIUS_API_KEY')
+    const requestData = await req.json();
+    console.log("Request data:", requestData);
+    
+    const { prompt } = requestData;
+    
+    if (!prompt) {
+      throw new Error('Prompt is required');
+    }
+    
+    const apiKey = Deno.env.get('NEBIUS_API_KEY');
 
     if (!apiKey) {
-      throw new Error('API key not found')
+      throw new Error('API key not found');
     }
 
-    console.log('Generating image for prompt:', prompt)
+    console.log('Generating image for prompt:', prompt);
 
     const response = await fetch("https://api.studio.nebius.com/v1/images/generations", {
       method: "POST",
@@ -40,21 +48,29 @@ serve(async (req) => {
         seed: -1,
         prompt: prompt,
       }),
-    })
+    });
 
+    const responseText = await response.text();
+    console.log('Raw response:', responseText);
+    
     if (!response.ok) {
-      const error = await response.text()
-      console.error('Nebius API error:', error)
-      throw new Error('Failed to generate image')
+      console.error('Nebius API error:', responseText);
+      throw new Error(`Failed to generate image: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json()
-    
-    return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    try {
+      const data = JSON.parse(responseText);
+      console.log('Parsed response data:', data);
+      
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (parseError) {
+      console.error('Error parsing JSON response:', parseError);
+      throw new Error(`Failed to parse API response: ${parseError.message}`);
+    }
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

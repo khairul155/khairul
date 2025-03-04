@@ -29,7 +29,8 @@ const Index = () => {
         script.async = true;
         script.crossOrigin = "anonymous";
         script.onload = () => {
-          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          const adsbygoogle = (window as any).adsbygoogle || [];
+          adsbygoogle.push({});
           setIsAdLoaded(true);
         };
         document.head.appendChild(script);
@@ -81,7 +82,9 @@ const Index = () => {
     setProgress(0);
 
     try {
-      const response = await fetch("/api/image-gen", {
+      console.log("Sending generate image request with prompt:", prompt);
+      
+      const response = await fetch("https://napbrxjntjvkjwlcpwql.supabase.co/functions/v1/generate-image", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -90,48 +93,25 @@ const Index = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate image");
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`Failed to generate image: ${errorText}`);
       }
 
-      const reader = response.body.getReader();
-      let receivedLength = 0;
-      let chunks = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          break;
-        }
-
-        chunks.push(value);
-        receivedLength += value.length;
-
-        const progressUpdate = Math.round((receivedLength / response.headers.get("Content-Length")) * 100);
-        setProgress(progressUpdate);
-      }
-
-      const allChunks = new Uint8Array(receivedLength);
-      let position = 0;
-      for (let chunk of chunks) {
-        allChunks.set(chunk, position);
-        position += chunk.length;
-      }
-
-      const result = new TextDecoder("utf-8").decode(allChunks);
-      const resultJson = JSON.parse(result);
-
-      if (resultJson && resultJson.url) {
-        setImageUrl(resultJson.url);
+      const data = await response.json();
+      console.log("Image generation response:", data);
+      
+      if (data.b64_json) {
+        const imageData = `data:image/webp;base64,${data.b64_json}`;
+        setImageUrl(imageData);
       } else {
-        throw new Error("Image URL not found in response");
+        throw new Error("Image data not found in response");
       }
     } catch (error) {
       console.error("Error generating image:", error);
       toast({
         title: "Error generating image",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
       setImageUrl("");
