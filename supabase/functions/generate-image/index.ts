@@ -29,6 +29,7 @@ serve(async (req) => {
     }
 
     console.log('Generating image for prompt:', prompt);
+    console.log('Using API key:', apiKey.substring(0, 5) + '...');  // Log first few chars of API key for debugging
 
     const response = await fetch("https://api.studio.nebius.com/v1/images/generations", {
       method: "POST",
@@ -51,7 +52,8 @@ serve(async (req) => {
     });
 
     const responseText = await response.text();
-    console.log('Raw response:', responseText);
+    console.log('Raw response status:', response.status);
+    console.log('Raw response headers:', JSON.stringify(Object.fromEntries([...response.headers.entries()])));
     
     if (!response.ok) {
       console.error('Nebius API error:', responseText);
@@ -60,7 +62,7 @@ serve(async (req) => {
 
     try {
       const data = JSON.parse(responseText);
-      console.log('Parsed response data:', data);
+      console.log('Parsed response data:', Object.keys(data));
       
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
