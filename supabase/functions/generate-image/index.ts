@@ -13,82 +13,48 @@ serve(async (req) => {
   }
 
   try {
-    const requestData = await req.json();
-    console.log("Request data:", requestData);
-    
-    const { prompt } = requestData;
-    
-    if (!prompt) {
-      throw new Error('Prompt is required');
-    }
-    
-    const apiKey = Deno.env.get('NEBIUS_API_KEY');
+    const { prompt } = await req.json()
+    const apiKey = Deno.env.get('NEBIUS_API_KEY')
 
     if (!apiKey) {
-      throw new Error('API key not found');
+      throw new Error('API key not found')
     }
 
-    console.log('Generating image for prompt:', prompt);
-    console.log('API key length:', apiKey.length);  // Check if API key is not empty
-    console.log('First few characters of API key:', apiKey.substring(0, 5) + '...');  // Don't log the full key
-
-    // Explicitly formatting the Authorization header
-    const authHeader = `Bearer ${apiKey.trim()}`; // Ensure no whitespace
-    console.log('Auth header starts with:', authHeader.substring(0, 10) + '...');
-
-    const headers = {
-      "Content-Type": "application/json",
-      "Authorization": authHeader,
-    };
-
-    console.log('Making request to Nebius API...');
-    
-    const requestBody = {
-      model: "black-forest-labs/flux-schnell",
-      response_format: "b64_json",
-      response_extension: "webp",
-      width: 1024,
-      height: 1024,
-      num_inference_steps: 4,
-      negative_prompt: "",
-      seed: -1,
-      prompt: prompt,
-    };
-    
-    console.log('Request body:', JSON.stringify(requestBody));
+    console.log('Generating image for prompt:', prompt)
 
     const response = await fetch("https://api.studio.nebius.com/v1/images/generations", {
       method: "POST",
-      headers: headers,
-      body: JSON.stringify(requestBody),
-    });
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "*/*",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "black-forest-labs/flux-schnell",
+        response_format: "b64_json",
+        response_extension: "webp",
+        width: 1024,
+        height: 1024,
+        num_inference_steps: 4,
+        negative_prompt: "",
+        seed: -1,
+        prompt: prompt,
+      }),
+    })
 
-    console.log('Response status:', response.status);
-    console.log('Response status text:', response.statusText);
-    
-    const responseHeaders = Object.fromEntries([...response.headers.entries()]);
-    console.log('Response headers:', JSON.stringify(responseHeaders));
-    
-    const responseText = await response.text();
-    
     if (!response.ok) {
-      console.error('Nebius API error response text:', responseText);
-      throw new Error(`Failed to generate image: ${response.status} ${response.statusText} - ${responseText}`);
+      const error = await response.text()
+      console.error('Nebius API error:', error)
+      throw new Error('Failed to generate image')
     }
 
-    try {
-      const data = JSON.parse(responseText);
-      console.log('Successfully parsed response data. Keys:', Object.keys(data));
-      
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } catch (parseError) {
-      console.error('Error parsing JSON response:', parseError);
-      throw new Error(`Failed to parse API response: ${parseError.message} - Raw response: ${responseText.substring(0, 100)}...`);
-    }
+    const data = await response.json()
+    
+    return new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (error) {
-    console.error('Error in Edge Function:', error);
+    console.error('Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

@@ -89,16 +89,6 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out'
-			},
-			textColor: {
-				'app-icon': {
-					'blue': '#0EA5E9',
-					'green': '#555555',
-					'purple': '#7E69AB',
-					'orange': '#F97316',
-					'red': '#ea384c',
-					'yellow': '#F97316'
-				}
 			}
 		}
 	},
