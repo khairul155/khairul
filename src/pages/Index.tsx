@@ -1,9 +1,10 @@
-import { useState } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Image, Wand2, LightbulbIcon, ArrowRight, Star } from "lucide-react";
+import { Loader2, Sparkles, Image, Wand2, LightbulbIcon, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
@@ -12,6 +13,23 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const { toast } = useToast();
+  const adContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Create and inject the ad script
+    const script = document.createElement('script');
+    script.async = true;
+    script.setAttribute('data-cfasync', 'false');
+    script.src = '//pl26017063.effectiveratecpm.com/7ec2a540577d91506873402442fdb671/invoke.js';
+    document.head.appendChild(script);
+
+    return () => {
+      // Clean up on unmount
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
 
   const inspirationGallery = [
     {
@@ -114,6 +132,11 @@ const Index = () => {
             <Wand2 className="w-6 h-6 text-purple-500 animate-bounce" />
             <Image className="w-6 h-6 text-blue-500 animate-pulse" />
           </div>
+        </div>
+
+        {/* Advertisement Banner */}
+        <div className="my-6 p-4 rounded-xl bg-white/50 dark:bg-gray-800/50 shadow-md">
+          <div id="container-7ec2a540577d91506873402442fdb671" ref={adContainerRef}></div>
         </div>
 
         <div className="space-y-8 backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
@@ -224,20 +247,9 @@ const Index = () => {
           </div>
         </div>
 
-        <div className="text-center space-y-4 pt-8">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Powered by advanced AI technology • Create stunning visuals instantly
-          </p>
-          <div className="relative inline-block group">
-            <div className="absolute inset-0 blur-xl bg-gradient-to-r from-purple-400 via-pink-500 to-purple-600 opacity-75 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
-            <h3 className="relative text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center gap-2">
-              <Star className="w-5 h-5 text-yellow-500 animate-sparkle" />
-              Created by Khairul
-              <Star className="w-5 h-5 text-yellow-500 animate-sparkle" />
-            </h3>
-          </div>
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400 pt-8">
+          <p>Powered by advanced AI technology • Create stunning visuals instantly</p>
         </div>
-
       </div>
     </div>
   );
