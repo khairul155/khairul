@@ -37,7 +37,7 @@ const AuthStatus = () => {
       <AlertDescription>
         {error}
         <p className="mt-2 text-sm">
-          Make sure you've configured the correct redirect URL in the Supabase dashboard:
+          Make sure you've configured the correct redirect URL in the Supabase dashboard and your OAuth provider:
           <br />
           <strong>{window.location.origin}</strong>
         </p>
