@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,8 +30,7 @@ export default function Auth() {
 
   const handleGoogleSignIn = async () => {
     try {
-      // Get the current URL to use for the redirect
-      const redirectTo = window.location.origin;
+      const redirectTo = `${window.location.protocol}//${window.location.hostname}:8080`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
