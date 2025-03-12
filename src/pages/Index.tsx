@@ -1,231 +1,327 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Wand2, Image, Download, Copy, Share2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Image, Wand2, LightbulbIcon, ArrowRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import AppIconsSection from "@/components/AppIconsSection";
 
 const Index = () => {
   const [prompt, setPrompt] = useState("");
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isAdLoaded, setIsAdLoaded] = useState(false);
+  const adContainerRef = useRef(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const loadAdsense = () => {
+      if (isAdLoaded) return;
+
+      try {
+        const script = document.createElement("script");
+        script.src =
+          "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3446887631324249";
+        script.async = true;
+        script.crossOrigin = "anonymous";
+        script.onload = () => {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          setIsAdLoaded(true);
+        };
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error("Failed to load AdSense:", error);
+      }
+    };
+
+    loadAdsense();
+
+    return () => {
+      document.querySelectorAll('script[src*="adsbygoogle.js"]').forEach((script) => {
+        script.remove();
+      });
+      setIsAdLoaded(false);
+    };
+  }, [isAdLoaded]);
 
   const inspirationGallery = [
     {
-      image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b",
-      prompt: "Majestic mountain peak at sunset with purple and orange sky",
-      category: "Nature"
+      prompt: "A futuristic cityscape at dusk, neon lights reflecting on wet streets, flying vehicles, cyberpunk style",
+      url: "https://pub-179a9494949a4577a35ff05c14949c55.r2.dev/city.webp",
     },
     {
-      image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5",
-      prompt: "Futuristic cyber city at night with neon lights and flying cars",
-      category: "Sci-Fi"
+      prompt: "A serene mountain landscape with a clear lake, vibrant autumn colors, and a cozy cabin in the distance",
+      url: "https://pub-179a9494949a4577a35ff05c14949c55.r2.dev/autumn.webp",
     },
     {
-      image: "https://images.unsplash.com/photo-1534447677768-be436bb09401",
-      prompt: "Magical floating islands with waterfalls and rainbow bridges",
-      category: "Fantasy"
+      prompt: "An astronaut standing on a distant planet, looking at a swirling galaxy, stars, cosmic dust, science fiction",
+      url: "https://pub-179a9494949a4577a35ff05c14949c55.r2.dev/astronaut.webp",
     },
     {
-      image: "https://images.unsplash.com/photo-1563089145-599997674d42",
-      prompt: "Abstract fluid art with swirling colors of blue and gold",
-      category: "Abstract"
-    }
+      prompt: "A majestic dragon soaring through a stormy sky, lightning, dark clouds, fantasy art",
+      url: "https://pub-179a9494949a4577a35ff05c14949c55.r2.dev/dragon.webp",
+    },
+    {
+      prompt: "A vibrant coral reef teeming with marine life, colorful fish, clear water, underwater photography",
+      url: "https://pub-179a9494949a4577a35ff05c14949c55.r2.dev/coral.webp",
+    },
+    {
+      prompt: "A mysterious forest with glowing mushrooms, fireflies, ancient trees, magical atmosphere",
+      url: "https://pub-179a9494949a4577a35ff05c14949c55.r2.dev/forest.webp",
+    },
   ];
 
-  const handlePromptClick = (promptText: string) => {
-    setPrompt(promptText);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const generateImage = async () => {
-    if (!prompt.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a prompt first",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handlePromptSubmit = async () => {
     setIsLoading(true);
+    setImageUrl("");
     setProgress(0);
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 10, 90));
-    }, 500);
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt }
+      const response = await fetch("/api/image-gen", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate image");
+      }
 
-      const imageBase64 = data.data[0].b64_json;
-      setGeneratedImage(`data:image/webp;base64,${imageBase64}`);
-      toast({
-        title: "Success",
-        description: "Image generated successfully!",
-      });
+      const reader = response.body.getReader();
+      let receivedLength = 0;
+      let chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        chunks.push(value);
+        receivedLength += value.length;
+
+        const progressUpdate = Math.round((receivedLength / response.headers.get("Content-Length")) * 100);
+        setProgress(progressUpdate);
+      }
+
+      const allChunks = new Uint8Array(receivedLength);
+      let position = 0;
+      for (let chunk of chunks) {
+        allChunks.set(chunk, position);
+        position += chunk.length;
+      }
+
+      const result = new TextDecoder("utf-8").decode(allChunks);
+      const resultJson = JSON.parse(result);
+
+      if (resultJson && resultJson.url) {
+        setImageUrl(resultJson.url);
+      } else {
+        throw new Error("Image URL not found in response");
+      }
     } catch (error) {
-      console.error('Error generating image:', error);
+      console.error("Error generating image:", error);
       toast({
-        title: "Error",
-        description: "Failed to generate image. Please try again.",
+        title: "Error generating image",
+        description: error.message,
         variant: "destructive",
       });
+      setImageUrl("");
     } finally {
-      clearInterval(progressInterval);
-      setProgress(100);
-      setTimeout(() => {
-        setProgress(0);
-        setIsLoading(false);
-      }, 500);
+      setIsLoading(false);
+      setProgress(0);
+    }
+  };
+
+  const handleCopyPrompt = () => {
+    navigator.clipboard
+      .writeText(prompt)
+      .then(() => {
+        toast({
+          title: "Prompt copied",
+          description: "The prompt has been copied to your clipboard.",
+        });
+      })
+      .catch((error) => {
+        toast({
+          title: "Error copying prompt",
+          description: error.message,
+          variant: "destructive",
+        });
+      });
+  };
+
+  const handleSharePrompt = () => {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: "AI Image Prompt",
+          text: `Check out this AI image prompt: ${prompt}`,
+          url: document.location.href,
+        })
+        .then(() => {
+          toast({
+            title: "Prompt shared",
+            description: "The prompt has been shared successfully.",
+          });
+        })
+        .catch((error) => {
+          toast({
+            title: "Error sharing prompt",
+            description: error.message,
+            variant: "destructive",
+          });
+        });
+    } else {
+      toast({
+        title: "Sharing not supported",
+        description: "Web Share API is not supported in your browser.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="max-w-6xl mx-auto p-4 space-y-8 relative">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute w-64 h-64 -left-32 -top-32 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-          <div className="absolute w-64 h-64 -right-32 -top-32 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-          <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen pb-20 relative overflow-hidden morphing-background">
+      <div className="absolute pointer-events-none inset-0 flex items-center justify-center overflow-hidden">
+        <div
+          className="absolute rounded-full bg-purple-500 opacity-20 animate-blob"
+          style={{ width: "350px", height: "350px", left: "-100px", top: "100px" }}
+        ></div>
+        <div
+          className="absolute rounded-full bg-blue-500 opacity-20 animate-blob animation-delay-2000"
+          style={{ width: "250px", height: "250px", right: "-150px", bottom: "200px" }}
+        ></div>
+        <div
+          className="absolute rounded-full bg-pink-500 opacity-20 animate-blob animation-delay-4000"
+          style={{ width: "200px", height: "200px", left: "50px", bottom: "-50px" }}
+        ></div>
+      </div>
+
+      <div className="container mx-auto pt-12 px-4 relative z-10">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 mb-4 animate-fade-in">
+            Unleash Your Imagination with AI
+          </h1>
+          <p className="text-lg text-gray-700 dark:text-gray-300 animate-fade-in animation-delay-500">
+            Generate stunning images from text prompts using our AI-powered tool.
+          </p>
         </div>
 
-        <div className="text-center space-y-6 py-12 relative">
-          <div className="relative inline-block animate-float">
-            <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 opacity-20 animate-pulse"></div>
-            <h1 className="text-6xl font-bold relative">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
-                AI Image Generator
-              </span>
-            </h1>
-          </div>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            Transform your ideas into stunning visuals using advanced AI technology. 
-            Just describe what you want to see, and watch the magic happen!
-          </p>
-          <div className="flex justify-center gap-2">
-            <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" />
-            <Wand2 className="w-6 h-6 text-purple-500 animate-bounce" />
-            <Image className="w-6 h-6 text-blue-500 animate-pulse" />
-          </div>
+        {/* Advertisement Banner */}
+        <div className="my-6 p-4 rounded-xl bg-white/50 dark:bg-gray-800/50 shadow-md">
+          <div id="container-7ec2a540577d91506873402442fdb671" ref={adContainerRef}></div>
         </div>
 
         <div className="space-y-8 backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
           <div className="space-y-4">
-            <div className="flex gap-3">
+            <div className="flex items-center space-x-2">
+              <Wand2 className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <label htmlFor="prompt" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Enter your prompt
+              </label>
+            </div>
+            <div className="relative">
               <Input
-                placeholder="Describe the image you want to generate..."
+                id="prompt"
+                className="rounded-xl pr-12"
+                placeholder="A majestic dragon soaring through a stormy sky..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={isLoading}
-                className="flex-1 h-12 text-lg backdrop-blur-sm bg-white/50 dark:bg-gray-900/50 border-2 border-gray-200 dark:border-gray-700 focus:border-purple-500 transition-all duration-300"
               />
-              <Button 
-                onClick={generateImage} 
-                disabled={isLoading}
-                className="h-12 px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg transition-all duration-300 transform hover:scale-105"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="mr-2 h-5 w-5" />
-                    Generate
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {isLoading && (
-              <div className="space-y-3">
-                <Progress 
-                  value={progress} 
-                  className="h-2 bg-gray-200 dark:bg-gray-700"
-                />
-                <p className="text-sm text-center text-gray-600 dark:text-gray-400 animate-pulse">
-                  Crafting your masterpiece... {progress}%
-                </p>
+              <div className="absolute inset-y-0 right-0 flex py-1.5 pr-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 rounded-xl"
+                  onClick={handlePromptSubmit}
+                  disabled={isLoading || !prompt}
+                >
+                  {isLoading ? (
+                    <>
+                      Generating...
+                      <svg className="animate-spin ml-2 h-4 w-4 text-gray-500" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                    </>
+                  ) : (
+                    "Generate"
+                  )}
+                </Button>
               </div>
-            )}
+            </div>
           </div>
 
-          {generatedImage && !isLoading && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
+          {isLoading && (
+            <Progress value={progress} className="h-2 rounded-xl" />
+          )}
+
+          {imageUrl && (
+            <div className="space-y-4">
+              <Card className="overflow-hidden rounded-xl">
                 <div className="relative">
-                  <img
-                    src={generatedImage}
-                    alt="Generated image"
-                    className="w-full h-auto rounded-lg shadow-2xl transform transition duration-500 hover:scale-[1.01]"
-                  />
+                  <img src={imageUrl} alt="Generated Image" className="w-full aspect-video object-cover" />
+                  <div className="absolute top-2 right-2 flex space-x-2">
+                    <a href={imageUrl} target="_blank" rel="noopener noreferrer">
+                      <Button size="icon" variant="secondary">
+                        <Image className="h-4 w-4" />
+                      </Button>
+                    </a>
+                    <a href={imageUrl} download="generated_image.jpg">
+                      <Button size="icon" variant="secondary">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </a>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-lg p-4 shadow-lg">
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  <span className="font-semibold">Prompt:</span> {prompt}
-                </p>
+              </Card>
+
+              <div className="flex justify-between items-center">
+                <div className="flex space-x-2">
+                  <Button size="sm" variant="outline" onClick={handleCopyPrompt}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Prompt
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleSharePrompt}>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share Prompt
+                  </Button>
+                </div>
+                <Badge variant="secondary">AI Generated</Badge>
               </div>
             </div>
           )}
         </div>
 
-        <div className="py-16 space-y-8">
-          <div className="text-center space-y-4">
-            <h2 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center justify-center gap-2">
-              <LightbulbIcon className="w-8 h-8 text-yellow-500" />
-              Need Inspiration?
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300">
-              Click on any prompt below to try it out!
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* App Icons Section */}
+        <AppIconsSection />
+
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-gray-100 mb-8">Inspiration Gallery</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {inspirationGallery.map((item, index) => (
-              <div
-                key={index}
-                className="group relative overflow-hidden rounded-xl backdrop-blur-sm bg-white/30 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105"
-              >
-                <div className="aspect-square overflow-hidden">
-                  <img
-                    src={item.image}
-                    alt={item.prompt}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
+              <Card key={index} className="hover-card">
+                <img src={item.url} alt={`Inspiration ${index + 1}`} className="w-full aspect-video object-cover rounded-md" />
+                <div className="p-4">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{item.prompt}</p>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                    <span className="inline-block px-2 py-1 mb-2 text-xs font-semibold bg-purple-500 rounded-full">
-                      {item.category}
-                    </span>
-                    <p className="text-sm line-clamp-2 mb-2">{item.prompt}</p>
-                    <Button
-                      onClick={() => handlePromptClick(item.prompt)}
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-sm border-white/20 text-white"
-                    >
-                      Try this prompt <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              </Card>
             ))}
           </div>
-        </div>
-
-        <div className="text-center text-sm text-gray-500 dark:text-gray-400 pt-8">
-          <p>Powered by advanced AI technology • Create stunning visuals instantly</p>
         </div>
       </div>
     </div>
