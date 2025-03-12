@@ -122,6 +122,7 @@ export default function Auth() {
         <div className="text-center text-sm mt-4 text-gray-500">
           <p>Current URL: <strong>{window.location.origin}</strong></p>
           <p className="mt-2">Make sure this URL is added to the Authorized JavaScript origins and Authorized redirect URIs in both your Google Cloud Console and Discord Developer Portal.</p>
+          <p className="mt-2">For Discord, add <strong>{window.location.origin}/auth/callback</strong> as a redirect URL.</p>
         </div>
       </div>
     </div>
