@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import AuthStatus from "@/components/AuthStatus";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -30,9 +31,13 @@ export default function Auth() {
 
   const handleGoogleSignIn = async () => {
     try {
+      // Get the current URL to use for the redirect
+      const redirectTo = window.location.origin;
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
+          redirectTo: redirectTo,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -42,6 +47,7 @@ export default function Auth() {
       
       if (error) throw error;
     } catch (error) {
+      console.error("Google sign-in error:", error);
       toast({
         title: "Error",
         description: "Failed to sign in with Google. Please try again.",
@@ -53,6 +59,7 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-md w-full p-8 space-y-8 bg-white/30 dark:bg-gray-800/30 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+        <AuthStatus />
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome</h2>
           <p className="mt-2 text-gray-600 dark:text-gray-300">Sign in to continue to the app</p>
@@ -82,6 +89,10 @@ export default function Auth() {
           </svg>
           <span>Continue with Google</span>
         </Button>
+        <div className="text-center text-sm mt-4 text-gray-500">
+          <p>Current URL: <strong>{window.location.origin}</strong></p>
+          <p className="mt-2">Make sure this URL is added to the Authorized JavaScript origins and Authorized redirect URIs in your Google Cloud Console.</p>
+        </div>
       </div>
     </div>
   );
