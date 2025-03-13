@@ -1,10 +1,13 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Image, Wand2, LightbulbIcon, ArrowRight, Star } from "lucide-react";
+import { Loader2, Sparkles, Image as ImageIcon, Wand2, LightbulbIcon, ArrowRight, Star, Download, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import AiToolsSection from "@/components/AiToolsSection";
 
 const Index = () => {
   const [prompt, setPrompt] = useState("");
@@ -87,20 +90,41 @@ const Index = () => {
     }
   };
 
+  const downloadImage = () => {
+    if (!generatedImage) return;
+    
+    // Create an invisible anchor element
+    const link = document.createElement('a');
+    link.href = generatedImage;
+    link.download = `ai-generated-image-${Date.now()}.webp`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Download started",
+      description: "Your image is being downloaded",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-6xl mx-auto p-4 space-y-8 relative">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute w-64 h-64 -left-32 -top-32 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-          <div className="absolute w-64 h-64 -right-32 -top-32 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-          <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+          <div className="absolute w-64 h-64 -left-32 -top-32 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+          <div className="absolute w-64 h-64 -right-32 -top-32 bg-yellow-300 dark:bg-yellow-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+          <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
         </div>
 
-        <div className="text-center space-y-6 py-12 relative">
+        <div className="flex justify-end pt-4">
+          <ThemeToggle />
+        </div>
+
+        <div className="text-center space-y-6 py-8 relative">
           <div className="relative inline-block animate-float">
             <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 opacity-20 animate-pulse"></div>
-            <h1 className="text-6xl font-bold relative">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+            <h1 className="text-5xl md:text-6xl font-bold relative">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400">
                 AI Image Generator
               </span>
             </h1>
@@ -112,7 +136,7 @@ const Index = () => {
           <div className="flex justify-center gap-2">
             <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" />
             <Wand2 className="w-6 h-6 text-purple-500 animate-bounce" />
-            <Image className="w-6 h-6 text-blue-500 animate-pulse" />
+            <ImageIcon className="w-6 h-6 text-blue-500 animate-pulse" />
           </div>
         </div>
 
@@ -170,6 +194,30 @@ const Index = () => {
                   />
                 </div>
               </div>
+              <div className="flex flex-wrap gap-3 justify-end">
+                <Button 
+                  onClick={downloadImage}
+                  variant="outline"
+                  className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700"
+                >
+                  <Download className="w-4 h-4" />
+                  Download Image
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700"
+                  onClick={() => {
+                    navigator.clipboard.writeText(prompt);
+                    toast({
+                      title: "Copied!",
+                      description: "Prompt copied to clipboard",
+                    });
+                  }}
+                >
+                  <Share2 className="w-4 h-4" />
+                  Copy Prompt
+                </Button>
+              </div>
               <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-lg p-4 shadow-lg">
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   <span className="font-semibold">Prompt:</span> {prompt}
@@ -178,6 +226,9 @@ const Index = () => {
             </div>
           )}
         </div>
+
+        {/* AI Tools Section */}
+        <AiToolsSection />
 
         <div className="py-16 space-y-8">
           <div className="text-center space-y-4">
@@ -230,7 +281,7 @@ const Index = () => {
           </p>
           <div className="relative inline-block group">
             <div className="absolute inset-0 blur-xl bg-gradient-to-r from-purple-400 via-pink-500 to-purple-600 opacity-75 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
-            <h3 className="relative text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center gap-2">
+            <h3 className="relative text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 flex items-center justify-center gap-2">
               <Star className="w-5 h-5 text-yellow-500 animate-sparkle" />
               Created by Khairul
               <Star className="w-5 h-5 text-yellow-500 animate-sparkle" />
