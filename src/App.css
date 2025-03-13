@@ -1,3 +1,4 @@
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -39,4 +40,15 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Add these classes to fix transition issues */
+.transition-smooth {
+  transition: all 0.3s ease-out;
+}
+
+.no-flash {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }

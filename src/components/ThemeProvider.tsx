@@ -11,26 +11,48 @@ type ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check if theme was saved in localStorage
-    const savedTheme = localStorage.getItem("theme") as Theme;
-    // Check system preference if no saved theme
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    return savedTheme || (prefersDark ? "dark" : "light");
+    if (typeof window !== "undefined") {
+      // Check if theme was saved in localStorage
+      const savedTheme = localStorage.getItem("theme") as Theme;
+      // Check system preference if no saved theme
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      return savedTheme || (prefersDark ? "dark" : "light");
+    }
+    return "light"; // Default fallback
   });
 
+  // Only run after mount to prevent hydration mismatch
   useEffect(() => {
-    // Update document with current theme
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
+    // Apply theme with a small delay to allow for smooth transition
     const root = window.document.documentElement;
+    root.classList.add("transition-colors");
+    root.classList.add("duration-300");
+    
+    // Remove old theme first
     root.classList.remove("light", "dark");
+    // Then add new theme
     root.classList.add(theme);
+    
     // Save theme to localStorage
     localStorage.setItem("theme", theme);
-  }, [theme]);
+  }, [theme, mounted]);
 
   const toggleTheme = () => {
     setTheme(prevTheme => (prevTheme === "light" ? "dark" : "light"));
   };
+
+  // Don't render until client-side to prevent hydration mismatch
+  if (!mounted) {
+    return <>{children}</>;
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
