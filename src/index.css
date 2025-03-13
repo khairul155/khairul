@@ -25,10 +25,6 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
-
-    /* Add these for smoother transitions */
-    --transition-duration: 300ms;
-    --transition-timing: ease;
   }
 
   .dark {
@@ -59,20 +55,10 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground transition-colors duration-300;
-  }
-  
-  /* Prevent FOUC (Flash of Unstyled Content) */
-  html.js :root {
-    visibility: hidden;
-  }
-  
-  html.js.page-loaded :root {
-    visibility: visible;
+    @apply bg-background text-foreground;
   }
 }
 
-/* Fix animation durations for smoother transitions */
 @keyframes float {
   0%, 100% {
     transform: translateY(0) rotate(0deg);
@@ -96,18 +82,17 @@
   }
 }
 
-/* Slow down the blob animation */
 @keyframes blob {
   0% {
     transform: translate(0px, 0px) scale(1);
     border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
   }
   33% {
-    transform: translate(15px, -25px) scale(1.05);
+    transform: translate(30px, -50px) scale(1.1);
     border-radius: 50% 60% 70% 30% / 30% 60% 40% 70%;
   }
   66% {
-    transform: translate(-10px, 10px) scale(0.95);
+    transform: translate(-20px, 20px) scale(0.9);
     border-radius: 40% 60% 30% 70% / 70% 30% 60% 40%;
   }
   100% {
@@ -149,7 +134,7 @@
   }
 
   .animate-blob {
-    animation: blob 25s infinite; /* Slowed down */
+    animation: blob 15s infinite;
   }
 
   .animate-sparkle {
@@ -157,7 +142,7 @@
   }
 
   .animate-gradient {
-    animation: gradient-shift 15s ease infinite; /* Slowed down */
+    animation: gradient-shift 8s ease infinite;
     background-size: 200% 200%;
   }
 
@@ -172,23 +157,18 @@
   .glass-effect {
     @apply backdrop-blur-lg bg-white/30 dark:bg-gray-800/30;
   }
-  
-  /* Add utility for smoother transitions */
-  .transition-smooth {
-    transition: all 0.3s var(--transition-timing);
-  }
 }
 
 .morphing-background {
   background: linear-gradient(
     45deg,
-    rgba(147, 51, 234, 0.1), /* Reduced opacity */
-    rgba(219, 39, 119, 0.1),
-    rgba(236, 72, 153, 0.1),
-    rgba(147, 51, 234, 0.1)
+    rgba(147, 51, 234, 0.2),
+    rgba(219, 39, 119, 0.2),
+    rgba(236, 72, 153, 0.2),
+    rgba(147, 51, 234, 0.2)
   );
   background-size: 400% 400%;
-  animation: gradient-shift 20s ease infinite; /* Slowed down */
+  animation: gradient-shift 15s ease infinite;
 }
 
 .hover-card {
@@ -196,8 +176,8 @@
 }
 
 .hover-card:hover {
-  transform: translateY(-3px) scale(1.01); /* Smaller transform */
-  box-shadow: 0 10px 15px -5px rgba(0, 0, 0, 0.1), 0 5px 5px -5px rgba(0, 0, 0, 0.04);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .sparkle-button {
@@ -215,9 +195,9 @@
   background: linear-gradient(
     45deg,
     transparent,
-    rgba(255, 255, 255, 0.05), /* Reduced opacity */
+    rgba(255, 255, 255, 0.1),
     transparent
   );
   transform: rotate(45deg);
-  animation: sparkle 3s linear infinite; /* Slowed down */
+  animation: sparkle 2s linear infinite;
 }

@@ -4,25 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Image as ImageIcon, Wand2, LightbulbIcon, ArrowRight, Star, Download, Share2, User } from "lucide-react";
+import { Loader2, Sparkles, Image as ImageIcon, Wand2, LightbulbIcon, ArrowRight, Star, Download, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import AiToolsSection from "@/components/AiToolsSection";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const [prompt, setPrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [model, setModel] = useState("flux1");
   const { toast } = useToast();
-  const { user } = useAuth();
 
   const inspirationGallery = [
     {
@@ -52,32 +44,11 @@ const Index = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const getImageDimensions = () => {
-    if (aspectRatio === "1:1") return { width: 1024, height: 1024 };
-    if (aspectRatio === "9:16") return { width: 576, height: 1024 };
-    return { width: 1024, height: 1024 }; // Default
-  };
-
-  const getModelName = () => {
-    if (model === "flux1") return "black-forest-labs/flux-schnell";
-    if (model === "fluxPro") return "black-forest-labs/flux-schnell-pro";
-    return "black-forest-labs/flux-schnell"; // Default
-  };
-
   const generateImage = async () => {
     if (!prompt.trim()) {
       toast({
         title: "Error",
         description: "Please enter a prompt first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to generate images",
         variant: "destructive",
       });
       return;
@@ -90,23 +61,14 @@ const Index = () => {
     }, 500);
 
     try {
-      const dimensions = getImageDimensions();
-      const modelName = getModelName();
-
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { 
-          prompt,
-          width: dimensions.width,
-          height: dimensions.height,
-          model: modelName,
-          response_extension: "jpg" // Change to jpg
-        }
+        body: { prompt }
       });
 
       if (error) throw error;
 
       const imageBase64 = data.data[0].b64_json;
-      setGeneratedImage(`data:image/jpg;base64,${imageBase64}`);
+      setGeneratedImage(`data:image/webp;base64,${imageBase64}`);
       toast({
         title: "Success",
         description: "Image generated successfully!",
@@ -134,7 +96,7 @@ const Index = () => {
     // Create an invisible anchor element
     const link = document.createElement('a');
     link.href = generatedImage;
-    link.download = `ai-generated-image-${Date.now()}.jpg`; // Change to jpg
+    link.download = `ai-generated-image-${Date.now()}.webp`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -154,26 +116,8 @@ const Index = () => {
           <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
         </div>
 
-        <div className="flex justify-between items-center pt-4">
-          <Link to="/pricing" className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 font-medium flex items-center gap-1">
-            <span>Pricing</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <Link to="/profile" className="flex items-center gap-2 text-sm font-medium">
-                <div className="h-8 w-8 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center">
-                  <User className="h-4 w-4 text-purple-700 dark:text-purple-300" />
-                </div>
-                <span>{user.email}</span>
-              </Link>
-            ) : (
-              <Link to="/auth" className="text-sm font-medium">
-                Sign In
-              </Link>
-            )}
-            <ThemeToggle />
-          </div>
+        <div className="flex justify-end pt-4">
+          <ThemeToggle />
         </div>
 
         <div className="text-center space-y-6 py-8 relative">
@@ -197,7 +141,7 @@ const Index = () => {
         </div>
 
         <div className="space-y-8 backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="flex gap-3">
               <Input
                 placeholder="Describe the image you want to generate..."
@@ -223,45 +167,6 @@ const Index = () => {
                   </>
                 )}
               </Button>
-            </div>
-
-            {/* Options Panel */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Aspect Ratio</Label>
-                <RadioGroup 
-                  value={aspectRatio} 
-                  onValueChange={setAspectRatio}
-                  className="flex space-x-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="1:1" id="ratio-1:1" />
-                    <Label htmlFor="ratio-1:1">1:1 (Square)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="9:16" id="ratio-9:16" />
-                    <Label htmlFor="ratio-9:16">9:16 (Portrait)</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Model</Label>
-                <RadioGroup 
-                  value={model} 
-                  onValueChange={setModel}
-                  className="flex space-x-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="flux1" id="model-flux1" />
-                    <Label htmlFor="model-flux1">Flux 1</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="fluxPro" id="model-fluxPro" />
-                    <Label htmlFor="model-fluxPro">Flux Pro</Label>
-                  </div>
-                </RadioGroup>
-              </div>
             </div>
 
             {isLoading && (
@@ -296,7 +201,7 @@ const Index = () => {
                   className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700"
                 >
                   <Download className="w-4 h-4" />
-                  Download Image (JPG)
+                  Download Image
                 </Button>
                 <Button 
                   variant="outline"
@@ -325,7 +230,6 @@ const Index = () => {
         {/* AI Tools Section */}
         <AiToolsSection />
 
-        {/* Inspiration Gallery */}
         <div className="py-16 space-y-8">
           <div className="text-center space-y-4">
             <h2 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center justify-center gap-2">
@@ -384,6 +288,7 @@ const Index = () => {
             </h3>
           </div>
         </div>
+
       </div>
     </div>
   );
