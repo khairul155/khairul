@@ -34,7 +34,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -58,7 +58,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       
@@ -121,8 +121,9 @@ export default function Auth() {
         
         <div className="text-center text-sm mt-4 text-gray-500">
           <p>Current URL: <strong>{window.location.origin}</strong></p>
-          <p className="mt-2">Make sure this URL is added to the Authorized JavaScript origins and Authorized redirect URIs in both your Google Cloud Console and Discord Developer Portal.</p>
-          <p className="mt-2">For Discord, add <strong>{window.location.origin}/auth/callback</strong> as a redirect URL.</p>
+          <p className="mt-2">Make sure this URL is added to the Authorized JavaScript origins in your OAuth provider settings.</p>
+          <p className="mt-2">For Discord and Google, add <strong>{window.location.origin}/auth/callback</strong> as a redirect URL.</p>
+          <p className="mt-2">Also ensure that the Site URL in Supabase Auth settings is set to <strong>{window.location.origin}</strong>.</p>
         </div>
       </div>
     </div>

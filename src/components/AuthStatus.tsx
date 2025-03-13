@@ -54,6 +54,9 @@ const AuthStatus = () => {
           <br />
           3. Set the Site URL in Supabase to match your application URL: {window.location.origin}
         </p>
+        <p className="mt-2 text-sm">
+          After making these changes, try logging in again.
+        </p>
       </AlertDescription>
     </Alert>
   );
