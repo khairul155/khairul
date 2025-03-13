@@ -13,14 +13,21 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json()
+    const { 
+      prompt, 
+      width = 1024, 
+      height = 1024, 
+      model = "black-forest-labs/flux-schnell", 
+      response_extension = "jpg" 
+    } = await req.json()
+    
     const apiKey = Deno.env.get('NEBIUS_API_KEY')
 
     if (!apiKey) {
       throw new Error('API key not found')
     }
 
-    console.log('Generating image for prompt:', prompt)
+    console.log('Generating image for prompt:', prompt, 'with dimensions:', width, 'x', height, 'using model:', model)
 
     const response = await fetch("https://api.studio.nebius.com/v1/images/generations", {
       method: "POST",
@@ -30,11 +37,11 @@ serve(async (req) => {
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "black-forest-labs/flux-schnell",
+        model: model,
         response_format: "b64_json",
-        response_extension: "webp",
-        width: 1024,
-        height: 1024,
+        response_extension: response_extension,
+        width: width,
+        height: height,
         num_inference_steps: 4,
         negative_prompt: "",
         seed: -1,
