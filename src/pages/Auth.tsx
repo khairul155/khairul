@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Mail, Key, User, Sparkles, Image, Wand2 } from "lucide-react";
-import PricingPlans from "@/components/PricingPlans";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -199,11 +198,6 @@ const Auth = () => {
             </div>
           </div>
         </div>
-
-        {/* Pricing Section */}
-        <section className="py-16">
-          <PricingPlans />
-        </section>
 
         {/* Footer */}
         <div className="text-center space-y-4 pt-8 pb-16">
