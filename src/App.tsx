@@ -1,85 +1,41 @@
 
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
+import { AuthProvider } from "@/components/AuthProvider";
+import Index from "@/pages/Index";
+import Auth from "@/pages/Auth";
+import { useAuth } from "@/components/AuthProvider";
 
-const queryClient = new QueryClient();
-
-const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    // Handle the auth callback URL
-    if (window.location.hash && window.location.hash.includes("access_token")) {
-      // This indicates the user has been redirected back from OAuth provider
-      console.log("Auth callback detected, processing authentication...");
-      
-      // The supabase client will automatically handle the hash fragment
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          console.log("User successfully authenticated");
-          setIsAuthenticated(true);
-          // Clear the hash to clean up the URL
-          window.history.replaceState(null, document.title, window.location.pathname);
-        }
-      });
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event);
-      setIsAuthenticated(event === "SIGNED_IN");
-      
-      // Redirect to the home page after successful authentication
-      if (event === "SIGNED_IN" && session) {
-        window.location.href = "/";
-      }
-    });
-
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Initial session check:", session ? "Authenticated" : "Not authenticated");
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (isAuthenticated === null) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    ); // Show a loading spinner while checking auth status
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) return null;
+  
+  if (!user) {
+    return <Navigate to="/auth" />;
   }
 
+  return <>{children}</>;
+};
+
+const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <Router>
+      <AuthProvider>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/auth" element={<Auth />} />
+        </Routes>
         <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route
-              path="/"
-              element={isAuthenticated ? <Index /> : <Navigate to="/auth" />}
-            />
-            <Route
-              path="/auth"
-              element={!isAuthenticated ? <Auth /> : <Navigate to="/" />}
-            />
-            <Route path="/auth/callback" element={<Navigate to="/" />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+      </AuthProvider>
+    </Router>
   );
 };
 
