@@ -37,7 +37,8 @@ serve(async (req) => {
     console.log("Calling Gemini API with max keywords:", maxKeywords);
     
     // Call Gemini API for image analysis
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=' + apiKey, {
+    const geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent';
+    const response = await fetch(`${geminiEndpoint}?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -67,6 +68,18 @@ serve(async (req) => {
       })
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Gemini API error response:", errorData);
+      return new Response(
+        JSON.stringify({ error: errorData.error?.message || `API request failed with status ${response.status}` }),
+        { 
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const data = await response.json();
     console.log("Gemini API response received");
 
@@ -83,7 +96,12 @@ serve(async (req) => {
 
     try {
       // Extract the JSON string from the response
-      const textContent = data.candidates[0].content.parts[0].text;
+      const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!textContent) {
+        throw new Error("No text content found in Gemini API response");
+      }
+      
       console.log("Raw text response:", textContent);
       
       // Try to parse the JSON from the text response
@@ -91,7 +109,22 @@ serve(async (req) => {
       let metadata = {};
       
       if (jsonMatch) {
-        metadata = JSON.parse(jsonMatch[0]);
+        try {
+          metadata = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error("Error parsing JSON from response:", parseError);
+          
+          // Fallback parsing
+          const titleMatch = textContent.match(/title["\s:]+([^"]+)/i);
+          const descMatch = textContent.match(/description["\s:]+([^"]+)/i);
+          const keywordsMatch = textContent.match(/keywords["\s:]+([^"]+)/i);
+          
+          metadata = {
+            title: titleMatch ? titleMatch[1].trim() : "Untitled Image",
+            description: descMatch ? descMatch[1].trim() : "No description available",
+            keywords: keywordsMatch ? keywordsMatch[1].trim().split(',').map(k => k.trim()) : []
+          };
+        }
       } else {
         // Attempt to parse by looking for the keys
         const titleMatch = textContent.match(/title["\s:]+([^"]+)/i);
@@ -121,7 +154,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: "Failed to parse metadata from AI response", 
-          rawResponse: data.candidates[0]?.content?.parts[0]?.text || "No text response" 
+          rawResponse: data.candidates?.[0]?.content?.parts?.[0]?.text || "No text response" 
         }),
         { 
           status: 500,
