@@ -1,6 +1,6 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
+import { Link } from 'react-router-dom';
 
 interface AiToolIconProps {
   icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI"; // Icon names
@@ -8,6 +8,7 @@ interface AiToolIconProps {
   description: string;
   color: string;
   onClick?: () => void;
+  to?: string; // New prop for routing
   className?: string;
 }
 
@@ -17,6 +18,7 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
   description, 
   color, 
   onClick,
+  to,
   className 
 }) => {
   // Map of background colors for each icon type
@@ -29,7 +31,7 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
     BI: "bg-gradient-to-br from-amber-400 to-yellow-300", // Bulk Image Size Increaser
   };
 
-  return (
+  const content = (
     <div 
       className={cn(
         "flex flex-col items-center text-center cursor-pointer transition-transform hover:scale-105",
@@ -49,6 +51,18 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
       <p className="text-xs text-gray-600 dark:text-gray-300 max-w-[200px] mt-1">{description}</p>
     </div>
   );
+
+  // If a "to" prop is provided, wrap the content in a Link component
+  if (to) {
+    return (
+      <Link to={to}>
+        {content}
+      </Link>
+    );
+  }
+
+  // Otherwise, return the content as is
+  return content;
 };
 
 export default AiToolIcon;
