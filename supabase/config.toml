@@ -25,3 +25,4 @@ port = 54326
 port = 54327
 
 [functions.generate-metadata]
+verify_jwt = false

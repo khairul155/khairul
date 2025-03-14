@@ -106,6 +106,8 @@ const MetadataGenerator: React.FC = () => {
               }
             });
 
+            console.log("Function call response:", data, error);
+
             if (error) {
               throw new Error(error.message || 'Error calling Gemini API');
             }
@@ -116,6 +118,7 @@ const MetadataGenerator: React.FC = () => {
 
             resolve(data as ImageMetadata);
           } catch (error) {
+            console.error("Error in processing:", error);
             reject(error);
           }
         };

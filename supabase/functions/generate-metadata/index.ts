@@ -34,6 +34,8 @@ serve(async (req) => {
     // Extract original filename if provided
     const filename = image.originalname || 'image';
     
+    console.log("Calling Gemini API with max keywords:", maxKeywords);
+    
     // Call Gemini API for image analysis
     const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=' + apiKey, {
       method: 'POST',
@@ -66,9 +68,10 @@ serve(async (req) => {
     });
 
     const data = await response.json();
-    console.log("Gemini API response:", JSON.stringify(data));
+    console.log("Gemini API response received");
 
     if (data.error) {
+      console.error("Gemini API error:", data.error);
       return new Response(
         JSON.stringify({ error: data.error.message || "Error calling Gemini API" }),
         { 
@@ -81,6 +84,7 @@ serve(async (req) => {
     try {
       // Extract the JSON string from the response
       const textContent = data.candidates[0].content.parts[0].text;
+      console.log("Raw text response:", textContent);
       
       // Try to parse the JSON from the text response
       const jsonMatch = textContent.match(/\{[\s\S]*\}/);
@@ -103,6 +107,7 @@ serve(async (req) => {
       
       // Add the filename
       metadata.filename = filename;
+      console.log("Returning metadata:", JSON.stringify(metadata));
       
       return new Response(
         JSON.stringify(metadata),
