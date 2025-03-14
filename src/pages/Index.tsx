@@ -1,5 +1,4 @@
-
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -7,28 +6,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, Image as ImageIcon, Wand2, LightbulbIcon, ArrowRight, Star, Download, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import AiToolsSection from "@/components/AiToolsSection";
 import { UserMenu } from "@/components/UserMenu";
-import { Skeleton } from "@/components/ui/skeleton";
-
-// Lazy load the AiToolsSection component
-const AiToolsSection = lazy(() => import("@/components/AiToolsSection"));
 
 const Index = () => {
   const [prompt, setPrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [showInspirationGallery, setShowInspirationGallery] = useState(false);
   const { toast } = useToast();
-
-  // Load inspiration gallery after initial render
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowInspirationGallery(true);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, []);
 
   const inspirationGallery = [
     {
@@ -107,6 +93,7 @@ const Index = () => {
   const downloadImage = () => {
     if (!generatedImage) return;
     
+    // Create an invisible anchor element
     const link = document.createElement('a');
     link.href = generatedImage;
     link.download = `ai-generated-image-${Date.now()}.webp`;
@@ -241,79 +228,53 @@ const Index = () => {
           )}
         </div>
 
-        {/* AI Tools Section - Lazy loaded */}
-        <Suspense fallback={
-          <div className="py-12 px-4">
-            <Skeleton className="h-12 w-64 mx-auto mb-10" />
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 justify-items-center">
-              {[...Array(6)].map((_, index) => (
-                <Skeleton key={index} className="h-32 w-full rounded-lg" />
-              ))}
-            </div>
-          </div>
-        }>
-          {showInspirationGallery && <AiToolsSection />}
-        </Suspense>
+        {/* AI Tools Section */}
+        <AiToolsSection />
 
-        {showInspirationGallery ? (
-          <div className="py-16 space-y-8">
-            <div className="text-center space-y-4">
-              <h2 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center justify-center gap-2">
-                <LightbulbIcon className="w-8 h-8 text-yellow-500" />
-                Need Inspiration?
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                Click on any prompt below to try it out!
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {inspirationGallery.map((item, index) => (
-                <div
-                  key={index}
-                  className="group relative overflow-hidden rounded-xl backdrop-blur-sm bg-white/30 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105"
-                >
-                  <div className="aspect-square overflow-hidden">
-                    <img
-                      loading="lazy"
-                      src={item.image}
-                      alt={item.prompt}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                      <span className="inline-block px-2 py-1 mb-2 text-xs font-semibold bg-purple-500 rounded-full">
-                        {item.category}
-                      </span>
-                      <p className="text-sm line-clamp-2 mb-2">{item.prompt}</p>
-                      <Button
-                        onClick={() => handlePromptClick(item.prompt)}
-                        variant="outline"
-                        size="sm"
-                        className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-sm border-white/20 text-white"
-                      >
-                        Try this prompt <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
+        <div className="py-16 space-y-8">
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center justify-center gap-2">
+              <LightbulbIcon className="w-8 h-8 text-yellow-500" />
+              Need Inspiration?
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              Click on any prompt below to try it out!
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {inspirationGallery.map((item, index) => (
+              <div
+                key={index}
+                className="group relative overflow-hidden rounded-xl backdrop-blur-sm bg-white/30 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105"
+              >
+                <div className="aspect-square overflow-hidden">
+                  <img
+                    src={item.image}
+                    alt={item.prompt}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                    <span className="inline-block px-2 py-1 mb-2 text-xs font-semibold bg-purple-500 rounded-full">
+                      {item.category}
+                    </span>
+                    <p className="text-sm line-clamp-2 mb-2">{item.prompt}</p>
+                    <Button
+                      onClick={() => handlePromptClick(item.prompt)}
+                      variant="outline"
+                      size="sm"
+                      className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-sm border-white/20 text-white"
+                    >
+                      Try this prompt <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="py-16">
-            <div className="flex flex-col items-center space-y-4">
-              <Skeleton className="h-12 w-64" />
-              <Skeleton className="h-6 w-96" />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full mt-4">
-                {[...Array(4)].map((_, index) => (
-                  <Skeleton key={index} className="aspect-square rounded-xl" />
-                ))}
               </div>
-            </div>
+            ))}
           </div>
-        )}
+        </div>
 
         <div className="text-center space-y-4 pt-8">
           <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -328,6 +289,7 @@ const Index = () => {
             </h3>
           </div>
         </div>
+
       </div>
     </div>
   );
