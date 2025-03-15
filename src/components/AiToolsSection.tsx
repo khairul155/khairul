@@ -1,11 +1,19 @@
 
+import { useNavigate } from "react-router-dom";
 import AiToolIcon from "./AiToolIcon";
 
 const AiToolsSection = () => {
-  const handleToolClick = (toolName: string) => {
+  const navigate = useNavigate();
+
+  const handleToolClick = (toolName: string, route?: string) => {
     console.log(`${toolName} clicked`);
-    // This is a placeholder for actual tool functionality
-    // You can implement specific actions for each tool here
+    
+    if (route) {
+      navigate(route);
+    } else {
+      // This is a placeholder for actual tool functionality
+      // You can implement specific actions for each tool here
+    }
   };
 
   return (
@@ -29,7 +37,7 @@ const AiToolsSection = () => {
             label="Meta Data Generator"
             description="Extracts and generates metadata for images"
             color="green"
-            onClick={() => handleToolClick("Meta Data Generator")}
+            onClick={() => handleToolClick("Meta Data Generator", "/metadata-generator")}
           />
           
           <AiToolIcon 

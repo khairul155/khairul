@@ -14,6 +14,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           id: string
+          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
           updated_at: string
           username: string | null
         }
@@ -21,6 +22,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id: string
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           updated_at?: string
           username?: string | null
         }
@@ -28,6 +30,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id?: string
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           updated_at?: string
           username?: string | null
         }
@@ -41,7 +44,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      subscription_plan: "free" | "pro"
     }
     CompositeTypes: {
       [_ in never]: never

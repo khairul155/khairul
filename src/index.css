@@ -155,7 +155,7 @@
   }
 
   .glass-effect {
-    @apply backdrop-blur-lg bg-white/30 dark:bg-gray-800/30;
+    @apply backdrop-blur-sm bg-opacity-30 dark:bg-opacity-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg;
   }
 }
 
