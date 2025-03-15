@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -13,9 +13,9 @@ import {
   Download, 
   Copy,
   ImageIcon,
-  ArrowLeft
+  ArrowLeft,
+  Key
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Link } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,8 +28,36 @@ const MetadataGenerator = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<{ fileName: string; title: string; description: string; keywords: string } | null>(null);
   const [results, setResults] = useState<Array<{ fileName: string; title: string; description: string; keywords: string }>>([]);
+  const [apiKey, setApiKey] = useState<string>("");
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Load saved API key and results from localStorage on component mount
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem('gemini_api_key');
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    } else {
+      setShowApiKeyInput(true);
+    }
+
+    const savedResults = localStorage.getItem('metadata_results');
+    if (savedResults) {
+      try {
+        setResults(JSON.parse(savedResults));
+      } catch (error) {
+        console.error("Error parsing saved results:", error);
+      }
+    }
+  }, []);
+
+  // Save results to localStorage whenever they change
+  useEffect(() => {
+    if (results.length > 0) {
+      localStorage.setItem('metadata_results', JSON.stringify(results));
+    }
+  }, [results]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -92,6 +120,24 @@ const MetadataGenerator = () => {
     }
   };
 
+  const saveApiKey = () => {
+    if (!apiKey.trim()) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter your Gemini API key",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    localStorage.setItem('gemini_api_key', apiKey);
+    setShowApiKeyInput(false);
+    toast({
+      title: "API Key Saved",
+      description: "Your Gemini API key has been saved"
+    });
+  };
+
   const generateMetadata = async () => {
     if (!selectedFile) {
       toast({
@@ -99,6 +145,16 @@ const MetadataGenerator = () => {
         description: "Please select an image first",
         variant: "destructive"
       });
+      return;
+    }
+
+    if (!apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter your Gemini API key",
+        variant: "destructive"
+      });
+      setShowApiKeyInput(true);
       return;
     }
 
@@ -118,35 +174,109 @@ const MetadataGenerator = () => {
       // Convert the image to base64
       const base64String = await convertFileToBase64(selectedFile);
       
-      console.log("Calling generate-metadata function with file:", selectedFile.name);
+      console.log("Generating metadata for file:", selectedFile.name);
       
-      // Call the Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('generate-metadata', {
-        body: { 
-          imageBase64: base64String,
-          fileName: selectedFile.name
-        }
+      // Prepare the request payload for Gemini
+      const payload = {
+        contents: [
+          {
+            parts: [
+              {
+                text: `Generate SEO metadata for this image with the filename "${selectedFile.name}". Provide the following in JSON format with these exact keys:
+                  1. "title": A concise, SEO-friendly title
+                  2. "description": A detailed description (2-3 sentences)
+                  3. "keywords": A comma-separated list of relevant keywords (5-10 keywords)
+                  
+                  Return ONLY valid JSON without any other text, formatted like:
+                  {
+                    "title": "...",
+                    "description": "...",
+                    "keywords": "..."
+                  }`
+              },
+              {
+                inline_data: {
+                  mime_type: "image/jpeg",
+                  data: base64String
+                }
+              }
+            ]
+          }
+        ]
+      };
+
+      // Call the Gemini API directly
+      const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent";
+      const apiUrlWithKey = `${apiUrl}?key=${apiKey}`;
+      
+      const response = await fetch(apiUrlWithKey, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
 
-      if (error) {
-        console.error("Error calling function:", error);
-        throw new Error(error.message || "Failed to generate metadata");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Gemini API error response:", errorText);
+        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
       }
 
-      console.log("Function response:", data);
+      // Parse API response
+      const data = await response.json();
+      console.log("Gemini API response:", JSON.stringify(data));
+
+      // Extract the text from the Gemini response
+      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
-      if (!data || !data.title) {
-        throw new Error("Invalid response from metadata generator");
+      if (!responseText) {
+        console.error("Empty or invalid response from Gemini API");
+        throw new Error("Empty or invalid response from Gemini API");
       }
 
-      // Set the metadata result
+      console.log("Raw text from Gemini:", responseText);
+
+      // Extract the JSON part from the response text (in case there's extra text)
+      let extractedJson;
+      try {
+        // Try to parse the response directly first
+        extractedJson = JSON.parse(responseText);
+        console.log("Successfully parsed JSON directly");
+      } catch (error) {
+        console.log("Direct JSON parsing failed, attempting to extract JSON from text");
+        
+        // Try to find JSON within the text
+        const jsonMatch = responseText.match(/{[\s\S]*?}/);
+        if (jsonMatch) {
+          try {
+            extractedJson = JSON.parse(jsonMatch[0]);
+            console.log("Successfully extracted and parsed JSON from text");
+          } catch (extractError) {
+            console.error("Failed to parse extracted JSON:", extractError);
+            throw new Error("Failed to parse metadata from API response");
+          }
+        } else {
+          console.error("No JSON found in response text");
+          throw new Error("No metadata found in API response");
+        }
+      }
+
+      // Validate the extracted JSON
+      if (!extractedJson.title || !extractedJson.description || !extractedJson.keywords) {
+        console.error("Missing required fields in extracted JSON:", JSON.stringify(extractedJson));
+        throw new Error("Missing required metadata fields in API response");
+      }
+
+      // Prepare the final response
       const result = {
         fileName: selectedFile.name,
-        title: data.title,
-        description: data.description,
-        keywords: data.keywords
+        title: extractedJson.title,
+        description: extractedJson.description,
+        keywords: extractedJson.keywords
       };
-      
+
+      // Set the metadata result
       setMetadata(result);
       
       // Add to results list
@@ -227,6 +357,15 @@ const MetadataGenerator = () => {
     });
   };
 
+  const clearResults = () => {
+    setResults([]);
+    localStorage.removeItem('metadata_results');
+    toast({
+      title: "Results Cleared",
+      description: "All metadata results have been cleared",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-6xl mx-auto p-4 space-y-8 relative">
@@ -244,8 +383,40 @@ const MetadataGenerator = () => {
             <ArrowLeft className="h-4 w-4" />
             Back to Home
           </Link>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+              className="flex items-center gap-1 text-xs"
+            >
+              <Key className="h-3 w-3" />
+              API Key
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
+
+        {showApiKeyInput && (
+          <div className="backdrop-blur-lg bg-white/70 dark:bg-gray-800/70 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md">
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium">Gemini API Key</h3>
+              <div className="flex gap-2">
+                <Input 
+                  type="text" 
+                  value={apiKey} 
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Enter your Gemini API key"
+                  className="flex-1"
+                />
+                <Button onClick={saveApiKey}>Save Key</Button>
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Get your free API key from <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline">Google AI Studio</a>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="text-center space-y-6 py-8 relative">
           <div className="relative inline-block animate-float">
@@ -344,14 +515,26 @@ const MetadataGenerator = () => {
           <div className="backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Results</h2>
-              <Button 
-                onClick={downloadCsv}
-                variant="outline"
-                className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700"
-              >
-                <Download className="w-4 h-4" />
-                Download CSV
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={downloadCsv}
+                  variant="outline"
+                  className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 text-xs"
+                >
+                  <Download className="w-3 h-3" />
+                  CSV
+                </Button>
+                {results.length > 0 && (
+                  <Button 
+                    onClick={clearResults}
+                    variant="outline"
+                    className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 text-xs text-red-500 dark:text-red-400"
+                  >
+                    <X className="w-3 h-3" />
+                    Clear
+                  </Button>
+                )}
+              </div>
             </div>
 
             {metadata ? (
@@ -455,7 +638,7 @@ const MetadataGenerator = () => {
 
         <div className="text-center space-y-4 pt-8">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Powered by advanced AI technology • Generate accurate metadata instantly
+            Powered by Google Gemini • Generate accurate metadata instantly
           </p>
           <div className="relative inline-block group">
             <div className="absolute inset-0 blur-xl bg-gradient-to-r from-green-400 via-teal-500 to-blue-600 opacity-75 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
