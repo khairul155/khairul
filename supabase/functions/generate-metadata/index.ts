@@ -14,16 +14,33 @@ serve(async (req) => {
   }
 
   try {
-    const requestBody = await req.json().catch(error => {
-      console.error("Error parsing request body:", error);
-      throw new Error("Invalid request format: " + error.message);
-    });
+    // Parse request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log("Request body successfully parsed");
+    } catch (error) {
+      console.error("Failed to parse request body:", error);
+      return new Response(
+        JSON.stringify({ error: "Invalid request format: " + error.message }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
     
     const { image, apiKey, maxKeywords } = requestBody;
     
-    console.log("Request received, has image:", !!image, "has API key:", !!apiKey, "maxKeywords:", maxKeywords);
+    console.log("Request received with:", {
+      hasImage: !!image, 
+      hasApiKey: !!apiKey, 
+      maxKeywords, 
+      imageSize: image ? image.length : 0
+    });
     
     if (!apiKey) {
+      console.error("Missing API key");
       return new Response(
         JSON.stringify({ error: "Gemini API key is required" }),
         { 
@@ -34,6 +51,7 @@ serve(async (req) => {
     }
 
     if (!image) {
+      console.error("Missing image data");
       return new Response(
         JSON.stringify({ error: "Image data is required" }),
         { 
@@ -44,9 +62,26 @@ serve(async (req) => {
     }
 
     // Remove data URL prefix if present to get the base64 data
-    const base64Image = image.includes('base64,') 
-      ? image.split('base64,')[1] 
-      : image;
+    let base64Image;
+    try {
+      base64Image = image.includes('base64,') 
+        ? image.split('base64,')[1] 
+        : image;
+      
+      if (!base64Image || base64Image.trim() === '') {
+        throw new Error("Invalid base64 image data");
+      }
+      console.log("Base64 image processed, length:", base64Image.length);
+    } catch (error) {
+      console.error("Error processing base64 image:", error);
+      return new Response(
+        JSON.stringify({ error: "Invalid image data: " + error.message }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     // Extract original filename if provided
     const filename = requestBody.originalname || 'image';
@@ -56,8 +91,9 @@ serve(async (req) => {
     // Call Gemini API for image analysis
     const geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent';
     
+    let response;
     try {
-      const response = await fetch(`${geminiEndpoint}?key=${apiKey}`, {
+      response = await fetch(`${geminiEndpoint}?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,23 +123,39 @@ serve(async (req) => {
         })
       });
 
+      console.log("Gemini API response status:", response.status);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Gemini API error response:", errorData);
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Gemini API error response:", JSON.stringify(errorData));
         return new Response(
-          JSON.stringify({ error: errorData.error?.message || `API request failed with status ${response.status}` }),
+          JSON.stringify({ 
+            error: errorData.error?.message || `API request failed with status ${response.status}`,
+            details: errorData
+          }),
           { 
-            status: response.status,
+            status: response.status >= 400 && response.status < 600 ? response.status : 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
       }
+    } catch (fetchError) {
+      console.error("Network error calling Gemini API:", fetchError);
+      return new Response(
+        JSON.stringify({ error: `Network error calling Gemini API: ${fetchError.message}` }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
+    try {
       const data = await response.json();
-      console.log("Gemini API response received");
+      console.log("Gemini API response received:", JSON.stringify(data).substring(0, 200) + "...");
 
       if (data.error) {
-        console.error("Gemini API error:", data.error);
+        console.error("Gemini API returned error:", data.error);
         return new Response(
           JSON.stringify({ error: data.error.message || "Error calling Gemini API" }),
           { 
@@ -113,78 +165,97 @@ serve(async (req) => {
         );
       }
 
-      try {
-        // Extract the JSON string from the response
-        const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        
-        if (!textContent) {
-          throw new Error("No text content found in Gemini API response");
-        }
-        
-        console.log("Raw text response:", textContent);
-        
-        // Try to parse the JSON from the text response
-        const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-        let metadata = {};
-        
-        if (jsonMatch) {
-          try {
-            metadata = JSON.parse(jsonMatch[0]);
-          } catch (parseError) {
-            console.error("Error parsing JSON from response:", parseError);
-            
-            // Fallback parsing
-            const titleMatch = textContent.match(/title["\s:]+([^"]+)/i);
-            const descMatch = textContent.match(/description["\s:]+([^"]+)/i);
-            const keywordsMatch = textContent.match(/keywords["\s:]+([^"]+)/i);
-            
-            metadata = {
-              title: titleMatch ? titleMatch[1].trim() : "Untitled Image",
-              description: descMatch ? descMatch[1].trim() : "No description available",
-              keywords: keywordsMatch ? keywordsMatch[1].trim().split(',').map(k => k.trim()) : []
-            };
-          }
-        } else {
-          // Attempt to parse by looking for the keys
-          const titleMatch = textContent.match(/title["\s:]+([^"]+)/i);
-          const descMatch = textContent.match(/description["\s:]+([^"]+)/i);
-          const keywordsMatch = textContent.match(/keywords["\s:]+([^"]+)/i);
-          
-          metadata = {
-            title: titleMatch ? titleMatch[1].trim() : "Untitled Image",
-            description: descMatch ? descMatch[1].trim() : "No description available",
-            keywords: keywordsMatch ? keywordsMatch[1].trim().split(',').map(k => k.trim()) : []
-          };
-        }
-        
-        // Add the filename
-        metadata.filename = filename;
-        console.log("Returning metadata:", JSON.stringify(metadata));
-        
+      // Extract the JSON string from the response
+      const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!textContent) {
+        console.error("No text content found in Gemini API response:", JSON.stringify(data));
         return new Response(
-          JSON.stringify(metadata),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      } catch (parseError) {
-        console.error("Error parsing Gemini response:", parseError);
-        
-        return new Response(
-          JSON.stringify({ 
-            error: "Failed to parse metadata from AI response", 
-            rawResponse: data.candidates?.[0]?.content?.parts?.[0]?.text || "No text response" 
-          }),
+          JSON.stringify({ error: "No text content found in Gemini API response" }),
           { 
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
       }
-    } catch (geminiError) {
-      console.error("Error calling Gemini API:", geminiError);
+      
+      console.log("Raw text response:", textContent);
+      
+      // Try to parse the JSON from the text response
+      let metadata = {};
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+      
+      if (jsonMatch) {
+        try {
+          metadata = JSON.parse(jsonMatch[0]);
+          console.log("Successfully parsed JSON from response:", JSON.stringify(metadata));
+        } catch (parseError) {
+          console.error("Error parsing JSON from response:", parseError);
+          
+          // Fallback parsing
+          const titleMatch = textContent.match(/["']?title["']?\s*:\s*["']([^"']+)["']/i);
+          const descMatch = textContent.match(/["']?description["']?\s*:\s*["']([^"']+)["']/i);
+          const keywordsMatch = textContent.match(/["']?keywords["']?\s*:\s*\[(.*?)\]/i) || 
+                               textContent.match(/["']?keywords["']?\s*:\s*["']([^"']+)["']/i);
+          
+          metadata = {
+            title: titleMatch ? titleMatch[1].trim() : "Untitled Image",
+            description: descMatch ? descMatch[1].trim() : "No description available",
+            keywords: keywordsMatch 
+              ? keywordsMatch[1].split(/,\s*/).map(k => 
+                  k.replace(/^["']|["']$/g, '').trim()
+                ).filter(Boolean)
+              : []
+          };
+          console.log("Used fallback parsing for metadata:", JSON.stringify(metadata));
+        }
+      } else {
+        // Attempt to parse by looking for the keys
+        console.log("No JSON object found, using regex fallback");
+        const titleMatch = textContent.match(/["']?title["']?\s*:\s*["']([^"']+)["']/i);
+        const descMatch = textContent.match(/["']?description["']?\s*:\s*["']([^"']+)["']/i);
+        const keywordsMatch = textContent.match(/["']?keywords["']?\s*:\s*\[(.*?)\]/i) || 
+                             textContent.match(/["']?keywords["']?\s*:\s*["']([^"']+)["']/i);
+        
+        metadata = {
+          title: titleMatch ? titleMatch[1].trim() : "Untitled Image",
+          description: descMatch ? descMatch[1].trim() : "No description available",
+          keywords: keywordsMatch 
+            ? (keywordsMatch[1].includes('"') || keywordsMatch[1].includes("'"))
+              ? keywordsMatch[1].split(/,\s*/).map(k => 
+                  k.replace(/^["']|["']$/g, '').trim()
+                ).filter(Boolean)
+              : keywordsMatch[1].split(/,\s*/).map(k => k.trim()).filter(Boolean)
+            : []
+        };
+        console.log("Used regex fallback for metadata:", JSON.stringify(metadata));
+      }
+      
+      // Ensure all required fields are present
+      if (!metadata.title) metadata.title = "Untitled Image";
+      if (!metadata.description) metadata.description = "No description available";
+      if (!Array.isArray(metadata.keywords)) metadata.keywords = [];
+      
+      // Add the filename
+      metadata.filename = filename;
+      console.log("Final metadata:", JSON.stringify(metadata));
+      
       return new Response(
-        JSON.stringify({ error: `Error calling Gemini API: ${geminiError.message}` }),
+        JSON.stringify(metadata),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    } catch (parseError) {
+      console.error("Error parsing Gemini response:", parseError, "Response:", response);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to parse metadata from AI response", 
+          details: parseError.message,
+          rawResponse: response ? "Response received but parsing failed" : "No response data" 
+        }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -192,10 +263,13 @@ serve(async (req) => {
       );
     }
   } catch (error) {
-    console.error("Error in generate-metadata function:", error);
+    console.error("Uncaught error in generate-metadata function:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ 
+        error: "Internal server error", 
+        details: error instanceof Error ? error.message : String(error)
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
