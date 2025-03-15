@@ -29,7 +29,7 @@ const AiToolsSection = () => {
             label="Meta Data Generator"
             description="Extracts and generates metadata for images"
             color="green"
-            to="/metadata-generator"
+            onClick={() => handleToolClick("Meta Data Generator")}
           />
           
           <AiToolIcon 

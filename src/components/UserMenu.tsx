@@ -1,7 +1,7 @@
 
 import { useAuth } from "./AuthProvider";
 import { Button } from "@/components/ui/button";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Crown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 export function UserMenu() {
-  const { session, signOut } = useAuth();
+  const { session, profile, signOut } = useAuth();
   const navigate = useNavigate();
   
   const handleSignOut = async () => {
@@ -31,6 +31,16 @@ export function UserMenu() {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>
           {session?.user?.email || "User"}
+        </DropdownMenuLabel>
+        <DropdownMenuLabel className="flex items-center gap-2 text-xs font-normal">
+          {profile?.subscription_plan === 'pro' ? (
+            <>
+              <Crown className="h-3 w-3 text-yellow-500" />
+              <span className="text-yellow-500 font-medium">Pro Plan</span>
+            </>
+          ) : (
+            <span className="text-gray-500">Free Plan</span>
+          )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-red-500 cursor-pointer">

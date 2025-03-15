@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, UserPlus, LogIn } from "lucide-react";
+import { Loader2, Mail, Lock, UserPlus, LogIn, Crown } from "lucide-react";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -22,20 +22,20 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
       });
       
       if (error) throw error;
       
-      toast({
-        title: "Check your email",
-        description: "We've sent you a confirmation link to complete your signup.",
-      });
+      if (data.user) {
+        toast({
+          title: "Account created",
+          description: "You have been successfully signed up and logged in.",
+        });
+        navigate("/");
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -181,7 +181,7 @@ const Auth = () => {
                     </p>
                   </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex-col space-y-4">
                   <Button 
                     type="submit" 
                     className="w-full bg-gradient-to-r from-purple-600 to-pink-600" 
@@ -203,6 +203,38 @@ const Auth = () => {
               </form>
             </TabsContent>
           </Tabs>
+
+          <div className="p-4">
+            <div className="rounded-lg bg-slate-50 dark:bg-slate-800 p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <Crown className="h-5 w-5 text-yellow-500" />
+                <h3 className="font-semibold">Pricing Plans</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="p-3 border rounded-md">
+                  <div className="font-medium mb-1">Free</div>
+                  <ul className="text-xs text-muted-foreground">
+                    <li>• Basic features</li>
+                    <li>• 10 images/month</li>
+                    <li>• Standard quality</li>
+                  </ul>
+                </div>
+                <div className="p-3 border rounded-md bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-slate-700 dark:to-slate-800">
+                  <div className="font-medium mb-1 flex items-center">
+                    Pro <Crown className="ml-1 h-3 w-3 text-yellow-500" />
+                  </div>
+                  <ul className="text-xs text-muted-foreground">
+                    <li>• All features</li>
+                    <li>• Unlimited images</li>
+                    <li>• Premium quality</li>
+                  </ul>
+                </div>
+              </div>
+              <p className="text-xs text-center mt-3 text-muted-foreground">
+                Contact admin to upgrade to Pro
+              </p>
+            </div>
+          </div>
         </Card>
       </div>
     </div>
