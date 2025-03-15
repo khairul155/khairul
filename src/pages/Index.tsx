@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,6 @@ import { Loader2, Sparkles, Image as ImageIcon, Wand2, LightbulbIcon, ArrowRight
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import AiToolsSection from "@/components/AiToolsSection";
-import { UserMenu } from "@/components/UserMenu";
 
 const Index = () => {
   const [prompt, setPrompt] = useState("");
@@ -116,8 +116,7 @@ const Index = () => {
           <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
         </div>
 
-        <div className="flex justify-between items-center pt-4">
-          <UserMenu />
+        <div className="flex justify-end pt-4">
           <ThemeToggle />
         </div>
 
