@@ -28,5 +28,9 @@ port = 54323
 api_url = "http://localhost"
 
 [[functions]]
+name = "generate-image"
+verify_jwt = false
+
+[[functions]]
 name = "generate-metadata"
 verify_jwt = false

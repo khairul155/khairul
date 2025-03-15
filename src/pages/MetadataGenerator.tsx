@@ -1,347 +1,472 @@
 
-import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, FileText, Download } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Loader2, 
+  Upload, 
+  FileText, 
+  CheckCircle2, 
+  X, 
+  Download, 
+  Copy,
+  ImageIcon,
+  ArrowLeft
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-interface MetadataResult {
-  filename: string;
-  title: string;
-  description: string;
-  keywords: string[];
-}
+import { Link } from "react-router-dom";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import Papa from 'papaparse';
 
 const MetadataGenerator = () => {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState<string>("");
-  const [results, setResults] = useState<MetadataResult | null>(null);
-  const [saveApiKey, setSaveApiKey] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [metadata, setMetadata] = useState<{ fileName: string; title: string; description: string; keywords: string } | null>(null);
+  const [results, setResults] = useState<Array<{ fileName: string; title: string; description: string; keywords: string }>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      if (!selectedFile.type.includes("image/")) {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    if (!file.type.includes('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file (jpg, png, etc.)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    
+    // Create preview URL
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    
+    // Reset metadata
+    setMetadata(null);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (!file.type.includes('image/')) {
         toast({
           title: "Invalid file type",
-          description: "Please upload an image file (JPEG, PNG)",
-          variant: "destructive",
+          description: "Please select an image file (jpg, png, etc.)",
+          variant: "destructive"
         });
         return;
       }
-      setFile(selectedFile);
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
+      setSelectedFile(file);
+      
+      // Create preview URL
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      
+      // Reset metadata
+      setMetadata(null);
     }
   };
 
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setApiKey(e.target.value);
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
   };
 
-  const handleSubmit = async () => {
-    if (!file) {
+  const removeFile = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setMetadata(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const generateMetadata = async () => {
+    if (!selectedFile) {
       toast({
         title: "No file selected",
-        description: "Please select an image file first",
-        variant: "destructive",
+        description: "Please select an image first",
+        variant: "destructive"
       });
       return;
-    }
-
-    if (!apiKey || apiKey.trim() === "") {
-      toast({
-        title: "API Key required",
-        description: "Please enter your Gemini API key",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Save API key to localStorage if option is checked
-    if (saveApiKey) {
-      localStorage.setItem("gemini_api_key", apiKey);
     }
 
     setIsLoading(true);
-    setResults(null);
+    setProgress(0);
+    setMetadata(null);
+    
+    // Start progress animation
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 90) return prev;
+        return prev + 10;
+      });
+    }, 500);
 
     try {
-      // Convert image to base64
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
+      // Convert the image to base64
+      const base64String = await convertFileToBase64(selectedFile);
       
-      reader.onload = async () => {
-        const base64Image = reader.result?.toString().split(",")[1]; // Remove data URL prefix
-        
-        if (!base64Image) {
-          throw new Error("Failed to convert image to base64");
+      console.log("Calling generate-metadata function with file:", selectedFile.name);
+      
+      // Call the Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('generate-metadata', {
+        body: { 
+          imageBase64: base64String,
+          fileName: selectedFile.name
         }
-        
-        const response = await fetch(`${window.location.origin}/api/generate-metadata`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            image: base64Image,
-            apiKey: apiKey,
-            filename: file.name
-          }),
-        });
+      });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to generate metadata");
-        }
+      if (error) {
+        console.error("Error calling function:", error);
+        throw new Error(error.message || "Failed to generate metadata");
+      }
 
-        const data = await response.json();
-        
-        setResults(data);
-        toast({
-          title: "Success!",
-          description: "Metadata generated successfully",
-        });
+      console.log("Function response:", data);
+      
+      if (!data || !data.title) {
+        throw new Error("Invalid response from metadata generator");
+      }
+
+      // Set the metadata result
+      const result = {
+        fileName: selectedFile.name,
+        title: data.title,
+        description: data.description,
+        keywords: data.keywords
       };
+      
+      setMetadata(result);
+      
+      // Add to results list
+      setResults(prev => [result, ...prev]);
+      
+      toast({
+        title: "Success",
+        description: "Metadata generated successfully!",
+      });
     } catch (error) {
       console.error("Error generating metadata:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate metadata",
+        description: error instanceof Error ? error.message : "Failed to generate metadata. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      clearInterval(progressInterval);
+      setProgress(100);
+      setTimeout(() => {
+        setProgress(0);
+        setIsLoading(false);
+      }, 500);
     }
   };
 
-  const downloadCSV = () => {
-    if (!results) return;
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        } else {
+          reject(new Error("Failed to convert file to base64"));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const downloadCsv = () => {
+    if (results.length === 0) {
+      toast({
+        title: "No results",
+        description: "Generate metadata for at least one image first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Convert results to CSV
+    const csv = Papa.unparse(results);
     
-    const csvContent = [
-      ["Filename", "Title", "Description", "Keywords"].join(","),
-      [
-        `"${results.filename}"`,
-        `"${results.title}"`,
-        `"${results.description}"`,
-        `"${results.keywords.join(", ")}"`,
-      ].join(","),
-    ].join("\n");
-    
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    // Create a blob and download link
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${results.filename.split(".")[0]}_metadata.csv`);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'image-metadata.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    toast({
+      title: "Download started",
+      description: "Your CSV file is being downloaded",
+    });
   };
 
-  // Check for saved API key on component mount
-  useState(() => {
-    const savedApiKey = localStorage.getItem("gemini_api_key");
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-      setSaveApiKey(true);
-    }
-  });
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: `${type} copied to clipboard`,
+    });
+  };
 
   return (
-    <div className="container py-8 px-4 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">
-          Image Metadata Generator
-        </h1>
-        <ThemeToggle />
-      </div>
-      
-      <Card className="glass-effect hover-card mb-8">
-        <CardHeader>
-          <CardTitle>Extract Metadata from Your Images</CardTitle>
-          <CardDescription>
-            Upload an image and get AI-generated title, description, and keywords for your content.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="upload" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="upload">Upload</TabsTrigger>
-              <TabsTrigger value="result" disabled={!results}>Results</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="upload" className="space-y-6">
-              <div className="grid gap-6 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="apiKey">Gemini API Key</Label>
-                  <Input
-                    id="apiKey"
-                    type="password"
-                    placeholder="Enter your Gemini API key"
-                    value={apiKey}
-                    onChange={handleApiKeyChange}
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="max-w-6xl mx-auto p-4 space-y-8 relative">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute w-64 h-64 -left-32 -top-32 bg-green-300 dark:bg-green-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+          <div className="absolute w-64 h-64 -right-32 -top-32 bg-blue-300 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+          <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-teal-300 dark:bg-teal-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        </div>
+
+        <div className="flex justify-between items-center pt-4">
+          <Link 
+            to="/" 
+            className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Link>
+          <ThemeToggle />
+        </div>
+
+        <div className="text-center space-y-6 py-8 relative">
+          <div className="relative inline-block animate-float">
+            <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-green-400 via-teal-500 to-blue-500 opacity-20 animate-pulse"></div>
+            <h1 className="text-5xl md:text-6xl font-bold relative">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400">
+                Metadata Generator
+              </span>
+            </h1>
+          </div>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+            Upload your image and get AI-generated metadata including title, description, and keywords.
+            Perfect for SEO optimization and content management.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-6 backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
+            <div 
+              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 transition-all duration-300 ${
+                previewUrl ? 'border-green-400 bg-green-50/30 dark:bg-green-900/10' : 'border-gray-300 hover:border-gray-400 bg-gray-50/50 dark:bg-gray-800/50'
+              }`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+            >
+              {previewUrl ? (
+                <div className="relative w-full">
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    className="max-h-[300px] mx-auto rounded-lg shadow-md"
                   />
-                  <div className="flex items-center space-x-2 mt-2">
-                    <Switch 
-                      id="save-api-key" 
-                      checked={saveApiKey} 
-                      onCheckedChange={setSaveApiKey} 
-                    />
-                    <Label htmlFor="save-api-key">Save API key for future sessions</Label>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="image">Upload Image</Label>
-                  <div 
-                    className="border-2 border-dashed rounded-xl border-gray-300 dark:border-gray-600 p-6 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
-                    onClick={() => document.getElementById("file-upload")?.click()}
+                  <button 
+                    onClick={removeFile}
+                    className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
                   >
-                    <input
-                      id="file-upload"
-                      type="file"
-                      accept="image/png, image/jpeg"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-                    
-                    {preview ? (
-                      <div className="w-full flex flex-col items-center">
-                        <img 
-                          src={preview} 
-                          alt="Preview" 
-                          className="max-h-64 max-w-full rounded-lg shadow-md object-contain mb-4 animate-fade-in" 
-                        />
-                        <p className="text-sm font-medium">{file?.name}</p>
-                        <p className="text-xs text-gray-500">Click to change</p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center">
-                        <div className="p-4 bg-muted rounded-full mb-4">
-                          <Upload size={24} className="text-primary" />
-                        </div>
-                        <p className="font-medium mb-1">Upload an image</p>
-                        <p className="text-sm text-muted-foreground">PNG or JPG (max 5MB)</p>
-                      </div>
-                    )}
-                  </div>
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
-                
-                <Button 
-                  className="sparkle-button"
-                  onClick={handleSubmit} 
-                  disabled={isLoading || !file || !apiKey}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4" />
-                      Generate Metadata
-                    </>
-                  )}
-                </Button>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="result" className="space-y-6">
-              {results && (
-                <div className="space-y-6 animate-fade-in">
-                  <div className="grid md:grid-cols-5 gap-6">
-                    <div className="md:col-span-2">
-                      {preview && (
-                        <div className="relative overflow-hidden rounded-lg shadow-lg mb-4">
-                          <img 
-                            src={preview} 
-                            alt="Preview" 
-                            className="w-full object-contain max-h-80" 
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-50"></div>
-                        </div>
-                      )}
-                      <div className="text-sm font-medium">
-                        <span className="text-muted-foreground">Filename:</span> {results.filename}
-                      </div>
-                    </div>
-                    
-                    <div className="md:col-span-3 space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="title">Title</Label>
-                        <Input id="title" value={results.title} readOnly />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea 
-                          id="description" 
-                          value={results.description} 
-                          readOnly 
-                          className="resize-none min-h-[100px]"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="keywords">Keywords</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {results.keywords.map((keyword, index) => (
-                            <div 
-                              key={index}
-                              className="px-3 py-1 rounded-full bg-primary/10 text-sm font-medium"
-                            >
-                              {keyword}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <Button onClick={downloadCSV} className="w-full mt-4">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download CSV
-                      </Button>
-                    </div>
+              ) : (
+                <div className="text-center">
+                  <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="mt-4 flex flex-col items-center text-sm text-gray-600 dark:text-gray-400">
+                    <p className="font-medium">Drag and drop image here</p>
+                    <p>or</p>
+                    <label htmlFor="file-upload" className="cursor-pointer rounded-md bg-white/50 dark:bg-gray-700/50 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600">
+                      Select file
+                    </label>
                   </div>
+                  <Input
+                    ref={fileInputRef}
+                    id="file-upload"
+                    type="file"
+                    className="sr-only"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    JPG, PNG, GIF up to 10MB
+                  </p>
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-      
-      <Card className="glass-effect">
-        <CardHeader>
-          <CardTitle>How It Works</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ol className="list-decimal list-inside space-y-3 text-sm">
-            <li>Upload your JPG or PNG image to our secure service</li>
-            <li>Provide your Gemini API key (your key is used only for your request)</li>
-            <li>Our AI analyzes your image and generates meaningful metadata</li>
-            <li>Download the results as a CSV for easy import into your asset management system</li>
-          </ol>
-          <div className="mt-6 bg-muted p-4 rounded-lg text-sm">
-            <p className="font-medium">🔒 Privacy Note:</p>
-            <p>Your images and API key remain private. Processing happens securely and no data is stored on our servers.</p>
+            </div>
+
+            <Button 
+              onClick={generateMetadata} 
+              disabled={isLoading || !selectedFile}
+              className="w-full h-12 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium rounded-lg transition-all duration-300"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-5 w-5" />
+                  Generate Metadata
+                </>
+              )}
+            </Button>
+
+            {isLoading && (
+              <div className="space-y-3">
+                <Progress 
+                  value={progress} 
+                  className="h-2 bg-gray-200 dark:bg-gray-700"
+                />
+                <p className="text-sm text-center text-gray-600 dark:text-gray-400 animate-pulse">
+                  Analyzing image... {progress}%
+                </p>
+              </div>
+            )}
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Results</h2>
+              <Button 
+                onClick={downloadCsv}
+                variant="outline"
+                className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700"
+              >
+                <Download className="w-4 h-4" />
+                Download CSV
+              </Button>
+            </div>
+
+            {metadata ? (
+              <div className="space-y-4 animate-fade-in">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Title</h3>
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 p-2"
+                      onClick={() => copyToClipboard(metadata.title, 'Title')}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="p-3 bg-white/70 dark:bg-gray-700/70 rounded-lg">
+                    <p className="text-gray-800 dark:text-gray-200">{metadata.title}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Description</h3>
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 p-2"
+                      onClick={() => copyToClipboard(metadata.description, 'Description')}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="p-3 bg-white/70 dark:bg-gray-700/70 rounded-lg">
+                    <p className="text-gray-800 dark:text-gray-200">{metadata.description}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Keywords</h3>
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 p-2"
+                      onClick={() => copyToClipboard(metadata.keywords, 'Keywords')}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="p-3 bg-white/70 dark:bg-gray-700/70 rounded-lg">
+                    <div className="flex flex-wrap gap-2">
+                      {metadata.keywords.split(',').map((keyword, index) => (
+                        <span 
+                          key={index}
+                          className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 rounded-full text-xs font-medium"
+                        >
+                          {keyword.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : results.length > 0 ? (
+              <div className="space-y-4">
+                <div className="max-h-[400px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>File Name</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead className="hidden md:table-cell">Keywords</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {results.map((result, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium truncate max-w-[100px]">
+                            {result.fileName}
+                          </TableCell>
+                          <TableCell className="truncate max-w-[150px]">{result.title}</TableCell>
+                          <TableCell className="hidden md:table-cell truncate max-w-[200px]">
+                            {result.keywords}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center flex-col gap-4 text-gray-500 dark:text-gray-400">
+                <FileText className="h-16 w-16 opacity-20" />
+                <p>No metadata generated yet</p>
+                <p className="text-sm">Upload an image and click "Generate Metadata"</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="text-center space-y-4 pt-8">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Powered by advanced AI technology • Generate accurate metadata instantly
+          </p>
+          <div className="relative inline-block group">
+            <div className="absolute inset-0 blur-xl bg-gradient-to-r from-green-400 via-teal-500 to-blue-600 opacity-75 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
+            <h3 className="relative text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400 flex items-center justify-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500 animate-sparkle" />
+              Created by Khairul
+              <CheckCircle2 className="w-5 h-5 text-green-500 animate-sparkle" />
+            </h3>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,4 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -10,168 +9,156 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log("Handling OPTIONS request for CORS");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("Starting metadata generation process");
+    console.log("Request received in generate-metadata function");
     
-    let { image, apiKey, filename } = await req.json();
-    
-    if (!image || !apiKey) {
-      console.error("Missing required parameters: image or apiKey");
-      return new Response(
-        JSON.stringify({ error: "Missing required parameters: image or apiKey" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Validate filename or use a default
-    if (!filename) {
-      filename = "image.jpg";
-      console.log("No filename provided, using default:", filename);
-    }
-    
-    console.log(`Processing image: ${filename}`);
-    
-    // Using the latest Gemini API endpoint
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: "I need metadata for this image. Please analyze it and provide the following in JSON format: 1) A descriptive title, 2) A detailed description (50-100 words), 3) 5-10 relevant keywords (as an array). Use only this format: {\"title\": \"...\", \"description\": \"...\", \"keywords\": [\"word1\", \"word2\", ...]}. Only output valid JSON."
-              },
-              {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: image
-                }
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          topK: 32,
-          topP: 1,
-          maxOutputTokens: 1024,
-        }
-      }),
+    // Parse request body
+    const requestData = await req.json().catch(error => {
+      console.error("Error parsing request JSON:", error);
+      throw new Error("Invalid JSON in request body");
     });
     
+    console.log("Request data:", JSON.stringify(requestData));
+    
+    if (!requestData.imageBase64) {
+      console.error("Missing imageBase64 in request");
+      throw new Error("Missing imageBase64 data");
+    }
+
+    // Get API key from environment
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      console.error("Missing GEMINI_API_KEY environment variable");
+      throw new Error("API key not configured");
+    }
+
+    // Prepare data for Gemini API
+    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent";
+    const apiUrlWithKey = `${apiUrl}?key=${GEMINI_API_KEY}`;
+
+    const imageData = requestData.imageBase64;
+    const fileName = requestData.fileName || "image.jpg";
+
+    // Prepare the request payload for Gemini
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `Generate SEO metadata for this image with the filename "${fileName}". Provide the following in JSON format with these exact keys:
+                1. "title": A concise, SEO-friendly title
+                2. "description": A detailed description (2-3 sentences)
+                3. "keywords": A comma-separated list of relevant keywords (5-10 keywords)
+                
+                Return ONLY valid JSON without any other text, formatted like:
+                {
+                  "title": "...",
+                  "description": "...",
+                  "keywords": "..."
+                }`
+            },
+            {
+              inline_data: {
+                mime_type: "image/jpeg",
+                data: imageData
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    console.log("Sending request to Gemini API");
+    
+    // Make request to Gemini API
+    const response = await fetch(apiUrlWithKey, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    // Check for API response
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
-      return new Response(
-        JSON.stringify({ 
-          error: `Gemini API error: ${response.status}`,
-          details: errorText
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("Gemini API error response:", errorText);
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
     }
-    
-    console.log("Received successful response from Gemini API");
+
+    // Parse API response
     const data = await response.json();
+    console.log("Gemini API response:", JSON.stringify(data));
+
+    // Extract the text from the Gemini response
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
-    if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
-      console.error("Unexpected API response structure:", data);
-      return new Response(
-        JSON.stringify({ error: "Invalid API response structure" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!responseText) {
+      console.error("Empty or invalid response from Gemini API");
+      throw new Error("Empty or invalid response from Gemini API");
     }
-    
-    const textContent = data.candidates[0].content.parts[0].text;
-    console.log("Raw text response:", textContent);
-    
-    // Extract JSON from response
-    let jsonMatch;
-    
+
+    console.log("Raw text from Gemini:", responseText);
+
+    // Extract the JSON part from the response text (in case there's extra text)
+    let extractedJson;
     try {
-      // First try direct JSON parsing
-      const parsedResult = JSON.parse(textContent);
+      // Try to parse the response directly first
+      extractedJson = JSON.parse(responseText);
       console.log("Successfully parsed JSON directly");
-      
-      // Add filename to the result
-      const result = {
-        filename,
-        title: parsedResult.title || "Untitled Image",
-        description: parsedResult.description || "No description available",
-        keywords: Array.isArray(parsedResult.keywords) ? parsedResult.keywords : []
-      };
-      
-      return new Response(
-        JSON.stringify(result),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } catch (e) {
+    } catch (error) {
       console.log("Direct JSON parsing failed, attempting to extract JSON from text");
       
-      // Try to extract JSON from the text using regex
-      jsonMatch = textContent.match(/(\{[\s\S]*\})/);
-      
-      if (jsonMatch && jsonMatch[0]) {
+      // Try to find JSON within the text
+      const jsonMatch = responseText.match(/{[\s\S]*?}/);
+      if (jsonMatch) {
         try {
-          const extractedJson = JSON.parse(jsonMatch[0]);
-          console.log("Successfully extracted and parsed JSON using regex");
-          
-          // Add filename to the result
-          const result = {
-            filename,
-            title: extractedJson.title || "Untitled Image",
-            description: extractedJson.description || "No description available",
-            keywords: Array.isArray(extractedJson.keywords) ? extractedJson.keywords : []
-          };
-          
-          return new Response(
-            JSON.stringify(result),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        } catch (e) {
-          console.error("Failed to parse extracted JSON:", e);
+          extractedJson = JSON.parse(jsonMatch[0]);
+          console.log("Successfully extracted and parsed JSON from text");
+        } catch (extractError) {
+          console.error("Failed to parse extracted JSON:", extractError);
+          throw new Error("Failed to parse metadata from API response");
         }
+      } else {
+        console.error("No JSON found in response text");
+        throw new Error("No metadata found in API response");
       }
-      
-      // If both methods fail, use fallback parsing
-      console.log("Using fallback parsing method for unstructured text");
-      
-      // Simple fallback extraction
-      const titleMatch = textContent.match(/title["\s:]+([^"]+)/i);
-      const descriptionMatch = textContent.match(/description["\s:]+([^"]+)/i);
-      
-      // Extract keywords by finding anything that looks like an array
-      const keywordsMatch = textContent.match(/\[(.*?)\]/s);
-      
-      const result = {
-        filename,
-        title: titleMatch && titleMatch[1] ? titleMatch[1].trim() : "Untitled Image",
-        description: descriptionMatch && descriptionMatch[1] ? descriptionMatch[1].trim() : "No description available",
-        keywords: keywordsMatch && keywordsMatch[1] ? 
-          keywordsMatch[1].split(',').map(k => k.trim().replace(/"/g, '').replace(/'/g, '')) : 
-          ["image", "photo"]
-      };
-      
-      console.log("Fallback parsed result:", result);
-      
-      return new Response(
-        JSON.stringify(result),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
+
+    // Validate the extracted JSON
+    if (!extractedJson.title || !extractedJson.description || !extractedJson.keywords) {
+      console.error("Missing required fields in extracted JSON:", JSON.stringify(extractedJson));
+      throw new Error("Missing required metadata fields in API response");
+    }
+
+    // Prepare the final response
+    const result = {
+      fileName: fileName,
+      title: extractedJson.title,
+      description: extractedJson.description,
+      keywords: extractedJson.keywords
+    };
+
+    console.log("Returning successful response:", JSON.stringify(result));
+    
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    });
   } catch (error) {
-    console.error("Error processing request:", error);
+    console.error("Error in generate-metadata function:", error);
+    
     return new Response(
-      JSON.stringify({ error: error.message || "An unknown error occurred" }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: error.message || "An unknown error occurred" 
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      }
     );
   }
 });
