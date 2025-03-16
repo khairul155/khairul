@@ -53,7 +53,7 @@ const AiToolsSection = () => {
             label="Image to Prompt"
             description="Converts images into detailed text prompts"
             color="orange"
-            onClick={() => handleToolClick("Image to Prompt")}
+            onClick={() => handleToolClick("Image to Prompt", "/image-to-prompt")}
           />
           
           <AiToolIcon 
