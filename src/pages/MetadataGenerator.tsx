@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Papa from "papaparse";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface MetadataResult {
   fileName: string;
@@ -30,6 +31,7 @@ const MetadataGenerator = () => {
   const [progress, setProgress] = useState(0);
   const [apiKey, setApiKey] = useState("");
   const [results, setResults] = useState<MetadataResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -64,6 +66,7 @@ const MetadataGenerator = () => {
       }
       
       setSelectedFile(file);
+      setError(null);
       
       // Create and set preview
       const reader = new FileReader();
@@ -95,6 +98,7 @@ const MetadataGenerator = () => {
 
     setIsLoading(true);
     setProgress(0);
+    setError(null);
     const progressInterval = setInterval(() => {
       setProgress((prev) => Math.min(prev + 5, 90));
     }, 300);
@@ -104,8 +108,8 @@ const MetadataGenerator = () => {
       const imageBase64 = await fileToBase64(selectedFile);
       const base64Data = imageBase64.split(",")[1]; // Remove data URL prefix
 
-      // Prepare the request payload for Gemini
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${apiKey}`;
+      // Updated to use gemini-1.5-flash model instead of gemini-pro-vision
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
       
       const payload = {
         contents: [
@@ -126,7 +130,7 @@ const MetadataGenerator = () => {
               },
               {
                 inline_data: {
-                  mime_type: "image/jpeg",
+                  mime_type: selectedFile.type,
                   data: base64Data
                 }
               }
@@ -152,9 +156,9 @@ const MetadataGenerator = () => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Gemini API error response:", errorText);
-        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json();
+        console.error("Gemini API error response:", errorData);
+        throw new Error(`Gemini API error: ${response.status} ${errorData?.error?.message || response.statusText}`);
       }
 
       const data = await response.json();
@@ -203,6 +207,7 @@ const MetadataGenerator = () => {
       });
     } catch (error: any) {
       console.error("Error generating metadata:", error);
+      setError(error.message || "Failed to generate metadata. Please try again.");
       toast({
         title: "Error",
         description: error.message || "Failed to generate metadata. Please try again.",
@@ -291,6 +296,13 @@ const MetadataGenerator = () => {
         </div>
 
         <div className="space-y-8 backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="space-y-4">
             <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/50 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all"
               onClick={() => fileInputRef.current?.click()}

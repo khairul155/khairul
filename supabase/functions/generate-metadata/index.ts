@@ -35,8 +35,8 @@ serve(async (req) => {
       throw new Error("API key not configured");
     }
 
-    // Prepare data for Gemini API
-    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent";
+    // Prepare data for Gemini API - updated to use gemini-1.5-flash model
+    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
     const apiUrlWithKey = `${apiUrl}?key=${GEMINI_API_KEY}`;
 
     const imageData = requestData.imageBase64;
