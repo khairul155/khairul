@@ -61,7 +61,7 @@ const AiToolsSection = () => {
             label="Image Upscaler"
             description="AI-powered tool for upscaling images"
             color="pink"
-            onClick={() => handleToolClick("Image Upscaler")}
+            onClick={() => handleToolClick("Image Upscaler", "/image-upscaler")}
           />
           
           <AiToolIcon 
