@@ -45,7 +45,7 @@ const AiToolsSection = () => {
             label="Graphic Designer Bot"
             description="AI-based graphic design assistant"
             color="purple"
-            onClick={() => handleToolClick("Graphic Designer Bot")}
+            onClick={() => handleToolClick("Graphic Designer Bot", "/graphic-designer-bot")}
           />
           
           <AiToolIcon 

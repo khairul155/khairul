@@ -31,3 +31,6 @@ verify_jwt = false
 
 [functions.image-upscaler]
 verify_jwt = false
+
+[functions.graphic-designer-bot]
+verify_jwt = false
