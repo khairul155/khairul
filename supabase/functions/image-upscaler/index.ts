@@ -4,12 +4,16 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 200
+    });
   }
 
   try {
@@ -28,6 +32,8 @@ serve(async (req) => {
       throw new Error("No valid file provided");
     }
 
+    console.log("Received file:", file.name, "Size:", file.size);
+
     // Create a new FormData object for the Picsart API
     const picsartForm = new FormData();
     picsartForm.append("upscale_factor", "2"); // Set upscale factor to 2x
@@ -45,6 +51,13 @@ serve(async (req) => {
       body: picsartForm,
     });
 
+    // Check if the response is ok
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Picsart API error response:", errorText);
+      throw new Error(`Picsart API returned status ${response.status}: ${errorText}`);
+    }
+
     // Get the response from the Picsart API
     const data = await response.json();
     console.log("Picsart API response:", data);
@@ -58,7 +71,10 @@ serve(async (req) => {
           width: data.data.width,
           height: data.data.height,
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        }
       );
     } else {
       throw new Error(data.message || "Failed to upscale image");
