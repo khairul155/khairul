@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDownToLine, Image, Upload, RefreshCw, Zap, Check, X } from "lucide-react";
+import { ArrowDownToLine, Image as ImageIcon, Upload, RefreshCw, Zap, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const ImageUpscaler = () => {
@@ -35,7 +34,7 @@ const ImageUpscaler = () => {
         setPreviewUrl(reader.result as string);
         
         // Get original image dimensions
-        const img = new Image();
+        const img = document.createElement('img');
         img.onload = () => {
           setOriginalDimensions({
             width: img.width,
@@ -70,7 +69,7 @@ const ImageUpscaler = () => {
         setPreviewUrl(reader.result as string);
         
         // Get original image dimensions
-        const img = new Image();
+        const img = document.createElement('img');
         img.onload = () => {
           setOriginalDimensions({
             width: img.width,
@@ -305,7 +304,7 @@ const ImageUpscaler = () => {
                   />
                 ) : (
                   <div className="text-center text-muted-foreground p-6">
-                    <Image className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <ImageIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                     <p>Upload an image to see preview</p>
                   </div>
                 )}
