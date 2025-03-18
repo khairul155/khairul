@@ -34,3 +34,4 @@ verify_jwt = false
 [[functions]]
 name = "image-upscaler"
 verify_jwt = false
+

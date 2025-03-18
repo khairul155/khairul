@@ -21,6 +21,7 @@ serve(async (req) => {
     const apiKey = Deno.env.get("PICSART_API_KEY");
     
     if (!apiKey) {
+      console.error("PICSART_API_KEY is not configured");
       throw new Error("PICSART_API_KEY is not configured");
     }
 
@@ -29,6 +30,7 @@ serve(async (req) => {
     const file = formData.get("file");
     
     if (!file || !(file instanceof File)) {
+      console.error("No valid file provided");
       throw new Error("No valid file provided");
     }
 
