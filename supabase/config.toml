@@ -20,18 +20,14 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
-webhook_keys = []
 
 [studio]
 enabled = true
 port = 54323
 api_url = "http://localhost"
 
-[[functions]]
-name = "generate-image"
+[functions.generate-image]
 verify_jwt = false
 
-[[functions]]
-name = "image-upscaler"
+[functions.image-upscaler]
 verify_jwt = false
-
