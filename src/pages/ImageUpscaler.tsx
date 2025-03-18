@@ -1,9 +1,10 @@
+
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDownToLine, Image as ImageIcon, Upload, RefreshCw, Zap, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,23 +106,23 @@ const ImageUpscaler = () => {
 
       setProgress(50);
       
-      // Call our Supabase Edge Function instead of directly calling Picsart API
+      console.log("Calling image-upscaler edge function...");
+      
+      // Call our Supabase Edge Function
       const { data, error } = await supabase.functions.invoke("image-upscaler", {
         body: form,
-        headers: {
-          // Don't include Content-Type when sending FormData
-          // The browser will set it automatically with the boundary
-        },
       });
 
       setProgress(80);
 
       if (error) {
+        console.error("Edge function error:", error);
         throw new Error(error.message);
       }
 
-      if (!data.success) {
-        throw new Error(data.error || "Failed to upscale image");
+      if (!data || !data.success) {
+        console.error("API response error:", data?.error || "Unknown error");
+        throw new Error(data?.error || "Failed to upscale image");
       }
 
       setResultUrl(data.url);
