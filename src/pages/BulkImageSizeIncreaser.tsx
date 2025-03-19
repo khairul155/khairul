@@ -7,24 +7,24 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { 
   Crop,
-  Scale as Scaling, // Replaced Resize with Scaling
-  Square, // Replaced BorderAll with Square
+  Scale as Scaling,
+  Square,
   Wand2 as Auto,
   Palette,
   Droplets as Saturation,
   Sun as Brightness,
   Contrast,
-  Sun as Exposure, // Replaced BrightnessUp with Sun
+  Sun as Exposure,
   Mountain as Highlights,
   CloudSun as Shadows,
   Aperture as Monochrome,
   Focus as Sharpen,
   Glasses as Clarity,
   Sparkles as Clamour,
-  Flower, // Replaced FlowerPetal with Flower
+  Flower,
   Waves as Smooth,
-  CloudFog as Blur, // Using CloudFog for Blur
-  CloudSnow as Grain, // Using CloudSnow for Grain
+  Cloud as CloudFog,
+  Snow as CloudSnow,
   List,
   Save,
   Upload,
