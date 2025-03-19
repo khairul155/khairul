@@ -69,7 +69,7 @@ const AiToolsSection = () => {
             label="Bulk Image Size Increaser"
             description="Batch processing tool to enlarge multiple images"
             color="yellow"
-            onClick={() => handleToolClick("Bulk Image Size Increaser", "/bulk-image-size-increaser")}
+            onClick={() => handleToolClick("Bulk Image Size Increaser")}
           />
         </div>
       </div>
