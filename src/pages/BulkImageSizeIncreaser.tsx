@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,24 +8,24 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { 
   Crop,
-  Scale as Scaling,
-  Square,
+  Scaling, // Replaced Resize with Scaling
+  Square, // Replaced BorderAll with Square
   Wand2 as Auto,
-  Palette,
+  Palette as Vibrance,
   Droplets as Saturation,
   Sun as Brightness,
   Contrast,
-  Sun as Exposure,
+  Sun as Exposure, // Replaced BrightnessUp with Sun
   Mountain as Highlights,
   CloudSun as Shadows,
   Aperture as Monochrome,
   Focus as Sharpen,
   Glasses as Clarity,
   Sparkles as Clamour,
-  Flower,
+  Flower, // Replaced FlowerPetal with Flower
   Waves as Smooth,
-  Cloud as CloudFog,
-  Snow as CloudSnow,
+  Cloud as Blur, // Replaced CloudFog with Cloud since CloudFog doesn't exist
+  Cloud as Grain,
   List,
   Save,
   Upload,
@@ -61,7 +62,7 @@ const BulkImageSizeIncreaser = () => {
     { id: "resize", name: "Resize", icon: <Scaling />, category: "basic" },
     { id: "border", name: "Border", icon: <Square />, category: "basic" },
     { id: "auto", name: "Auto-adjust", icon: <Auto />, category: "basic" },
-    { id: "vibrance", name: "Vibrance", icon: <Palette />, category: "basic" },
+    { id: "vibrance", name: "Vibrance", icon: <Vibrance />, category: "basic" },
     { id: "saturation", name: "Saturation", icon: <Saturation />, category: "basic" },
     { id: "brightness", name: "Brightness", icon: <Brightness />, category: "basic" },
     
@@ -77,8 +78,8 @@ const BulkImageSizeIncreaser = () => {
     { id: "clamour", name: "Clamour", icon: <Clamour />, category: "sharpening" },
     { id: "bloom", name: "Bloom", icon: <Flower />, category: "sharpening" },
     { id: "smooth", name: "Smooth", icon: <Smooth />, category: "sharpening" },
-    { id: "blur", name: "Blur", icon: <CloudFog />, category: "sharpening" },
-    { id: "grain", name: "Grain", icon: <CloudSnow />, category: "sharpening" },
+    { id: "blur", name: "Blur", icon: <Cloud />, category: "sharpening" },
+    { id: "grain", name: "Grain", icon: <Grain />, category: "sharpening" },
   ];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -340,3 +341,6 @@ const BulkImageSizeIncreaser = () => {
 };
 
 export default BulkImageSizeIncreaser;
+
+// Define the Palette component used above
+const Palette = (props: React.ComponentProps<typeof Vibrance>) => <Vibrance {...props} />;
