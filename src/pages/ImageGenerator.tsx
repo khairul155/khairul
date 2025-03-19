@@ -7,12 +7,34 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, Image as ImageIcon, Wand2, Download, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+
+// Image size options
+const imageSizes = [
+  { value: "512x512", label: "512×512" },
+  { value: "576x1024", label: "576×1024" },
+  { value: "768x1024", label: "768×1024" },
+  { value: "1024x576", label: "1024×576" },
+  { value: "1024x768", label: "1024×768" },
+  { value: "1024x1024", label: "1024×1024" },
+  { value: "1280x720", label: "1280×720" },
+  { value: "1920x1080", label: "1920×1080" },
+  { value: "2000x2000", label: "2000×2000" },
+];
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [imageSize, setImageSize] = useState("1024x1024");
   const { toast } = useToast();
 
   const generateImage = async () => {
@@ -32,8 +54,11 @@ const ImageGenerator = () => {
     }, 500);
 
     try {
+      // Get width and height from the selected size
+      const [width, height] = imageSize.split("x").map(Number);
+
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt }
+        body: { prompt, width, height }
       });
 
       if (error) throw error;
@@ -115,14 +140,41 @@ const ImageGenerator = () => {
 
         <div className="space-y-8 backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
           <div className="space-y-4">
-            <div className="flex gap-3">
-              <Input
-                placeholder="Describe the image you want to generate..."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                disabled={isLoading}
-                className="flex-1 h-12 text-lg backdrop-blur-sm bg-white/50 dark:bg-gray-900/50 border-2 border-gray-200 dark:border-gray-700 focus:border-purple-500 transition-all duration-300"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="md:col-span-3">
+                <Input
+                  placeholder="Describe the image you want to generate..."
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  disabled={isLoading}
+                  className="h-12 text-lg backdrop-blur-sm bg-white/50 dark:bg-gray-900/50 border-2 border-gray-200 dark:border-gray-700 focus:border-purple-500 transition-all duration-300"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="image-size" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Image size
+                </Label>
+                <Select
+                  value={imageSize}
+                  onValueChange={setImageSize}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="image-size" className="h-12 backdrop-blur-sm bg-white/50 dark:bg-gray-900/50 border-2 border-gray-200 dark:border-gray-700">
+                    <SelectValue placeholder="Select size" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                    {imageSizes.map((size) => (
+                      <SelectItem key={size.value} value={size.value}>
+                        {size.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="flex justify-end">
               <Button 
                 onClick={generateImage} 
                 disabled={isLoading}
@@ -194,6 +246,9 @@ const ImageGenerator = () => {
               <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-lg p-4 shadow-lg">
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   <span className="font-semibold">Prompt:</span> {prompt}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                  <span className="font-semibold">Size:</span> {imageSize}
                 </p>
               </div>
             </div>

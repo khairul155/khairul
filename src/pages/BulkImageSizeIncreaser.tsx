@@ -1,339 +1,238 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { 
-  Crop,
-  Scaling, // Replaced Resize with Scaling
-  Square, // Replaced BorderAll with Square
-  Wand2 as Auto,
-  Palette as Vibrance,
-  Droplets as Saturation,
-  Sun as Brightness,
-  Contrast,
-  Sun as Exposure, // Replaced BrightnessUp with Sun
-  Mountain as Highlights,
-  CloudSun as Shadows,
-  Aperture as Monochrome,
-  Focus as Sharpen,
-  Glasses as Clarity,
-  Sparkles as Clamour,
-  Flower, // Replaced FlowerPetal with Flower
-  Waves as Smooth,
-  Cloud as Blur, // Replaced CloudFog with Cloud since CloudFog doesn't exist
-  Cloud as Grain,
-  List,
-  Save,
-  Upload,
-  User,
-  Gem,
-  Trash2 as Clear,
-  Download as Export,
-  Eye,
-  Loader,
-  Plus,
-  Minus,
-  Check,
-  Folder,
-} from "lucide-react";
+import { Loader2, UploadCloud, Download, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface Task {
-  id: string;
-  name: string;
-  icon: React.ReactNode;
-  category: "basic" | "temperature" | "sharpening";
-}
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const BulkImageSizeIncreaser = () => {
+  const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [processedImages, setProcessedImages] = useState<{ name: string; url: string }[]>([]);
   const { toast } = useToast();
-  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [processing, setProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState<string>("basic");
 
-  const tasks: Task[] = [
-    { id: "crop", name: "Crop", icon: <Crop />, category: "basic" },
-    { id: "resize", name: "Resize", icon: <Scaling />, category: "basic" },
-    { id: "border", name: "Border", icon: <Square />, category: "basic" },
-    { id: "auto", name: "Auto-adjust", icon: <Auto />, category: "basic" },
-    { id: "vibrance", name: "Vibrance", icon: <Vibrance />, category: "basic" },
-    { id: "saturation", name: "Saturation", icon: <Saturation />, category: "basic" },
-    { id: "brightness", name: "Brightness", icon: <Brightness />, category: "basic" },
-    
-    { id: "tint", name: "Tint", icon: <Palette />, category: "temperature" },
-    { id: "contrast", name: "Contrast", icon: <Contrast />, category: "temperature" },
-    { id: "exposure", name: "Exposure", icon: <Exposure />, category: "temperature" },
-    { id: "highlights", name: "Highlights", icon: <Highlights />, category: "temperature" },
-    { id: "shadows", name: "Shadows", icon: <Shadows />, category: "temperature" },
-    { id: "monochrome", name: "Monochrome", icon: <Monochrome />, category: "temperature" },
-    
-    { id: "sharpen", name: "Sharpen", icon: <Sharpen />, category: "sharpening" },
-    { id: "clarity", name: "Clarity", icon: <Clarity />, category: "sharpening" },
-    { id: "clamour", name: "Clamour", icon: <Clamour />, category: "sharpening" },
-    { id: "bloom", name: "Bloom", icon: <Flower />, category: "sharpening" },
-    { id: "smooth", name: "Smooth", icon: <Smooth />, category: "sharpening" },
-    { id: "blur", name: "Blur", icon: <Cloud />, category: "sharpening" },
-    { id: "grain", name: "Grain", icon: <Grain />, category: "sharpening" },
-  ];
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const fileArray = Array.from(e.target.files);
-      if (fileArray.length > 100) {
+      const filesArray = Array.from(e.target.files);
+      // Only accept image files
+      const imageFiles = filesArray.filter(file => file.type.startsWith('image/'));
+      
+      if (imageFiles.length !== filesArray.length) {
         toast({
-          title: "File limit exceeded",
-          description: "Free users can only process up to 100 files at once. Upgrade to premium for more.",
+          title: "Warning",
+          description: "Some files were skipped because they are not images.",
           variant: "destructive",
         });
-        return;
       }
-      setUploadedFiles(fileArray);
-      toast({
-        title: "Files added",
-        description: `${fileArray.length} file(s) added for processing`,
-      });
+      
+      setUploadedImages(imageFiles);
     }
   };
 
-  const toggleTask = (taskId: string) => {
-    setSelectedTasks(prev => 
-      prev.includes(taskId) 
-        ? prev.filter(id => id !== taskId) 
-        : [...prev, taskId]
-    );
-  };
-
-  const handleClear = () => {
-    setSelectedTasks([]);
-    setUploadedFiles([]);
-    setProgress(0);
-    toast({
-      title: "Batch cleared",
-      description: "All tasks and uploaded files have been cleared",
-    });
-  };
-
-  const handleExport = () => {
-    if (selectedTasks.length === 0) {
+  const handleUpload = () => {
+    if (uploadedImages.length === 0) {
       toast({
-        title: "No tasks selected",
-        description: "Please select at least one editing task",
+        title: "Error",
+        description: "Please select images to upload first",
         variant: "destructive",
       });
       return;
     }
 
-    if (uploadedFiles.length === 0) {
+    setIsUploading(true);
+    
+    // Simulate upload process
+    setTimeout(() => {
+      setIsUploading(false);
       toast({
-        title: "No files uploaded",
-        description: "Please upload at least one image to process",
+        title: "Success",
+        description: `${uploadedImages.length} images uploaded successfully`,
+      });
+    }, 1500);
+  };
+
+  const processImages = () => {
+    if (uploadedImages.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please upload images first",
         variant: "destructive",
       });
       return;
     }
 
-    setProcessing(true);
+    setIsProcessing(true);
     
     // Simulate processing
-    let currentProgress = 0;
-    const interval = setInterval(() => {
-      currentProgress += 5;
-      setProgress(currentProgress);
+    setTimeout(() => {
+      const processed = uploadedImages.map(file => ({
+        name: file.name,
+        url: URL.createObjectURL(file) // In a real app, this would be the URL of the processed image
+      }));
       
-      if (currentProgress >= 100) {
-        clearInterval(interval);
-        setProcessing(false);
-        toast({
-          title: "Processing complete",
-          description: `Successfully processed ${uploadedFiles.length} images with ${selectedTasks.length} tasks`,
-        });
-      }
-    }, 200);
+      setProcessedImages(processed);
+      setIsProcessing(false);
+      
+      toast({
+        title: "Success",
+        description: `${processed.length} images processed successfully`,
+      });
+    }, 2000);
   };
 
-  const handleSaveMacro = () => {
-    if (selectedTasks.length === 0) {
+  const downloadAll = () => {
+    if (processedImages.length === 0) {
       toast({
-        title: "No tasks selected",
-        description: "Please select at least one task to save as a macro",
+        title: "Error",
+        description: "No processed images to download",
         variant: "destructive",
       });
       return;
     }
 
-    // In a real implementation, this would save to a database
+    // In a real application, you would create a zip file or allow individual downloads
     toast({
-      title: "Macro saved",
-      description: "Your editing tasks have been saved as a macro",
+      title: "Download started",
+      description: "Your images are being prepared for download",
     });
   };
-
-  const handleOpenMacro = () => {
-    // In a real implementation, this would open a dialog to select a saved macro
-    setSelectedTasks(["resize", "brightness", "contrast"]);
-    toast({
-      title: "Macro loaded",
-      description: "Sample macro has been loaded",
-    });
-  };
-
-  const handleTryPremium = () => {
-    toast({
-      title: "Premium Features",
-      description: "Upgrade to process unlimited files and access advanced editing features",
-    });
-  };
-  
-  const filteredTasks = tasks.filter(task => task.category === activeTab);
 
   return (
-    <div className="container mx-auto py-8 px-4 min-h-screen bg-background">
-      <header className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="bg-yellow-500 p-2 rounded-md">
-            <span className="text-xl font-bold text-black">B</span>
-          </div>
-          <h1 className="text-2xl font-bold">Batch Editor</h1>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto p-4 space-y-8">
+        <div className="flex justify-between items-center pt-4">
+          <a href="/" className="text-foreground hover:text-foreground/80">
+            ← Back to Home
+          </a>
+          <ThemeToggle />
         </div>
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" className="gap-1">
-            <User size={16} />
-            <span>Sign up / Log in</span>
-          </Button>
-          <Button size="sm" className="gap-1 bg-yellow-500 hover:bg-yellow-600 text-black" onClick={handleTryPremium}>
-            <Gem size={16} />
-            <span>Try premium</span>
-          </Button>
-        </div>
-      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <div className="bg-muted/30 rounded-lg p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4 text-center">Batch edit</h2>
-            <div className="p-4 bg-muted/50 rounded-md">
-              <p className="text-sm mb-4">
-                Add editing tasks from below or open a previously saved macro (.pxm). Premium users can batch up to 100 files at a time.
-              </p>
-              <div className="flex gap-2 justify-center">
-                <Button variant="outline" size="sm" className="text-blue-500" onClick={handleOpenMacro}>
-                  <Folder size={16} className="mr-1" />
-                  Open macro
-                </Button>
-                <span className="text-sm flex items-center">or</span>
-                <Button variant="outline" size="sm" className="text-blue-500" onClick={handleSaveMacro}>
-                  <Save size={16} className="mr-1" />
-                  Save macro
-                </Button>
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold">Bulk Image Size Increaser</h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Resize multiple images at once with our AI-powered bulk image processor.
+          </p>
+        </div>
+
+        <div className="bg-card rounded-lg border shadow-lg p-6">
+          <div className="space-y-6">
+            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-10 text-center">
+              <div className="flex flex-col items-center space-y-4">
+                <UploadCloud className="h-16 w-16 text-muted-foreground" />
+                <h3 className="text-lg font-medium">Drag & drop your images here</h3>
+                <p className="text-sm text-muted-foreground max-w-xs">
+                  Or click to browse. Supported formats: JPEG, PNG, WebP (max 5MB each)
+                </p>
+                <Input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="w-full max-w-xs"
+                  onChange={handleFileChange}
+                />
               </div>
             </div>
+
+            {uploadedImages.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Selected Images ({uploadedImages.length})</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {uploadedImages.map((file, index) => (
+                    <div key={index} className="relative aspect-square rounded-md overflow-hidden border">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={file.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs truncate p-1">
+                        {file.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-4">
+              <Button 
+                onClick={handleUpload} 
+                disabled={isUploading || uploadedImages.length === 0}
+                className="min-w-[120px]"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="mr-2 h-4 w-4" />
+                    Upload
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                onClick={processImages} 
+                disabled={isProcessing || uploadedImages.length === 0}
+                className="min-w-[120px]"
+                variant="secondary"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Process Images
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                onClick={downloadAll} 
+                disabled={processedImages.length === 0}
+                className="min-w-[120px]"
+                variant="outline"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download All
+              </Button>
+            </div>
           </div>
 
-          <div className="bg-muted/30 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4 text-center">Add task</h2>
-            <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-3 mb-4">
-                <TabsTrigger value="basic">Basic</TabsTrigger>
-                <TabsTrigger value="temperature">Temperature</TabsTrigger>
-                <TabsTrigger value="sharpening">Effects</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value={activeTab} className="mt-0 space-y-1">
-                {filteredTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-muted/80 transition-colors ${
-                      selectedTasks.includes(task.id) ? "bg-muted" : ""
-                    }`}
-                    onClick={() => toggleTask(task.id)}
-                  >
-                    <div className="text-muted-foreground">
-                      {task.icon}
-                    </div>
-                    <span className="flex-grow">{task.name}</span>
-                    <Checkbox
-                      checked={selectedTasks.includes(task.id)}
-                      onCheckedChange={() => toggleTask(task.id)}
+          {processedImages.length > 0 && (
+            <div className="mt-8 space-y-4">
+              <h3 className="text-lg font-semibold flex items-center">
+                <Check className="mr-2 h-5 w-5 text-green-500" />
+                Processed Images ({processedImages.length})
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {processedImages.map((image, index) => (
+                  <div key={index} className="relative aspect-square rounded-md overflow-hidden border">
+                    <img
+                      src={image.url}
+                      alt={image.name}
+                      className="w-full h-full object-cover"
                     />
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs truncate p-1">
+                      {image.name}
+                    </div>
+                    <a 
+                      href={image.url} 
+                      download={image.name}
+                      className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                    >
+                      <Download className="h-4 w-4" />
+                    </a>
                   </div>
                 ))}
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-
-        <div className="lg:col-span-2">
-          <div className="bg-muted/30 rounded-lg p-6 min-h-[400px] flex flex-col">
-            <div className="flex-grow flex flex-col items-center justify-center mb-6">
-              {uploadedFiles.length === 0 ? (
-                <div className="border-2 border-dashed border-muted-foreground/20 rounded-lg p-12 text-center w-full max-w-md">
-                  <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
-                    <div className="h-20 w-20 bg-muted/50 rounded-full flex items-center justify-center mb-4">
-                      <Upload size={32} className="text-muted-foreground" />
-                    </div>
-                    <p className="text-muted-foreground mb-2">Add photo(s)</p>
-                    <Input 
-                      id="file-upload" 
-                      type="file" 
-                      multiple 
-                      accept="image/*" 
-                      onChange={handleFileUpload} 
-                      className="hidden" 
-                    />
-                  </label>
-                </div>
-              ) : (
-                <div className="w-full">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {uploadedFiles.map((file, index) => (
-                      <div key={index} className="aspect-square border rounded-md bg-muted/50 relative overflow-hidden">
-                        <img 
-                          src={URL.createObjectURL(file)} 
-                          alt={`Preview ${index}`} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  {processing && (
-                    <div className="mt-6">
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm">Processing images...</span>
-                        <span className="text-sm">{progress}%</span>
-                      </div>
-                      <Progress value={progress} className="h-2" />
-                    </div>
-                  )}
-                </div>
-              )}
+              </div>
             </div>
-            
-            <div className="flex justify-end gap-3">
-              <Button 
-                variant="outline" 
-                onClick={handleClear}
-                disabled={processing}
-                className="gap-1"
-              >
-                <Clear size={16} />
-                Clear
-              </Button>
-              <Button 
-                onClick={handleExport} 
-                disabled={processing || uploadedFiles.length === 0}
-                className="gap-1 bg-yellow-500 hover:bg-yellow-600 text-black"
-              >
-                <Export size={16} />
-                Export
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -341,6 +240,3 @@ const BulkImageSizeIncreaser = () => {
 };
 
 export default BulkImageSizeIncreaser;
-
-// Define the Palette component used above
-const Palette = (props: React.ComponentProps<typeof Vibrance>) => <Vibrance {...props} />;
