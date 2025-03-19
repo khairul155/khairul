@@ -29,7 +29,7 @@ const AiToolsSection = () => {
             label="Image Generator"
             description="AI-powered image generation tool"
             color="blue"
-            onClick={() => handleToolClick("Image Generator")}
+            onClick={() => handleToolClick("Image Generator", "/image-generator")}
           />
           
           <AiToolIcon 

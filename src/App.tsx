@@ -11,6 +11,7 @@ import MetadataGenerator from "./pages/MetadataGenerator";
 import ImageToPrompt from "./pages/ImageToPrompt";
 import ImageUpscaler from "./pages/ImageUpscaler";
 import GraphicDesignerBot from "./pages/GraphicDesignerBot";
+import ImageGenerator from "./pages/ImageGenerator";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/image-to-prompt" element={<ImageToPrompt />} />
             <Route path="/image-upscaler" element={<ImageUpscaler />} />
             <Route path="/graphic-designer-bot" element={<GraphicDesignerBot />} />
+            <Route path="/image-generator" element={<ImageGenerator />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
