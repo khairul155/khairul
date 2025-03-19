@@ -13,7 +13,7 @@ import {
   ChevronRight,
   MoveUp,
   Trash2,
-  Robot
+  Bot
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -198,7 +198,7 @@ const GraphicDesignerBot = () => {
                   <div className="mr-3 mt-1">
                     <Avatar className="h-8 w-8 bg-blue-600">
                       <AvatarFallback className="bg-blue-700">
-                        <Robot className="h-5 w-5 text-white" />
+                        <Bot className="h-5 w-5 text-white" />
                       </AvatarFallback>
                     </Avatar>
                   </div>
