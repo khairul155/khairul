@@ -29,7 +29,7 @@ const AiToolsSection = () => {
             label="Image Generator"
             description="AI-powered image generation tool"
             color="blue"
-            onClick={() => handleToolClick("Image Generator", "/image-generator")}
+            onClick={() => handleToolClick("Image Generator")}
           />
           
           <AiToolIcon 
@@ -69,7 +69,7 @@ const AiToolsSection = () => {
             label="Bulk Image Size Increaser"
             description="Batch processing tool to enlarge multiple images"
             color="yellow"
-            onClick={() => handleToolClick("Bulk Image Size Increaser")}
+            onClick={() => handleToolClick("Bulk Image Size Increaser", "/bulk-image-size-increaser")}
           />
         </div>
       </div>
