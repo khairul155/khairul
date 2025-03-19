@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,7 +24,7 @@ import {
   Sparkles as Clamour,
   Flower, // Replaced FlowerPetal with Flower
   Waves as Smooth,
-  CloudFog as Blur, // Replaced Blur with CloudFog
+  Cloud as Blur, // Replaced CloudFog with Cloud since CloudFog doesn't exist
   Cloud as Grain,
   List,
   Save,
@@ -77,7 +78,7 @@ const BulkImageSizeIncreaser = () => {
     { id: "clamour", name: "Clamour", icon: <Clamour />, category: "sharpening" },
     { id: "bloom", name: "Bloom", icon: <Flower />, category: "sharpening" },
     { id: "smooth", name: "Smooth", icon: <Smooth />, category: "sharpening" },
-    { id: "blur", name: "Blur", icon: <CloudFog />, category: "sharpening" },
+    { id: "blur", name: "Blur", icon: <Cloud />, category: "sharpening" },
     { id: "grain", name: "Grain", icon: <Grain />, category: "sharpening" },
   ];
 
