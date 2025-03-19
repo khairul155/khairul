@@ -9,6 +9,7 @@ interface AiToolIconProps {
   color: string;
   onClick?: () => void;
   className?: string;
+  isActive?: boolean;
 }
 
 const AiToolIcon: React.FC<AiToolIconProps> = ({ 
@@ -17,11 +18,12 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
   description, 
   color, 
   onClick,
-  className 
+  className,
+  isActive = false
 }) => {
   // Map of background colors for each icon type
   const colorMap = {
-    IG: "bg-gradient-to-br from-blue-400 to-cyan-300", // Image Generator
+    IG: "bg-gradient-to-br from-green-400 to-yellow-300", // Image Generator
     MD: "bg-gradient-to-br from-green-300 to-lime-200", // Meta Data Generator
     GD: "bg-gradient-to-br from-purple-400 to-violet-300", // Graphic Designer Bot
     IP: "bg-gradient-to-br from-orange-400 to-amber-300", // Image to Prompt
@@ -33,15 +35,20 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
     <div 
       className={cn(
         "flex flex-col items-center text-center cursor-pointer transition-transform hover:scale-105",
+        isActive && "scale-105",
         className
       )}
       onClick={onClick}
     >
       <div className={cn(
-        "w-24 h-24 rounded-2xl shadow-lg flex items-center justify-center mb-2",
-        colorMap[icon]
+        "w-24 h-24 rounded-2xl shadow-lg flex items-center justify-center mb-2 relative",
+        colorMap[icon],
+        isActive && "ring-2 ring-white ring-opacity-50"
       )}>
-        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm">
+        {isActive && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full"></div>
+        )}
+        <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm">
           <span className="text-xl font-bold">{icon}</span>
         </div>
       </div>

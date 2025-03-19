@@ -1,9 +1,10 @@
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import AiToolIcon from "./AiToolIcon";
 
 const AiToolsSection = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleToolClick = (toolName: string, route?: string) => {
     console.log(`${toolName} clicked`);
@@ -14,6 +15,10 @@ const AiToolsSection = () => {
       // This is a placeholder for actual tool functionality
       // You can implement specific actions for each tool here
     }
+  };
+
+  const isActive = (path: string) => {
+    return location.pathname === path;
   };
 
   return (
@@ -29,6 +34,7 @@ const AiToolsSection = () => {
             label="Image Generator"
             description="AI-powered image generation tool"
             color="blue"
+            isActive={isActive("/image-generator")}
             onClick={() => handleToolClick("Image Generator", "/image-generator")}
           />
           
@@ -37,6 +43,7 @@ const AiToolsSection = () => {
             label="Meta Data Generator"
             description="Extracts and generates metadata for images"
             color="green"
+            isActive={isActive("/metadata-generator")}
             onClick={() => handleToolClick("Meta Data Generator", "/metadata-generator")}
           />
           
@@ -45,6 +52,7 @@ const AiToolsSection = () => {
             label="Graphic Designer Bot"
             description="AI-based graphic design assistant"
             color="purple"
+            isActive={isActive("/graphic-designer-bot")}
             onClick={() => handleToolClick("Graphic Designer Bot", "/graphic-designer-bot")}
           />
           
@@ -53,6 +61,7 @@ const AiToolsSection = () => {
             label="Image to Prompt"
             description="Converts images into detailed text prompts"
             color="orange"
+            isActive={isActive("/image-to-prompt")}
             onClick={() => handleToolClick("Image to Prompt", "/image-to-prompt")}
           />
           
@@ -61,6 +70,7 @@ const AiToolsSection = () => {
             label="Image Upscaler"
             description="AI-powered tool for upscaling images"
             color="pink"
+            isActive={isActive("/image-upscaler")}
             onClick={() => handleToolClick("Image Upscaler", "/image-upscaler")}
           />
           
@@ -69,6 +79,7 @@ const AiToolsSection = () => {
             label="Bulk Image Size Increaser"
             description="Batch processing tool to enlarge multiple images"
             color="yellow"
+            isActive={isActive("/bulk-image-size-increaser")}
             onClick={() => handleToolClick("Bulk Image Size Increaser", "/bulk-image-size-increaser")}
           />
         </div>

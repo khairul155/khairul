@@ -13,14 +13,22 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, width = 1024, height = 1024 } = await req.json()
+    const { 
+      prompt, 
+      width = 1024, 
+      height = 1024,
+      negative_prompt = "",
+      num_inference_steps = 4,
+      num_images = 1
+    } = await req.json()
+    
     const apiKey = Deno.env.get('NEBIUS_API_KEY')
 
     if (!apiKey) {
       throw new Error('API key not found')
     }
 
-    console.log(`Generating image for prompt: ${prompt} with size: ${width}x${height}`)
+    console.log(`Generating ${num_images} image(s) for prompt: ${prompt} with size: ${width}x${height}`)
 
     const response = await fetch("https://api.studio.nebius.com/v1/images/generations", {
       method: "POST",
@@ -35,10 +43,11 @@ serve(async (req) => {
         response_extension: "webp",
         width: parseInt(width),
         height: parseInt(height),
-        num_inference_steps: 4,
-        negative_prompt: "",
+        num_inference_steps: parseInt(num_inference_steps),
+        negative_prompt: negative_prompt,
         seed: -1,
         prompt: prompt,
+        n: parseInt(num_images),
       }),
     })
 

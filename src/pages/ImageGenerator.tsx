@@ -1,41 +1,36 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Image as ImageIcon, Wand2, Download, Share2 } from "lucide-react";
+import { Loader2, Sparkles, Wand2, Image as ImageIcon, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-
-// Image size options
-const imageSizes = [
-  { value: "512x512", label: "512×512" },
-  { value: "576x1024", label: "576×1024" },
-  { value: "768x1024", label: "768×1024" },
-  { value: "1024x576", label: "1024×576" },
-  { value: "1024x768", label: "1024×768" },
-  { value: "1024x1024", label: "1024×1024" },
-  { value: "1280x720", label: "1280×720" },
-  { value: "1920x1080", label: "1920×1080" },
-  { value: "2000x2000", label: "2000×2000" },
-];
+import ImageGeneratorSettingsPanel, { ImageGeneratorSettings } from "@/components/ImageGeneratorSettings";
+import ImageGrid from "@/components/ImageGrid";
+import { Link } from "react-router-dom";
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [imageSize, setImageSize] = useState("1024x1024");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  const [settings, setSettings] = useState<ImageGeneratorSettings>({
+    aspectRatio: { id: "1:1", label: "1:1", width: 1024, height: 1024 },
+    numImages: 1,
+    negativePrompt: "",
+    displayCredits: true,
+    privateMode: false,
+  });
+
+  // Update settings handler
+  const handleSettingsChange = (newSettings: Partial<ImageGeneratorSettings>) => {
+    setSettings(prev => ({ ...prev, ...newSettings }));
+  };
 
   const generateImage = async () => {
     if (!prompt.trim()) {
@@ -50,24 +45,31 @@ const ImageGenerator = () => {
     setIsLoading(true);
     setProgress(0);
     const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 10, 90));
-    }, 500);
+      setProgress((prev) => Math.min(prev + 5, 90));
+    }, 400);
 
     try {
-      // Get width and height from the selected size
-      const [width, height] = imageSize.split("x").map(Number);
-
+      const { width, height } = settings.aspectRatio;
+      
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt, width, height }
+        body: { 
+          prompt,
+          width,
+          height,
+          negative_prompt: settings.negativePrompt,
+          num_images: settings.numImages
+        }
       });
 
       if (error) throw error;
 
-      const imageBase64 = data.data[0].b64_json;
-      setGeneratedImage(`data:image/webp;base64,${imageBase64}`);
+      // Handle multiple images if the API supports it
+      const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
+      setGeneratedImages(images);
+      
       toast({
         title: "Success",
-        description: "Image generated successfully!",
+        description: `Generated ${images.length} image${images.length > 1 ? 's' : ''}!`,
       });
     } catch (error) {
       console.error('Error generating image:', error);
@@ -86,173 +88,93 @@ const ImageGenerator = () => {
     }
   };
 
-  const downloadImage = () => {
-    if (!generatedImage) return;
-    
-    const link = document.createElement('a');
-    link.href = generatedImage;
-    link.download = `ai-generated-image-${Date.now()}.webp`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast({
-      title: "Download started",
-      description: "Your image is being downloaded",
-    });
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
       <div className="max-w-6xl mx-auto p-4 space-y-8 relative">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute w-64 h-64 -left-32 -top-32 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-          <div className="absolute w-64 h-64 -right-32 -top-32 bg-yellow-300 dark:bg-yellow-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-          <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-        </div>
-
         <div className="flex justify-between items-center pt-4">
-          <a href="/" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
-            ← Back to Home
-          </a>
+          <Link to="/" className="text-gray-300 hover:text-white flex items-center gap-1 transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
           <ThemeToggle />
         </div>
 
-        <div className="text-center space-y-6 py-8 relative">
-          <div className="relative inline-block animate-float">
-            <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 opacity-20 animate-pulse"></div>
-            <h1 className="text-5xl md:text-6xl font-bold relative">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400">
-                AI Image Generator
+        <div className="text-center space-y-6 py-6 relative">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-green-400 to-yellow-300 opacity-20 animate-pulse"></div>
+            <h1 className="text-5xl md:text-6xl font-bold relative flex items-center justify-center gap-2">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-300 via-yellow-300 to-green-300">
+                AI Image Creator
               </span>
+              <span className="text-white text-3xl">✨</span>
             </h1>
           </div>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            Transform your ideas into stunning visuals using advanced AI technology. 
-            Just describe what you want to see, and watch the magic happen!
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+            Unleash Your Creativity with AI-Powered Image Generation
           </p>
-          <div className="flex justify-center gap-2">
-            <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" />
-            <Wand2 className="w-6 h-6 text-purple-500 animate-bounce" />
-            <ImageIcon className="w-6 h-6 text-blue-500 animate-pulse" />
-          </div>
         </div>
 
-        <div className="space-y-8 backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div className="md:col-span-3">
-                <Input
-                  placeholder="Describe the image you want to generate..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  disabled={isLoading}
-                  className="h-12 text-lg backdrop-blur-sm bg-white/50 dark:bg-gray-900/50 border-2 border-gray-200 dark:border-gray-700 focus:border-purple-500 transition-all duration-300"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="image-size" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Image size
-                </Label>
-                <Select
-                  value={imageSize}
-                  onValueChange={setImageSize}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger id="image-size" className="h-12 backdrop-blur-sm bg-white/50 dark:bg-gray-900/50 border-2 border-gray-200 dark:border-gray-700">
-                    <SelectValue placeholder="Select size" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                    {imageSizes.map((size) => (
-                      <SelectItem key={size.value} value={size.value}>
-                        {size.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+        <div className="space-y-6 backdrop-blur-md bg-black/20 p-6 rounded-2xl border border-gray-700 shadow-xl">
+          <div className="relative">
+            <Textarea
+              ref={textareaRef}
+              placeholder="Enter a prompt, and AI will create images for you."
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              disabled={isLoading}
+              className="min-h-[120px] py-4 px-5 pr-20 text-base backdrop-blur-sm bg-black/30 border-gray-600 text-white placeholder:text-gray-400 resize-none rounded-xl focus:border-green-500 focus:ring-green-500"
+            />
             
-            <div className="flex justify-end">
+            <div className="absolute bottom-4 right-4 flex items-center gap-2">
+              <ImageGeneratorSettingsPanel 
+                settings={settings}
+                onSettingsChange={handleSettingsChange}
+              />
+              
               <Button 
                 onClick={generateImage} 
                 disabled={isLoading}
-                className="h-12 px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg transition-all duration-300 transform hover:scale-105"
+                className="rounded-full bg-gradient-to-r from-green-400 to-yellow-300 hover:from-green-500 hover:to-yellow-400 text-gray-900 font-semibold px-5 transition-all duration-300"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating...
                   </>
                 ) : (
                   <>
-                    <Wand2 className="mr-2 h-5 w-5" />
+                    <Wand2 className="mr-2 h-4 w-4" />
                     Generate
                   </>
                 )}
               </Button>
             </div>
-
-            {isLoading && (
-              <div className="space-y-3">
-                <Progress 
-                  value={progress} 
-                  className="h-2 bg-gray-200 dark:bg-gray-700"
-                />
-                <p className="text-sm text-center text-gray-600 dark:text-gray-400 animate-pulse">
-                  Crafting your masterpiece... {progress}%
-                </p>
-              </div>
-            )}
           </div>
 
-          {generatedImage && !isLoading && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
-                <div className="relative">
-                  <img
-                    src={generatedImage}
-                    alt="Generated image"
-                    className="w-full h-auto rounded-lg shadow-2xl transform transition duration-500 hover:scale-[1.01]"
-                  />
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-3 justify-end">
-                <Button 
-                  onClick={downloadImage}
-                  variant="outline"
-                  className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700"
-                >
-                  <Download className="w-4 h-4" />
-                  Download Image
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700"
-                  onClick={() => {
-                    navigator.clipboard.writeText(prompt);
-                    toast({
-                      title: "Copied!",
-                      description: "Prompt copied to clipboard",
-                    });
-                  }}
-                >
-                  <Share2 className="w-4 h-4" />
-                  Copy Prompt
-                </Button>
-              </div>
-              <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-md rounded-lg p-4 shadow-lg">
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  <span className="font-semibold">Prompt:</span> {prompt}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                  <span className="font-semibold">Size:</span> {imageSize}
-                </p>
-              </div>
+          {isLoading && (
+            <div className="space-y-3">
+              <Progress 
+                value={progress} 
+                className="h-1.5 bg-gray-700"
+              />
+              <p className="text-sm text-center text-gray-400 animate-pulse">
+                Creating your masterpiece... {progress}%
+              </p>
             </div>
           )}
+
+          {generatedImages.length > 0 && !isLoading && (
+            <ImageGrid 
+              images={generatedImages} 
+              prompt={prompt}
+            />
+          )}
+        </div>
+
+        <div className="pt-8 pb-4 text-center">
+          <p className="text-sm text-gray-400">
+            Create stunning visuals with advanced AI technology • {settings.displayCredits && "Credits: ∞"}
+          </p>
         </div>
       </div>
     </div>
