@@ -12,6 +12,7 @@ import ImageToPrompt from "./pages/ImageToPrompt";
 import ImageUpscaler from "./pages/ImageUpscaler";
 import GraphicDesignerBot from "./pages/GraphicDesignerBot";
 import BulkImageSizeIncreaser from "./pages/BulkImageSizeIncreaser";
+import ImageGenerator from "./pages/ImageGenerator";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/image-generator" element={<ImageGenerator />} />
             <Route path="/metadata-generator" element={<MetadataGenerator />} />
             <Route path="/image-to-prompt" element={<ImageToPrompt />} />
             <Route path="/image-upscaler" element={<ImageUpscaler />} />
