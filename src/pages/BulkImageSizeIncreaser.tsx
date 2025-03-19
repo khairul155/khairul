@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,23 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { 
   Crop,
-  Resize,
-  BorderAll as Border,
+  Scaling, // Replaced Resize with Scaling
+  Square, // Replaced BorderAll with Square
   Wand2 as Auto,
   Palette as Vibrance,
   Droplets as Saturation,
   Sun as Brightness,
   Contrast,
-  BrightnessUp as Exposure,
+  Sun as Exposure, // Replaced BrightnessUp with Sun
   Mountain as Highlights,
   CloudSun as Shadows,
   Aperture as Monochrome,
   Focus as Sharpen,
   Glasses as Clarity,
   Sparkles as Clamour,
-  FlowerPetal as Bloom,
+  Flower, // Replaced FlowerPetal with Flower
   Waves as Smooth,
-  Blur,
+  CloudFog as Blur, // Replaced Blur with CloudFog
   Cloud as Grain,
   List,
   Save,
@@ -59,8 +58,8 @@ const BulkImageSizeIncreaser = () => {
 
   const tasks: Task[] = [
     { id: "crop", name: "Crop", icon: <Crop />, category: "basic" },
-    { id: "resize", name: "Resize", icon: <Resize />, category: "basic" },
-    { id: "border", name: "Border", icon: <Border />, category: "basic" },
+    { id: "resize", name: "Resize", icon: <Scaling />, category: "basic" },
+    { id: "border", name: "Border", icon: <Square />, category: "basic" },
     { id: "auto", name: "Auto-adjust", icon: <Auto />, category: "basic" },
     { id: "vibrance", name: "Vibrance", icon: <Vibrance />, category: "basic" },
     { id: "saturation", name: "Saturation", icon: <Saturation />, category: "basic" },
@@ -76,9 +75,9 @@ const BulkImageSizeIncreaser = () => {
     { id: "sharpen", name: "Sharpen", icon: <Sharpen />, category: "sharpening" },
     { id: "clarity", name: "Clarity", icon: <Clarity />, category: "sharpening" },
     { id: "clamour", name: "Clamour", icon: <Clamour />, category: "sharpening" },
-    { id: "bloom", name: "Bloom", icon: <Bloom />, category: "sharpening" },
+    { id: "bloom", name: "Bloom", icon: <Flower />, category: "sharpening" },
     { id: "smooth", name: "Smooth", icon: <Smooth />, category: "sharpening" },
-    { id: "blur", name: "Blur", icon: <Blur />, category: "sharpening" },
+    { id: "blur", name: "Blur", icon: <CloudFog />, category: "sharpening" },
     { id: "grain", name: "Grain", icon: <Grain />, category: "sharpening" },
   ];
 
