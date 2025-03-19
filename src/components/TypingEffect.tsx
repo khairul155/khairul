@@ -8,7 +8,7 @@ interface TypingEffectProps {
 
 const TypingEffect: React.FC<TypingEffectProps> = ({ 
   text, 
-  typingSpeed = 30 
+  typingSpeed = 15 // Changed from 30 to 15 to make it faster
 }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);

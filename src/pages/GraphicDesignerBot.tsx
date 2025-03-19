@@ -12,13 +12,15 @@ import {
   BrainCircuit, 
   ChevronRight,
   MoveUp,
-  Trash2
+  Trash2,
+  Robot
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import TypingEffect from "@/components/TypingEffect";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface Message {
   role: 'user' | 'bot';
@@ -177,14 +179,8 @@ const GraphicDesignerBot = () => {
       </div>
 
       <div className="flex flex-col w-full h-full px-4 py-6 relative z-10">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 px-4">
-          <div className="flex items-center gap-3">
-            <Palette className="h-8 w-8 text-blue-400" />
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-              Graphic Designer Bot
-            </h1>
-          </div>
+        {/* Header - Removed the text, just kept the theme toggle */}
+        <div className="flex justify-end items-center mb-6 px-4">
           <ThemeToggle />
         </div>
 
@@ -198,6 +194,15 @@ const GraphicDesignerBot = () => {
                   message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
+                {message.role === "bot" && !message.isTyping && (
+                  <div className="mr-3 mt-1">
+                    <Avatar className="h-8 w-8 bg-blue-600">
+                      <AvatarFallback className="bg-blue-700">
+                        <Robot className="h-5 w-5 text-white" />
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                )}
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                     message.role === "user"
@@ -222,7 +227,7 @@ const GraphicDesignerBot = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input area */}
+          {/* Input area - Fix the footer space issue */}
           <div className="p-4 border-t border-gray-800">
             <div className="flex gap-2 items-end">
               <div className="flex-1 relative">
