@@ -18,10 +18,12 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import TypingEffect from "@/components/TypingEffect";
 
 interface Message {
   role: 'user' | 'bot';
   content: string;
+  isTyping?: boolean;
 }
 
 const GraphicDesignerBot = () => {
@@ -61,18 +63,33 @@ const GraphicDesignerBot = () => {
     setIsLoading(true);
 
     try {
+      // First add a temporary "typing" message
+      setMessages(prev => [...prev, { role: 'bot', content: "", isTyping: true }]);
+
       const { data, error } = await supabase.functions.invoke('graphic-designer-bot', {
         body: { prompt: prompt }
       });
 
       if (error) throw error;
 
-      const botReply = { role: 'bot' as const, content: data.generatedText };
-      setMessages(prev => [...prev, botReply]);
+      // Remove the typing message and add the actual response
+      setMessages(prev => {
+        const newMessages = [...prev];
+        newMessages.pop(); // Remove the typing indicator
+        return [...newMessages, { role: 'bot', content: data.generatedText }];
+      });
     } catch (error) {
       console.error('Error calling graphic-designer-bot function:', error);
       toast.error("Failed to get a response. Please try again.");
-      setMessages(prev => [...prev, { role: 'bot', content: "Sorry, I encountered an error. Please try again later." }]);
+      
+      // Remove the typing message and add error message
+      setMessages(prev => {
+        const newMessages = [...prev];
+        if (newMessages[newMessages.length - 1].isTyping) {
+          newMessages.pop(); // Remove the typing indicator
+        }
+        return [...newMessages, { role: 'bot', content: "Sorry, I encountered an error. Please try again later." }];
+      });
     } finally {
       setIsLoading(false);
     }
@@ -89,16 +106,32 @@ const GraphicDesignerBot = () => {
     setMessages(prev => [...prev, { role: 'user', content: suggestionText }]);
     
     setIsLoading(true);
+    // First add a temporary "typing" message
+    setMessages(prev => [...prev, { role: 'bot', content: "", isTyping: true }]);
+
     supabase.functions.invoke('graphic-designer-bot', {
       body: { prompt: suggestionText }
     }).then(({ data, error }) => {
       if (error) throw error;
       
-      setMessages(prev => [...prev, { role: 'bot', content: data.generatedText }]);
+      // Remove the typing message and add the actual response
+      setMessages(prev => {
+        const newMessages = [...prev];
+        newMessages.pop(); // Remove the typing indicator
+        return [...newMessages, { role: 'bot', content: data.generatedText }];
+      });
     }).catch(error => {
       console.error('Error calling graphic-designer-bot function:', error);
       toast.error("Failed to get a response. Please try again.");
-      setMessages(prev => [...prev, { role: 'bot', content: "Sorry, I encountered an error. Please try again later." }]);
+      
+      // Remove the typing message and add error message
+      setMessages(prev => {
+        const newMessages = [...prev];
+        if (newMessages[newMessages.length - 1].isTyping) {
+          newMessages.pop(); // Remove the typing indicator
+        }
+        return [...newMessages, { role: 'bot', content: "Sorry, I encountered an error. Please try again later." }];
+      });
     }).finally(() => {
       setIsLoading(false);
     });
@@ -135,7 +168,7 @@ const GraphicDesignerBot = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white relative overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white relative overflow-hidden">
       {/* Decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute w-96 h-96 -left-48 -top-48 bg-blue-500/20 rounded-full mix-blend-overlay filter blur-3xl"></div>
@@ -143,9 +176,9 @@ const GraphicDesignerBot = () => {
         <div className="absolute w-96 h-96 left-1/3 -bottom-48 bg-teal-500/20 rounded-full mix-blend-overlay filter blur-3xl"></div>
       </div>
 
-      <div className="container mx-auto px-4 pt-6 pb-20 relative z-10 flex flex-col h-screen">
+      <div className="flex flex-col w-full h-full px-4 py-6 relative z-10">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6 px-4">
           <div className="flex items-center gap-3">
             <Palette className="h-8 w-8 text-blue-400" />
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
@@ -172,7 +205,17 @@ const GraphicDesignerBot = () => {
                       : "bg-gray-800 text-gray-100"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  {message.isTyping ? (
+                    <div className="flex space-x-2 items-center h-6">
+                      <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{animationDelay: '0ms'}}></div>
+                      <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{animationDelay: '150ms'}}></div>
+                      <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{animationDelay: '300ms'}}></div>
+                    </div>
+                  ) : message.role === 'bot' ? (
+                    <TypingEffect text={message.content} />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  )}
                 </div>
               </div>
             ))}
@@ -217,12 +260,12 @@ const GraphicDesignerBot = () => {
 
         {/* Suggestion chips */}
         {messages.length <= 2 && (
-          <div className="mt-6">
-            <p className="text-gray-400 mb-3 flex items-center">
+          <div className="mt-6 mb-4">
+            <p className="text-gray-400 mb-3 flex items-center px-4">
               <Sparkles className="w-4 h-4 mr-2 text-blue-400" />
               Try these suggestions:
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-4">
               {suggestions.map((suggestion, index) => (
                 <button
                   key={index}
