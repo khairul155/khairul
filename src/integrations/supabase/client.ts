@@ -18,7 +18,20 @@ export const supabase = createClient<Database>(
       storage: localStorage,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      flowType: 'implicit'
+      flowType: 'pkce' // Changed from 'implicit' to 'pkce' for better security
     }
   }
 );
+
+// Export a helper function to handle authentication errors
+export const getAuthErrorFromUrl = () => {
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const error = hashParams.get("error");
+  const errorDescription = hashParams.get("error_description");
+  
+  if (error) {
+    return { error, errorDescription };
+  }
+  
+  return null;
+};
