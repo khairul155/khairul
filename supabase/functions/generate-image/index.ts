@@ -28,7 +28,7 @@ serve(async (req) => {
       throw new Error('API key not found')
     }
 
-    console.log(`Generating ${num_images} image(s) for prompt: ${prompt} with size: ${width}x${height}`)
+    console.log(`Generating ${num_images} image(s) for prompt: ${prompt} with size: ${width}x${height} and steps: ${num_inference_steps}`)
 
     const response = await fetch("https://api.studio.nebius.com/v1/images/generations", {
       method: "POST",
@@ -41,13 +41,13 @@ serve(async (req) => {
         model: "black-forest-labs/flux-schnell",
         response_format: "b64_json",
         response_extension: "webp",
-        width: parseInt(width),
-        height: parseInt(height),
-        num_inference_steps: parseInt(num_inference_steps),
+        width: parseInt(String(width)),
+        height: parseInt(String(height)),
+        num_inference_steps: parseInt(String(num_inference_steps)),
         negative_prompt: negative_prompt,
         seed: -1,
         prompt: prompt,
-        n: parseInt(num_images),
+        n: parseInt(String(num_images)),
       }),
     })
 

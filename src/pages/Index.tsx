@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,7 @@ import { Loader2, Sparkles, Image as ImageIcon, Wand2, LightbulbIcon, ArrowRight
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import AiToolsSection from "@/components/AiToolsSection";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const [prompt, setPrompt] = useState("");
@@ -116,7 +116,11 @@ const Index = () => {
           <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-between items-center pt-4">
+          <Link to="/image-generator" className="group bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg transition-all duration-300 transform hover:scale-105 px-4 py-2 inline-flex items-center gap-2">
+            <span>Try New Advanced Generator</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
           <ThemeToggle />
         </div>
 

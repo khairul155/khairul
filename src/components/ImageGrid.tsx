@@ -34,26 +34,15 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt }) => {
     });
   };
 
-  // Calculate grid columns based on number of images
-  const getGridClass = () => {
-    switch (images.length) {
-      case 1: return "grid-cols-1";
-      case 2: return "grid-cols-1 md:grid-cols-2";
-      case 3: return "grid-cols-1 md:grid-cols-3";
-      case 4: return "grid-cols-2";
-      default: return "grid-cols-1";
-    }
-  };
-
   return (
     <div className="space-y-4">
-      <div className={`grid ${getGridClass()} gap-4`}>
+      <div className="flex justify-center">
         {images.map((image, index) => (
-          <div key={index} className="relative group overflow-hidden rounded-lg">
+          <div key={index} className="relative group overflow-hidden rounded-lg max-w-full mx-auto">
             <img 
               src={image} 
               alt={`Generated image ${index + 1}`}
-              className="w-full h-auto object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
               <div className="flex justify-end gap-2">
@@ -79,8 +68,8 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt }) => {
         ))}
       </div>
       
-      <div className="bg-white/10 dark:bg-gray-800/20 backdrop-blur-md rounded-lg p-4">
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+      <div className="bg-white/10 backdrop-blur-md rounded-lg p-4">
+        <p className="text-sm text-gray-300">
           <span className="font-semibold">Prompt:</span> {prompt}
         </p>
       </div>
