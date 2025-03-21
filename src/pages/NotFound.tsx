@@ -1,10 +1,12 @@
 
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Home, ArrowLeft } from "lucide-react";
 
 const NotFound = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.error(
@@ -12,6 +14,10 @@ const NotFound = () => {
       location.pathname
     );
   }, [location.pathname]);
+
+  const goBack = () => {
+    navigate(-1);
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
@@ -23,11 +29,22 @@ const NotFound = () => {
         <p className="text-sm text-gray-500 mb-6">
           Path: {location.pathname}
         </p>
-        <Link to="/">
-          <Button className="bg-purple-600 hover:bg-purple-700">
-            Return to Home
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button 
+            onClick={goBack} 
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Go Back
           </Button>
-        </Link>
+          <Link to="/">
+            <Button className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2 w-full">
+              <Home className="h-4 w-4" />
+              Return to Home
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

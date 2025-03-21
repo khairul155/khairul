@@ -7,3 +7,13 @@ https://*.netlify.app/* https://pixcraftai.com/:splat 301!
 
 # Handle Single Page Application routing
 /* /index.html 200
+
+# Explicit redirects for common paths
+/image-generator /index.html 200
+/auth /index.html 200
+/image-to-prompt /index.html 200
+/image-upscaler /index.html 200
+/graphic-designer-bot /index.html 200
+/bulk-image-size-increaser /index.html 200
+/metadata-generator /index.html 200
+

@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
 import Index from "./pages/Index";
 import LandingPage from "./pages/LandingPage";
@@ -37,7 +37,8 @@ const App = () => (
               <Route path="/image-upscaler" element={<ImageUpscaler />} />
               <Route path="/graphic-designer-bot" element={<GraphicDesignerBot />} />
               <Route path="/bulk-image-size-increaser" element={<BulkImageSizeIncreaser />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              {/* Redirect any unknown routes to the 404 component */}
+              <Route path="/404" element={<NotFound />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
