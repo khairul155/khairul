@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import {
   HelpCircle,
   UserMinus,
   Settings,
-  Upgrade
+  Crown  // Replaced 'Upgrade' with 'Crown' which exists in lucide-react
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -186,7 +185,7 @@ const Navbar = () => {
                       <span>View Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
-                      <Upgrade className="mr-2 h-4 w-4" />
+                      <Crown className="mr-2 h-4 w-4" />
                       <span>Upgrade Plan</span>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
@@ -257,7 +256,7 @@ const Navbar = () => {
                       <span>View Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
-                      <Upgrade className="mr-2 h-4 w-4" />
+                      <Crown className="mr-2 h-4 w-4" />
                       <span>Upgrade Plan</span>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
