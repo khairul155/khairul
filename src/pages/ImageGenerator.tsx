@@ -4,25 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Image as ImageIcon, RefreshCcw, ChevronDown, Check, Square, ArrowLeft, ImagePlus, Upload, FolderOpen } from "lucide-react";
+import { Loader2, ChevronLeft, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import ImageGrid from "@/components/ImageGrid";
 import { Link } from "react-router-dom";
-import {
+import { 
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
 
 const ImageGenerator = () => {
@@ -33,11 +24,6 @@ const ImageGenerator = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const [negativePrompt, setNegativePrompt] = useState("");
-  const [contentType, setContentType] = useState("art");
-  const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [isSettingsOpen, setIsSettingsOpen] = useState(true);
-  const [isContentTypeOpen, setIsContentTypeOpen] = useState(true);
-  const [isCompositionOpen, setIsCompositionOpen] = useState(true);
   
   // Generation settings
   const [generationSettings, setGenerationSettings] = useState<GenerationSettings>({
@@ -47,14 +33,6 @@ const ImageGenerator = () => {
     width: 832,
     height: 832
   });
-
-  const aspectRatios = {
-    "1:1": { width: 1024, height: 1024 },
-    "4:3": { width: 1024, height: 768 },
-    "3:4": { width: 768, height: 1024 },
-    "16:9": { width: 1024, height: 576 },
-    "9:16": { width: 576, height: 1024 },
-  };
 
   const generateImage = async () => {
     if (!prompt.trim()) {
@@ -133,16 +111,22 @@ const ImageGenerator = () => {
         <div className="border-b border-gray-800 p-4 flex items-center justify-between">
           <div className="flex items-center">
             <Link to="/" className="text-gray-300 hover:text-white flex items-center gap-1 transition-colors mr-4">
-              <ArrowLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" />
               Back
             </Link>
           </div>
           
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-[#443627]">PixcraftAI</h1>
+            <h1 className="text-xl font-bold text-[#FFA725]">PixcraftAI</h1>
           </div>
           
           <div className="flex items-center gap-2">
+            <Button variant="ghost" className="text-gray-300 hover:text-white">
+              Gallery
+            </Button>
+            <Button className="bg-[#2776FF] hover:bg-[#1665F2] text-white">
+              Generate
+            </Button>
             <ThemeToggle />
           </div>
         </div>
@@ -155,17 +139,15 @@ const ImageGenerator = () => {
             </div>
           ) : (
             <div className="text-center max-w-md mx-auto">
-              <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-8 rounded-lg mb-6 relative overflow-hidden">
-                <div className="absolute -top-6 -right-6 w-16 h-16">
-                  <div className="absolute w-full h-full bg-red-500 rotate-45"></div>
-                  <ImageIcon className="absolute top-8 right-8 h-6 w-6 text-white" />
+              <div className="flex flex-col items-center justify-center gap-6">
+                <div className="rounded-full bg-gradient-to-br from-[#FF5353]/20 to-[#FFA725]/20 p-6">
+                  <ImageIcon className="h-12 w-12 text-[#FFA725]" />
                 </div>
-                <ImageIcon className="h-16 w-16 mx-auto mb-4 text-gray-400 opacity-50" />
+                <h2 className="text-2xl font-bold">Start generating images</h2>
+                <p className="text-gray-400">
+                  Describe the image you want to generate in the prompt field, or go to Gallery and select images generated with sample prompts for you to try.
+                </p>
               </div>
-              <h2 className="text-2xl font-bold mb-4">Start generating images</h2>
-              <p className="text-gray-400 mb-6">
-                Describe the image you want to generate in the prompt field, or go to Gallery and select images generated with sample prompts for you to try.
-              </p>
             </div>
           )}
         </div>
@@ -177,24 +159,13 @@ const ImageGenerator = () => {
               <div className="bg-[#1A1A1A] rounded-lg border border-gray-800 overflow-hidden">
                 <Textarea
                   ref={textareaRef}
-                  placeholder="Enter a prompt to generate an image..."
+                  placeholder="Describe the image you want to generate..."
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   disabled={isLoading}
                   className="min-h-[60px] px-4 py-3 bg-transparent border-none text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0"
                 />
                 <div className="px-4 py-2 flex items-center justify-between">
-                  <button 
-                    className="text-gray-400 hover:text-white"
-                    onClick={() => {
-                      if (textareaRef.current) {
-                        textareaRef.current.focus();
-                      }
-                    }}
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                  </button>
-                  
                   {isLoading && (
                     <div className="flex-1 mx-4">
                       <Progress value={progress} className="h-1 bg-gray-700" />
@@ -204,7 +175,7 @@ const ImageGenerator = () => {
                   <Button
                     onClick={generateImage}
                     disabled={isLoading || !prompt.trim()}
-                    className="bg-[#FFA725] hover:bg-[#e99b22] text-white"
+                    className="bg-[#2776FF] hover:bg-[#1665F2] text-white ml-auto"
                   >
                     {isLoading ? (
                       <>

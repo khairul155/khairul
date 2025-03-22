@@ -1,35 +1,40 @@
 
 import { useState } from "react";
-import { Info, Zap, Diamond, Star, Square, Maximize2 } from "lucide-react";
+import { 
+  ChevronDown, 
+  Info, 
+  Zap, 
+  Check, 
+  Star,
+  ImageIcon,
+  PaintBrush,
+  Upload,
+  FolderOpen,
+  Camera,
+  History
+} from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import AspectRatioSelector from "./AspectRatioSelector";
 import { cn } from "@/lib/utils";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-
-export interface GenerationMode {
-  id: string;
-  name: string;
-  steps: number;
-  icon: React.ReactNode;
-  isNew?: boolean;
-  isPro?: boolean;
-}
-
-export interface ImageDimension {
-  id: string;
-  name: string;
-  aspectRatio: string;
-  width: number;
-  height: number;
-  icon?: React.ReactNode;
-}
 
 export interface GenerationSettings {
-  mode: string;
+  mode: "fast" | "quality" | "ultra";
   steps: number;
   dimensionId: string;
   width: number;
@@ -41,165 +46,239 @@ interface GenerationSidebarProps {
   onSettingsChange: (settings: Partial<GenerationSettings>) => void;
 }
 
-const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
-  settings,
-  onSettingsChange,
-}) => {
-  // Available generation modes
-  const generationModes: GenerationMode[] = [
-    { id: "fast", name: "Fast", steps: 11, icon: <Zap className="h-4 w-4" /> },
-    { id: "quality", name: "Quality", steps: 13, icon: <Diamond className="h-4 w-4" />, isPro: true },
-    { id: "ultra", name: "Ultra", steps: 16, icon: <Star className="h-4 w-4" />, isNew: true },
+const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProps) => {
+  // Manage collapsible sections
+  const [isGeneralOpen, setIsGeneralOpen] = useState(true);
+  const [isContentTypeOpen, setIsContentTypeOpen] = useState(true);
+  const [isCompositionOpen, setIsCompositionOpen] = useState(true);
+  
+  // Content type selection
+  const [contentType, setContentType] = useState("art");
+  const [autoContentType, setAutoContentType] = useState(false);
+  
+  // Aspect ratios
+  const aspectRatios = [
+    { id: "1:1", label: "Square (1:1)", width: 1024, height: 1024 },
+    { id: "4:3", label: "4:3", width: 1024, height: 768 },
+    { id: "3:4", label: "3:4", width: 768, height: 1024 },
+    { id: "16:9", label: "16:9", width: 1024, height: 576 },
+    { id: "9:16", label: "9:16", width: 576, height: 1024 },
   ];
 
-  // Available image dimensions
-  const imageDimensions: ImageDimension[] = [
-    { id: "2:3", name: "2:3", aspectRatio: "2:3", width: 736, height: 1120 },
-    { id: "1:1", name: "1:1", aspectRatio: "1:1", width: 832, height: 832 },
-    { id: "16:9", name: "16:9", aspectRatio: "16:9", width: 832, height: 468 },
-    { id: "more", name: "More", aspectRatio: "", width: 0, height: 0, icon: <Maximize2 className="h-4 w-4" /> },
-  ];
+  // Negative prompt
+  const [negativePrompt, setNegativePrompt] = useState("");
 
-  const imageSizes = [
-    { id: "small", name: "Small", width: 736, height: 1120 },
-    { id: "medium", name: "Medium", width: 832, height: 1248 },
-    { id: "large", name: "Large", width: 896, height: 1344, isPro: true },
-  ];
-
-  const handleModeChange = (modeId: string) => {
-    const mode = generationModes.find(m => m.id === modeId);
-    if (mode) {
-      onSettingsChange({ mode: modeId, steps: mode.steps });
-    }
-  };
-
-  const handleDimensionChange = (dimensionId: string) => {
-    const dimension = imageDimensions.find(d => d.id === dimensionId);
-    if (dimension && dimension.id !== "more") {
-      onSettingsChange({ 
-        dimensionId: dimensionId,
-        width: dimension.width,
-        height: dimension.height 
+  // Set aspect ratio dimensions
+  const handleAspectRatioChange = (ratioId: string) => {
+    const selectedRatio = aspectRatios.find(ratio => ratio.id === ratioId);
+    if (selectedRatio) {
+      onSettingsChange({
+        dimensionId: ratioId,
+        width: selectedRatio.width,
+        height: selectedRatio.height
       });
     }
   };
 
-  const handleSizeChange = (sizeId: string) => {
-    const size = imageSizes.find(s => s.id === sizeId);
-    if (size) {
-      onSettingsChange({ 
-        width: size.width,
-        height: size.height 
-      });
-    }
+  // Handle generation mode change
+  const handleModeChange = (mode: "fast" | "quality" | "ultra") => {
+    const steps = mode === "fast" ? 11 : mode === "quality" ? 13 : 16;
+    onSettingsChange({ mode, steps });
   };
 
   return (
-    <div className="w-64 bg-gray-900 text-white h-full flex flex-col p-4 space-y-6 border-r border-gray-800">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className="text-md font-medium">Basic Settings</h3>
-            <Info className="h-4 w-4 text-gray-400" />
-          </div>
-        </div>
-
-        {/* Generation Mode Selection */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h4 className="text-sm font-medium">Generation Mode</h4>
-              <Info className="h-4 w-4 text-gray-400" />
-            </div>
-          </div>
-          
-          <ToggleGroup 
-            type="single" 
-            value={settings.mode}
-            onValueChange={(value) => {
-              if (value) handleModeChange(value);
-            }}
-            className="grid grid-cols-3 gap-2"
-          >
-            {generationModes.map((mode) => (
-              <ToggleGroupItem
-                key={mode.id}
-                value={mode.id}
-                aria-label={mode.name}
-                className={cn(
-                  "relative h-20 border border-gray-700 bg-gray-800 hover:bg-gray-700 data-[state=on]:border-purple-500 data-[state=on]:bg-purple-900/30 flex flex-col items-center justify-center gap-1 p-2",
-                )}
-              >
-                {mode.icon}
-                <span className="text-sm">{mode.name}</span>
-                <span className="text-xs text-gray-400">{mode.steps} steps</span>
-                {mode.isPro && (
-                  <Badge className="absolute -top-2 -right-2 bg-purple-600 text-[10px] px-1 py-0">PRO</Badge>
-                )}
-                {mode.isNew && (
-                  <Badge className="absolute -top-2 -right-2 bg-blue-600 text-[10px] px-1 py-0">NEW</Badge>
-                )}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+    <div className="w-80 bg-[#1A1A1A] border-r border-gray-800 flex flex-col h-screen overflow-hidden">
+      <div className="p-4 border-b border-gray-800 flex items-center space-x-2">
+        <div className="flex-1">
+          <h2 className="font-medium text-white">Settings</h2>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h3 className="text-md font-medium">Image Dimensions</h3>
-            <Info className="h-4 w-4 text-gray-400" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-4 gap-2">
-          {imageDimensions.map((dimension) => (
-            <Button
-              key={dimension.id}
-              variant="outline"
-              className={cn(
-                "relative h-16 p-2 border border-purple-700/20 bg-gray-800 hover:bg-gray-700",
-                settings.dimensionId === dimension.id && "border-purple-600 bg-gray-800"
-              )}
-              onClick={() => handleDimensionChange(dimension.id)}
-            >
-              {dimension.id === "more" ? (
-                <div className="flex items-center justify-center">
-                  {dimension.icon}
-                  <span className="text-xs ml-1">More</span>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* General Settings */}
+        <Collapsible 
+          open={isGeneralOpen} 
+          onOpenChange={setIsGeneralOpen}
+          className="border border-gray-800 rounded-lg overflow-hidden"
+        >
+          <CollapsibleTrigger className="flex items-center justify-between w-full p-4 text-left focus:outline-none">
+            <div className="flex items-center gap-2">
+              <ChevronDown className={`h-4 w-4 transition-transform ${isGeneralOpen ? 'transform rotate-180' : ''}`} />
+              <span className="font-medium">General settings</span>
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 pb-4 space-y-4">
+            {/* Model Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm text-gray-400">Model</Label>
+              <div className="flex items-center space-x-3 border border-gray-800 rounded-md p-2">
+                <div className="h-8 w-8 rounded overflow-hidden">
+                  <img 
+                    src="/placeholder.svg" 
+                    alt="Model" 
+                    className="h-full w-full object-cover"
+                  />
                 </div>
-              ) : dimension.id === "2:3" ? (
-                <div className="h-8 w-5 border border-gray-500 mx-auto"></div>
-              ) : dimension.id === "1:1" ? (
-                <div className="h-6 w-6 border border-gray-500 mx-auto"></div>
-              ) : (
-                <div className="h-4 w-8 border border-gray-500 mx-auto"></div>
-              )}
-              <span className="text-xs mt-1">{dimension.aspectRatio}</span>
-            </Button>
-          ))}
-        </div>
+                <div className="flex-1">
+                  <Select defaultValue="firefly">
+                    <SelectTrigger className="border-0 h-8 p-0 bg-transparent focus:ring-0">
+                      <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="firefly">Firefly Image 3</SelectItem>
+                      <SelectItem value="stable">Stable Diffusion</SelectItem>
+                      <SelectItem value="dall-e">DALL-E 3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-3 gap-2 pt-2">
-          {imageSizes.map((size) => (
-            <Button
-              key={size.id}
-              variant="outline"
-              className={cn(
-                "relative flex flex-col h-14 p-1 border border-purple-700/20 bg-gray-800 hover:bg-gray-700",
-                settings.width === size.width && settings.height === size.height && "border-purple-600 bg-gray-800"
-              )}
-              onClick={() => handleSizeChange(size.id)}
-            >
-              <span className="text-sm capitalize">{size.name}</span>
-              <span className="text-xs text-gray-400">{`${size.width}×${size.height}`}</span>
-              {size.isPro && (
-                <Badge className="absolute -top-2 -right-2 bg-purple-600 text-[10px] px-1 py-0">PRO</Badge>
-              )}
-            </Button>
-          ))}
-        </div>
+            {/* Fast Mode Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Label className="text-sm text-gray-400">Fast mode</Label>
+                <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
+                  <Info className="h-3 w-3 text-gray-500" />
+                </Button>
+              </div>
+              <Switch 
+                checked={settings.mode === "fast"}
+                onCheckedChange={(checked) => 
+                  handleModeChange(checked ? "fast" : "quality")
+                }
+              />
+            </div>
+
+            {/* Aspect Ratio */}
+            <div className="space-y-2">
+              <Label className="text-sm text-gray-400">Aspect ratio</Label>
+              <Select 
+                value={settings.dimensionId}
+                onValueChange={handleAspectRatioChange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select aspect ratio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {aspectRatios.map(ratio => (
+                    <SelectItem key={ratio.id} value={ratio.id}>
+                      <div className="flex items-center">
+                        <div className={cn(
+                          "mr-2 h-4 w-4 border border-gray-600 overflow-hidden relative",
+                          ratio.id === "1:1" && "aspect-square",
+                          ratio.id === "4:3" && "aspect-[4/3]",
+                          ratio.id === "3:4" && "aspect-[3/4]",
+                          ratio.id === "16:9" && "aspect-[16/9]",
+                          ratio.id === "9:16" && "aspect-[9/16]",
+                        )} />
+                        {ratio.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+        
+        {/* Content Type */}
+        <Collapsible 
+          open={isContentTypeOpen} 
+          onOpenChange={setIsContentTypeOpen}
+          className="border border-gray-800 rounded-lg overflow-hidden"
+        >
+          <CollapsibleTrigger className="flex items-center justify-between w-full p-4 text-left focus:outline-none">
+            <div className="flex items-center gap-2">
+              <ChevronDown className={`h-4 w-4 transition-transform ${isContentTypeOpen ? 'transform rotate-180' : ''}`} />
+              <span className="font-medium">Content type</span>
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 pb-4">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex gap-2">
+                <Button 
+                  variant={contentType === "art" ? "default" : "outline"}
+                  size="sm" 
+                  className={cn(
+                    "rounded-full h-8",
+                    contentType === "art" ? "bg-[#2776FF] hover:bg-[#1665F2]" : ""
+                  )}
+                  onClick={() => setContentType("art")}
+                >
+                  <PaintBrush className="h-4 w-4 mr-1" />
+                  Art
+                </Button>
+                <Button 
+                  variant={contentType === "photo" ? "default" : "outline"}
+                  size="sm" 
+                  className={cn(
+                    "rounded-full h-8",
+                    contentType === "photo" ? "bg-[#2776FF] hover:bg-[#1665F2]" : ""
+                  )}
+                  onClick={() => setContentType("photo")}
+                >
+                  <Camera className="h-4 w-4 mr-1" />
+                  Photo
+                </Button>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <span className="text-xs text-gray-400">Auto</span>
+                <Switch 
+                  checked={autoContentType}
+                  onCheckedChange={setAutoContentType}
+                  size="sm"
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+        
+        {/* Composition */}
+        <Collapsible 
+          open={isCompositionOpen} 
+          onOpenChange={setIsCompositionOpen}
+          className="border border-gray-800 rounded-lg overflow-hidden"
+        >
+          <CollapsibleTrigger className="flex items-center justify-between w-full p-4 text-left focus:outline-none">
+            <div className="flex items-center gap-2">
+              <ChevronDown className={`h-4 w-4 transition-transform ${isCompositionOpen ? 'transform rotate-180' : ''}`} />
+              <span className="font-medium">Composition</span>
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 pb-4 space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-gray-400">Reference</Label>
+                <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
+                  <Info className="h-3 w-3 text-gray-500" />
+                </Button>
+              </div>
+              
+              <div className="border border-dashed border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center text-center">
+                <div className="w-full flex flex-col gap-2">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload image
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Browse gallery
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                {[1, 2, 3].map((item) => (
+                  <div key={item} className="aspect-square bg-gray-800 rounded-md overflow-hidden">
+                    {/* Sample image thumbnails could go here */}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );
