@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export interface GenerationMode {
   id: string;
@@ -112,27 +113,35 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
             </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-2">
+          <ToggleGroup 
+            type="single" 
+            value={settings.mode}
+            onValueChange={(value) => {
+              if (value) handleModeChange(value);
+            }}
+            className="grid grid-cols-3 gap-2"
+          >
             {generationModes.map((mode) => (
-              <Button
+              <ToggleGroupItem
                 key={mode.id}
-                variant="outline"
+                value={mode.id}
+                aria-label={mode.name}
                 className={cn(
-                  "relative h-10 border border-purple-700/20 bg-gray-800 hover:bg-gray-700",
-                  settings.mode === mode.id && "border-purple-500 bg-purple-900/30"
+                  "relative h-20 border border-gray-700 bg-gray-800 hover:bg-gray-700 data-[state=on]:border-purple-500 data-[state=on]:bg-purple-900/30 flex flex-col items-center justify-center gap-1 p-2",
                 )}
-                onClick={() => handleModeChange(mode.id)}
               >
+                {mode.icon}
                 <span className="text-sm">{mode.name}</span>
+                <span className="text-xs text-gray-400">{mode.steps} steps</span>
                 {mode.isPro && (
                   <Badge className="absolute -top-2 -right-2 bg-purple-600 text-[10px] px-1 py-0">PRO</Badge>
                 )}
                 {mode.isNew && (
                   <Badge className="absolute -top-2 -right-2 bg-blue-600 text-[10px] px-1 py-0">NEW</Badge>
                 )}
-              </Button>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         </div>
       </div>
 

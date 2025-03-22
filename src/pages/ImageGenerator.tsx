@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
@@ -36,7 +38,15 @@ const ImageGenerator = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(true);
   const [isContentTypeOpen, setIsContentTypeOpen] = useState(true);
   const [isCompositionOpen, setIsCompositionOpen] = useState(true);
-  const [generationMode, setGenerationMode] = useState("fast");
+  
+  // Generation settings
+  const [generationSettings, setGenerationSettings] = useState<GenerationSettings>({
+    mode: "fast",
+    steps: 11, // Default for fast mode
+    dimensionId: "1:1",
+    width: 832,
+    height: 832
+  });
 
   const aspectRatios = {
     "1:1": { width: 1024, height: 1024 },
@@ -63,21 +73,14 @@ const ImageGenerator = () => {
     }, 400);
 
     try {
-      const { width, height } = aspectRatios[aspectRatio as keyof typeof aspectRatios];
-      
-      // Set the inference steps based on the generation mode
-      let steps = 11; // default for fast mode
-      if (generationMode === "quality") steps = 13;
-      if (generationMode === "ultra") steps = 16;
-      
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt,
-          width,
-          height,
+          width: generationSettings.width,
+          height: generationSettings.height,
           negative_prompt: negativePrompt,
           num_images: 1,
-          num_inference_steps: steps
+          num_inference_steps: generationSettings.steps
         }
       });
 
@@ -108,178 +111,21 @@ const ImageGenerator = () => {
     }
   };
 
+  // Handle generation settings changes
+  const handleSettingsChange = (settings: Partial<GenerationSettings>) => {
+    setGenerationSettings(prev => ({
+      ...prev,
+      ...settings
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white flex">
       {/* Left Sidebar */}
-      <div className="w-[360px] border-r border-gray-800 h-screen overflow-auto p-4">
-        <div className="space-y-6">
-          {/* General Settings */}
-          <Collapsible
-            open={isSettingsOpen}
-            onOpenChange={setIsSettingsOpen}
-            className="border border-gray-800 rounded-lg overflow-hidden"
-          >
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-[#1A1A1A] hover:bg-[#222222] transition-colors">
-              <div className="flex items-center">
-                <ChevronDown
-                  className={`mr-2 h-4 w-4 transition-transform ${
-                    isSettingsOpen ? "transform rotate-180" : ""
-                  }`}
-                />
-                <span className="font-medium">Basic Settings</span>
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="p-4 bg-[#1A1A1A] space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="model">Model</Label>
-                <Select defaultValue="pixcraft:1">
-                  <SelectTrigger id="model" className="w-full bg-[#262626] border-gray-700">
-                    <SelectValue placeholder="Select model" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#262626] border-gray-700">
-                    <SelectItem value="pixcraft:1">PixCraft Image 1</SelectItem>
-                    <SelectItem value="pixcraft:2">PixCraft Image 2</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Image Dimensions</Label>
-                <Select value={aspectRatio} onValueChange={setAspectRatio}>
-                  <SelectTrigger className="w-full bg-[#262626] border-gray-700 flex items-center">
-                    <div className="flex items-center">
-                      <Square className="h-4 w-4 mr-2" />
-                      <SelectValue placeholder="Select aspect ratio" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#262626] border-gray-700">
-                    <SelectItem value="1:1">Square (1:1)</SelectItem>
-                    <SelectItem value="4:3">Landscape (4:3)</SelectItem>
-                    <SelectItem value="3:4">Portrait (3:4)</SelectItem>
-                    <SelectItem value="16:9">Widescreen (16:9)</SelectItem>
-                    <SelectItem value="9:16">Mobile (9:16)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-
-          {/* Content Type */}
-          <Collapsible
-            open={isContentTypeOpen}
-            onOpenChange={setIsContentTypeOpen}
-            className="border border-gray-800 rounded-lg overflow-hidden"
-          >
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-[#1A1A1A] hover:bg-[#222222] transition-colors">
-              <div className="flex items-center">
-                <ChevronDown
-                  className={`mr-2 h-4 w-4 transition-transform ${
-                    isContentTypeOpen ? "transform rotate-180" : ""
-                  }`}
-                />
-                <span className="font-medium">Content type</span>
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="p-4 bg-[#1A1A1A]">
-              <div className="flex gap-2">
-                <Button
-                  variant={contentType === "art" ? "default" : "outline"}
-                  onClick={() => setContentType("art")}
-                  className={`flex items-center gap-2 ${
-                    contentType === "art" 
-                      ? "bg-white text-black hover:bg-gray-200" 
-                      : "bg-[#262626] border-gray-700 hover:bg-[#333333]"
-                  }`}
-                >
-                  <ImageIcon className="h-4 w-4" />
-                  Art
-                </Button>
-                <Button
-                  variant={contentType === "photo" ? "default" : "outline"}
-                  onClick={() => setContentType("photo")}
-                  className={`flex items-center gap-2 ${
-                    contentType === "photo" 
-                      ? "bg-white text-black hover:bg-gray-200" 
-                      : "bg-[#262626] border-gray-700 hover:bg-[#333333]"
-                  }`}
-                >
-                  <ImageIcon className="h-4 w-4" />
-                  Photo
-                </Button>
-                <div className="flex items-center ml-auto">
-                  <Label htmlFor="auto" className="mr-2 text-sm">Auto</Label>
-                  <Switch id="auto" />
-                </div>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-
-          {/* Composition */}
-          <Collapsible
-            open={isCompositionOpen}
-            onOpenChange={setIsCompositionOpen}
-            className="border border-gray-800 rounded-lg overflow-hidden"
-          >
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-[#1A1A1A] hover:bg-[#222222] transition-colors">
-              <div className="flex items-center">
-                <ChevronDown
-                  className={`mr-2 h-4 w-4 transition-transform ${
-                    isCompositionOpen ? "transform rotate-180" : ""
-                  }`}
-                />
-                <span className="font-medium">Composition</span>
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="p-4 bg-[#1A1A1A] space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Reference</Label>
-                  <Button variant="ghost" size="icon" className="h-5 w-5">
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="border-2 border-dashed border-gray-700 rounded-lg p-8 flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 border rounded-lg flex items-center justify-center mb-2">
-                    <ImagePlus className="h-6 w-6 text-gray-500" />
-                  </div>
-                  
-                  <div className="flex gap-2 mt-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="bg-[#262626] border-gray-700 hover:bg-[#333333]"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Image
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="bg-[#262626] border-gray-700 hover:bg-[#333333]"
-                    >
-                      <FolderOpen className="h-4 w-4 mr-2" />
-                      Browse gallery
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 mt-4">
-                  <div className="border border-gray-700 rounded-lg overflow-hidden aspect-square bg-gray-800">
-                    <img src="/placeholder.svg" alt="Reference" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="border border-gray-700 rounded-lg overflow-hidden aspect-square bg-gray-800">
-                    <img src="/placeholder.svg" alt="Reference" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="border border-gray-700 rounded-lg overflow-hidden aspect-square bg-gray-800">
-                    <img src="/placeholder.svg" alt="Reference" className="w-full h-full object-cover" />
-                  </div>
-                </div>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
-      </div>
+      <GenerationSidebar 
+        settings={generationSettings}
+        onSettingsChange={handleSettingsChange}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
