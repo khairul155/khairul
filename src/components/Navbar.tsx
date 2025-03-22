@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -300,7 +301,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile menu - modified to remove duplicated profile functionality */}
+      {/* Mobile menu - updated to include sign-in and sign-out options */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-black shadow-lg">
           <div className="px-4 pt-2 pb-5 space-y-3">
@@ -328,12 +329,30 @@ const Navbar = () => {
             >
               Image Upscaler
             </Link>
-            <Button 
-              className="w-full bg-white text-black hover:bg-gray-300"
-              asChild
-            >
-              <Link to="/auth">Sign In</Link>
-            </Button>
+            
+            {user ? (
+              <>
+                <Link 
+                  to="/profile" 
+                  className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
+                >
+                  Profile
+                </Link>
+                <Button 
+                  className="w-full bg-red-500 text-white hover:bg-red-600"
+                  onClick={handleSignOut}
+                >
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <Button 
+                className="w-full bg-white text-black hover:bg-gray-300"
+                asChild
+              >
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )}
           </div>
         </div>
       )}
