@@ -44,7 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Then check for an existing session
     supabase.auth.getSession().then(({ data }) => {
-      console.log("Initial session check:", data.session);
       setSession(data.session);
       setUser(data.session?.user ?? null);
       setIsLoading(false);
@@ -138,7 +137,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    console.log("Signing out...");
     await supabase.auth.signOut();
   };
 

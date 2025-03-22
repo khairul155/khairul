@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
@@ -10,22 +9,15 @@ import {
   ChevronDown, 
   LogOut, 
   User,
-  Wand2,
-  HelpCircle,
-  UserMinus,
-  Settings,
-  Crown  // Replaced 'Upgrade' with 'Crown' which exists in lucide-react
+  Wand2
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -67,10 +59,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const { toast } = useToast();
-
-  console.log("Current auth user:", user); // Debug user state
 
   useEffect(() => {
     const handleScroll = () => {
@@ -90,26 +79,11 @@ const Navbar = () => {
   }, [location.pathname]);
 
   const handleSignOut = async () => {
-    console.log("Sign out clicked");
-    try {
-      await signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account",
-      });
-      navigate("/");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        title: "Sign out failed",
-        description: "There was a problem signing you out. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleProfileClick = () => {
-    navigate("/profile");
+    await signOut();
+    toast({
+      title: "Signed out",
+      description: "You have been successfully signed out.",
+    });
   };
 
   const navbarClasses = cn(
@@ -140,17 +114,20 @@ const Navbar = () => {
           </div>
 
           {/* Centered Logo and Site Name */}
-          <Link to="/" className="flex items-center space-x-2 mx-auto md:mx-0">
+          <Link to="/" className="flex items-center space-x-2 mx-auto">
             <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center border border-white/20">
               <Wand2 className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-white">
+            <span className="text-xl font-bold text-[#443627]">
               PixcraftAI
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-3">
+          {/* Desktop Navigation - Hidden on image-generator page */}
+          <div className={cn(
+            "hidden md:flex items-center space-x-1",
+            location.pathname === "/image-generator" ? "invisible" : ""
+          )}>
             <ThemeToggle />
 
             {user ? (
@@ -158,58 +135,25 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className="ml-2 border-gray-700 text-white bg-transparent hover:bg-white hover:text-black flex items-center gap-2"
+                    className="ml-4 border-gray-700 text-white bg-transparent hover:bg-white hover:text-black"
                   >
-                    <Avatar className="h-8 w-8 border border-gray-700">
-                      <AvatarImage 
-                        src={user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=80&h=80"} 
-                        alt={user.email || "User"} 
-                      />
-                      <AvatarFallback className="bg-primary text-white">
-                        {user.email ? user.email.substring(0, 2).toUpperCase() : "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="hidden sm:inline">{user.user_metadata?.name || user.email}</span>
-                    <ChevronDown className="h-4 w-4" />
+                    My Account
+                    <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
-                  <DropdownMenuLabel className="text-white border-b border-gray-700 pb-2">
-                    <div className="flex flex-col">
-                      <span className="font-medium">{user.user_metadata?.name || user.email}</span>
-                      <span className="text-xs text-gray-400">{user.email}</span>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuGroup className="py-1">
-                    <DropdownMenuItem onClick={handleProfileClick} className="hover:bg-white hover:text-black cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>View Profile</span>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem asChild className="hover:bg-white hover:text-black cursor-pointer">
+                      <Link to="/profile" className="flex">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
-                      <Crown className="mr-2 h-4 w-4" />
-                      <span>Upgrade Plan</span>
+                    <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white hover:text-black cursor-pointer">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
-                  <DropdownMenuSeparator className="bg-gray-700" />
-                  <DropdownMenuGroup className="py-1">
-                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
-                      <HelpCircle className="mr-2 h-4 w-4" />
-                      <span>Help & Documentation</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Manage Settings</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
-                      <UserMinus className="mr-2 h-4 w-4" />
-                      <span>Delete Account</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator className="bg-gray-700" />
-                  <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white hover:text-black cursor-pointer text-red-400 hover:text-red-600">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
@@ -223,85 +167,14 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile user avatar or empty spacer */}
-          <div className="md:hidden">
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white"
-                  >
-                    <Avatar className="h-8 w-8 border border-gray-700">
-                      <AvatarImage 
-                        src={user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=80&h=80"} 
-                        alt={user.email || "User"} 
-                      />
-                      <AvatarFallback className="bg-primary text-white">
-                        {user.email ? user.email.substring(0, 2).toUpperCase() : "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
-                  <DropdownMenuLabel className="text-white border-b border-gray-700 pb-2">
-                    <div className="flex flex-col">
-                      <span className="font-medium">{user.user_metadata?.name || user.email}</span>
-                      <span className="text-xs text-gray-400">{user.email}</span>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuGroup className="py-1">
-                    <DropdownMenuItem onClick={handleProfileClick} className="hover:bg-white hover:text-black cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>View Profile</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
-                      <Crown className="mr-2 h-4 w-4" />
-                      <span>Upgrade Plan</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator className="bg-gray-700" />
-                  <DropdownMenuGroup className="py-1">
-                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
-                      <HelpCircle className="mr-2 h-4 w-4" />
-                      <span>Help & Documentation</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Manage Settings</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
-                      <UserMinus className="mr-2 h-4 w-4" />
-                      <span>Delete Account</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator className="bg-gray-700" />
-                  <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white hover:text-black cursor-pointer text-red-400 hover:text-red-600">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="opacity-0 pointer-events-none"
-              >
-                <Menu className="h-6 w-6" />
-              </Button>
-            )}
-          </div>
-
-          {/* Empty div for balance on desktop */}
+          {/* Empty div to balance the navbar for center alignment */}
           <div className="hidden md:block">
             <ThemeToggle />
           </div>
         </div>
       </div>
 
-      {/* Mobile menu - updated to include sign-in and sign-out options */}
+      {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-black shadow-lg">
           <div className="px-4 pt-2 pb-5 space-y-3">
@@ -329,7 +202,6 @@ const Navbar = () => {
             >
               Image Upscaler
             </Link>
-            
             {user ? (
               <>
                 <Link 
@@ -339,10 +211,12 @@ const Navbar = () => {
                   Profile
                 </Link>
                 <Button 
-                  className="w-full bg-red-500 text-white hover:bg-red-600"
+                  variant="outline" 
+                  className="w-full justify-start bg-transparent border-gray-700 text-white hover:bg-white hover:text-black"
                   onClick={handleSignOut}
                 >
-                  Sign Out
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
                 </Button>
               </>
             ) : (
