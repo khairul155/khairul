@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,13 +10,19 @@ import {
   ChevronDown, 
   LogOut, 
   User,
-  Wand2
+  Wand2,
+  HelpCircle,
+  UserMinus,
+  Settings,
+  Upgrade
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -155,28 +162,54 @@ const Navbar = () => {
                   >
                     <Avatar className="h-8 w-8 border border-gray-700">
                       <AvatarImage 
-                        src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=80&h=80" 
+                        src={user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=80&h=80"} 
                         alt={user.email || "User"} 
                       />
                       <AvatarFallback className="bg-primary text-white">
                         {user.email ? user.email.substring(0, 2).toUpperCase() : "U"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden sm:inline">My Account</span>
+                    <span className="hidden sm:inline">{user.user_metadata?.name || user.email}</span>
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
-                  <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-white border-b border-gray-700 pb-2">
+                    <div className="flex flex-col">
+                      <span className="font-medium">{user.user_metadata?.name || user.email}</span>
+                      <span className="text-xs text-gray-400">{user.email}</span>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuGroup className="py-1">
                     <DropdownMenuItem onClick={handleProfileClick} className="hover:bg-white hover:text-black cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
+                      <span>View Profile</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white hover:text-black cursor-pointer">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
+                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
+                      <Upgrade className="mr-2 h-4 w-4" />
+                      <span>Upgrade Plan</span>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuGroup className="py-1">
+                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      <span>Help & Documentation</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Manage Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
+                      <UserMinus className="mr-2 h-4 w-4" />
+                      <span>Delete Account</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white hover:text-black cursor-pointer text-red-400 hover:text-red-600">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
@@ -193,22 +226,63 @@ const Navbar = () => {
           {/* Mobile user avatar or empty spacer */}
           <div className="md:hidden">
             {user ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                <Avatar className="h-8 w-8 border border-gray-700">
-                  <AvatarImage 
-                    src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=80&h=80" 
-                    alt={user.email || "User"} 
-                  />
-                  <AvatarFallback className="bg-primary text-white">
-                    {user.email ? user.email.substring(0, 2).toUpperCase() : "U"}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white"
+                  >
+                    <Avatar className="h-8 w-8 border border-gray-700">
+                      <AvatarImage 
+                        src={user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=80&h=80"} 
+                        alt={user.email || "User"} 
+                      />
+                      <AvatarFallback className="bg-primary text-white">
+                        {user.email ? user.email.substring(0, 2).toUpperCase() : "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
+                  <DropdownMenuLabel className="text-white border-b border-gray-700 pb-2">
+                    <div className="flex flex-col">
+                      <span className="font-medium">{user.user_metadata?.name || user.email}</span>
+                      <span className="text-xs text-gray-400">{user.email}</span>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuGroup className="py-1">
+                    <DropdownMenuItem onClick={handleProfileClick} className="hover:bg-white hover:text-black cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>View Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
+                      <Upgrade className="mr-2 h-4 w-4" />
+                      <span>Upgrade Plan</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuGroup className="py-1">
+                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      <span>Help & Documentation</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Manage Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="hover:bg-white hover:text-black cursor-pointer">
+                      <UserMinus className="mr-2 h-4 w-4" />
+                      <span>Delete Account</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white hover:text-black cursor-pointer text-red-400 hover:text-red-600">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Button 
                 variant="ghost" 
@@ -227,7 +301,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu - modified to remove duplicated profile functionality */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-black shadow-lg">
           <div className="px-4 pt-2 pb-5 space-y-3">
@@ -255,46 +329,12 @@ const Navbar = () => {
             >
               Image Upscaler
             </Link>
-            {user ? (
-              <>
-                <div className="flex items-center gap-3 px-3 py-2">
-                  <Avatar className="h-8 w-8 border border-gray-700">
-                    <AvatarImage 
-                      src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=80&h=80" 
-                      alt={user.email || "User"} 
-                    />
-                    <AvatarFallback className="bg-primary text-white">
-                      {user.email ? user.email.substring(0, 2).toUpperCase() : "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-gray-300 font-medium">{user.email}</span>
-                </div>
-                <Link 
-                  to="/profile" 
-                  className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
-                >
-                  <span className="flex items-center">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </span>
-                </Link>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start bg-transparent border-gray-700 text-white hover:bg-white hover:text-black"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
-                </Button>
-              </>
-            ) : (
-              <Button 
-                className="w-full bg-white text-black hover:bg-gray-300"
-                asChild
-              >
-                <Link to="/auth">Sign In</Link>
-              </Button>
-            )}
+            <Button 
+              className="w-full bg-white text-black hover:bg-gray-300"
+              asChild
+            >
+              <Link to="/auth">Sign In</Link>
+            </Button>
           </div>
         </div>
       )}
