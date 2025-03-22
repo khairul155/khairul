@@ -23,7 +23,7 @@ const Auth = () => {
 
   // Redirect if user is already logged in
   if (user && !authLoading) {
-    return <Navigate to="/" />;
+    return <Navigate to="/home" />;
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -37,7 +37,7 @@ const Auth = () => {
         title: "Welcome back!",
         description: "You've been successfully logged in.",
       });
-      navigate("/");
+      navigate("/home");
     } else {
       toast({
         title: "Login failed",
@@ -71,8 +71,8 @@ const Auth = () => {
         description: "Please check your email to confirm your account.",
       });
       
-      // We can either redirect to homepage or stay on the auth page
-      // navigate("/");
+      // Redirect to home page after signup
+      navigate("/home");
     } else {
       toast({
         title: "Registration failed",
