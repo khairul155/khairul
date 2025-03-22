@@ -4,11 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, Copy, Download, ArrowLeft, Image as ImageIcon } from "lucide-react";
+import { Loader2, Upload, Copy, Download, ArrowLeft, Image as ImageIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const ImageToPrompt = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -198,172 +203,274 @@ const ImageToPrompt = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="max-w-6xl mx-auto p-4 space-y-8 relative">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute w-64 h-64 -left-32 -top-32 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-          <div className="absolute w-64 h-64 -right-32 -top-32 bg-yellow-300 dark:bg-yellow-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-          <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-        </div>
-
+    <div className="min-h-screen bg-[#18230F] text-[#FFF5E4] w-full">
+      <div className="max-w-7xl mx-auto px-4 py-8 w-full">
         <div className="flex justify-between items-center pt-4">
           <Button 
             variant="ghost" 
             onClick={() => navigate("/")}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-[#FFF5E4] hover:bg-[#2A3622] hover:text-[#FFF5E4]"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Button>
-          <ThemeToggle />
         </div>
 
         <div className="text-center space-y-6 py-8 relative">
-          <div className="relative inline-block animate-float">
-            <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 opacity-20 animate-pulse"></div>
-            <h1 className="text-5xl md:text-6xl font-bold relative">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400">
-                Image to Prompt
-              </span>
-            </h1>
-          </div>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+          <h1 className="text-5xl md:text-6xl font-bold text-[#FFF5E4]">
+            Image to Prompt
+          </h1>
+          <p className="text-xl text-[#FFF5E4]/90 max-w-2xl mx-auto leading-relaxed">
             Upload any image and our AI will generate a detailed description prompt that captures its essence.
           </p>
         </div>
 
-        <div className="space-y-8 backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="space-y-4">
-            <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/50 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileChange}
-                disabled={isLoading}
-              />
-              
-              {imagePreview ? (
-                <div className="relative group">
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
-                    className="max-h-96 max-w-full mx-auto rounded-lg shadow-md"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-lg transition-opacity">
-                    <p className="text-white font-medium">Click to change image</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="py-12 flex flex-col items-center">
-                  <Upload className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-3" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Click to upload an image or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                    JPG, PNG, WEBP, AVIF supported
-                  </p>
-                </div>
-              )}
-            </div>
-
+        <div className="grid md:grid-cols-2 gap-10 mb-16">
+          <div className="space-y-8 bg-[#243018]/80 p-8 rounded-2xl shadow-xl border border-[#FFF5E4]/10">
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Input
-                  placeholder="Enter your Gemini API key"
-                  value={apiKey}
-                  onChange={(e) => saveApiKey(e.target.value)}
-                  type="password"
-                  className="flex-1 h-12 backdrop-blur-sm bg-white/50 dark:bg-gray-900/50"
-                />
-                <Button
-                  className="h-12 whitespace-nowrap"
-                  variant="outline"
-                  onClick={() => window.open("https://makersuite.google.com/app/apikey", "_blank")}
-                >
-                  Get Free API Key
-                </Button>
-              </div>
-
-              <Button 
-                onClick={generatePrompt} 
-                disabled={isLoading || !selectedFile}
-                className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg transition-all duration-300"
+              <div className="p-4 border border-dashed border-[#FFF5E4]/30 rounded-lg bg-[#18230F]/80 text-center cursor-pointer hover:bg-[#243018] transition-all"
+                onClick={() => fileInputRef.current?.click()}
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="mr-2 h-5 w-5" />
-                    Generate Prompt
-                  </>
-                )}
-              </Button>
-
-              {isLoading && (
-                <div className="space-y-3">
-                  <Progress 
-                    value={progress} 
-                    className="h-2 bg-gray-200 dark:bg-gray-700"
-                  />
-                  <p className="text-sm text-center text-gray-600 dark:text-gray-400 animate-pulse">
-                    Analyzing image and generating prompt... {progress}%
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {generatedPrompt && !isLoading && (
-            <Card className="mt-6 border border-gray-200 dark:border-gray-700 shadow-lg backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Generated Prompt:</h3>
-                    <div className="flex space-x-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={copyToClipboard}
-                      >
-                        <Copy className="w-4 h-4 mr-2" />
-                        Copy
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={downloadPrompt}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  disabled={isLoading}
+                />
+                
+                {imagePreview ? (
+                  <div className="relative group">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="max-h-96 max-w-full mx-auto rounded-lg shadow-md"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-lg transition-opacity">
+                      <p className="text-[#FFF5E4] font-medium">Click to change image</p>
                     </div>
                   </div>
-                  
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto whitespace-pre-wrap">
-                    {generatedPrompt}
+                ) : (
+                  <div className="py-12 flex flex-col items-center">
+                    <Upload className="w-12 h-12 text-[#FFF5E4]/60 mb-3" />
+                    <p className="text-[#FFF5E4]/80">
+                      Click to upload an image or drag and drop
+                    </p>
+                    <p className="text-xs text-[#FFF5E4]/60 mt-1">
+                      JPG, PNG, WEBP, AVIF supported
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Input
+                    placeholder="Enter your Gemini API key"
+                    value={apiKey}
+                    onChange={(e) => saveApiKey(e.target.value)}
+                    type="password"
+                    className="flex-1 h-12 bg-[#243018] border-[#FFF5E4]/20 text-[#FFF5E4]"
+                  />
+                  <Button
+                    className="h-12 whitespace-nowrap bg-[#2A3622] hover:bg-[#38482C] text-[#FFF5E4] border border-[#FFF5E4]/20"
+                    onClick={() => window.open("https://makersuite.google.com/app/apikey", "_blank")}
+                  >
+                    Get Free API Key
+                  </Button>
+                </div>
+
+                <Button 
+                  onClick={generatePrompt} 
+                  disabled={isLoading || !selectedFile}
+                  className="w-full h-12 bg-[#3A4A2E] hover:bg-[#4C5E3C] text-[#FFF5E4] font-medium rounded-lg transition-all duration-300 border border-[#FFF5E4]/20"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="mr-2 h-5 w-5" />
+                      Generate Prompt
+                    </>
+                  )}
+                </Button>
+
+                {isLoading && (
+                  <div className="space-y-3">
+                    <Progress 
+                      value={progress} 
+                      className="h-2 bg-[#18230F]"
+                    />
+                    <p className="text-sm text-center text-[#FFF5E4]/80 animate-pulse">
+                      Analyzing image and generating prompt... {progress}%
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {generatedPrompt && !isLoading && (
+              <Card className="mt-6 border border-[#FFF5E4]/10 bg-[#18230F] text-[#FFF5E4]">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold text-[#FFF5E4]">Generated Prompt:</h3>
+                      <div className="flex space-x-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={copyToClipboard}
+                          className="border-[#FFF5E4]/20 text-[#FFF5E4] hover:bg-[#243018]"
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={downloadPrompt}
+                          className="border-[#FFF5E4]/20 text-[#FFF5E4] hover:bg-[#243018]"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-[#243018] p-4 rounded-lg border border-[#FFF5E4]/10 max-h-96 overflow-y-auto whitespace-pre-wrap">
+                      {generatedPrompt}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="space-y-12">
+            {/* How it Works Section */}
+            <div className="bg-[#243018]/80 p-8 rounded-2xl shadow-xl border border-[#FFF5E4]/10">
+              <h2 className="text-3xl font-bold mb-6 text-[#FFF5E4]">How to Use Image to Prompt Generator</h2>
+              
+              <div className="space-y-6">
+                <div className="flex items-start gap-6">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#3A4A2E] flex items-center justify-center text-[#FFF5E4] font-bold">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-[#FFF5E4]">Upload or select an image</h3>
+                    <p className="text-[#FFF5E4]/80 mt-1">Choose any image you want to transform into a text prompt.</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                
+                <div className="flex items-start gap-6">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#3A4A2E] flex items-center justify-center text-[#FFF5E4] font-bold">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-[#FFF5E4]">Click the "Generate Prompt" button</h3>
+                    <p className="text-[#FFF5E4]/80 mt-1">Our AI will analyze your image and create a detailed text description.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-6">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#3A4A2E] flex items-center justify-center text-[#FFF5E4] font-bold">
+                    3
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-[#FFF5E4]">Wait for the prompt to be generated</h3>
+                    <p className="text-[#FFF5E4]/80 mt-1">This usually takes a few seconds depending on the complexity of the image.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-6">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#3A4A2E] flex items-center justify-center text-[#FFF5E4] font-bold">
+                    4
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-[#FFF5E4]">Copy the generated prompt</h3>
+                    <p className="text-[#FFF5E4]/80 mt-1">Use the copy button to save the prompt to your clipboard or download it as a text file.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* FAQ Section */}
+            <div className="bg-[#243018]/80 p-8 rounded-2xl shadow-xl border border-[#FFF5E4]/10">
+              <h2 className="text-3xl font-bold mb-6 text-[#FFF5E4]">Frequently Asked Questions</h2>
+              <p className="text-[#FFF5E4]/80 mb-6">Do you have any questions? We have got you covered.</p>
+              
+              <Accordion type="single" collapsible className="space-y-4">
+                <AccordionItem value="item-1" className="border-[#FFF5E4]/10">
+                  <AccordionTrigger className="text-[#FFF5E4] hover:text-[#FFF5E4]/90 text-lg font-medium">
+                    What is Image to Prompt tool?
+                  </AccordionTrigger>
+                  <AccordionContent className="text-[#FFF5E4]/80">
+                    The Image to Prompt tool uses advanced AI to analyze any image and generate a detailed text description that captures its key visual elements, style, and mood. This text can then be used with AI image generators to create similar or derivative images.
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="item-2" className="border-[#FFF5E4]/10">
+                  <AccordionTrigger className="text-[#FFF5E4] hover:text-[#FFF5E4]/90 text-lg font-medium">
+                    Do I need to pay for using this tool?
+                  </AccordionTrigger>
+                  <AccordionContent className="text-[#FFF5E4]/80">
+                    The tool itself is free to use. However, it requires a Gemini API key from Google, which you can obtain for free with limited usage. After the free tier, Google may charge for additional API usage depending on their current pricing.
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="item-3" className="border-[#FFF5E4]/10">
+                  <AccordionTrigger className="text-[#FFF5E4] hover:text-[#FFF5E4]/90 text-lg font-medium">
+                    What image formats are supported?
+                  </AccordionTrigger>
+                  <AccordionContent className="text-[#FFF5E4]/80">
+                    The tool supports common image formats including JPG, PNG, WEBP, and AVIF. For best results, use clear, high-quality images with good lighting and resolution.
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="item-4" className="border-[#FFF5E4]/10">
+                  <AccordionTrigger className="text-[#FFF5E4] hover:text-[#FFF5E4]/90 text-lg font-medium">
+                    How accurate are the generated prompts?
+                  </AccordionTrigger>
+                  <AccordionContent className="text-[#FFF5E4]/80">
+                    The AI does a good job capturing visual elements, style, and composition, but it's not perfect. You may want to edit the generated prompt to better match your vision or to emphasize certain aspects of the image.
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="item-5" className="border-[#FFF5E4]/10">
+                  <AccordionTrigger className="text-[#FFF5E4] hover:text-[#FFF5E4]/90 text-lg font-medium">
+                    Where can I use the generated prompt?
+                  </AccordionTrigger>
+                  <AccordionContent className="text-[#FFF5E4]/80">
+                    You can use the generated prompt with various AI image generation tools like DALL-E, Midjourney, Stable Diffusion, or any other text-to-image AI model. Simply copy the prompt and paste it into your preferred AI image generator.
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="item-6" className="border-[#FFF5E4]/10">
+                  <AccordionTrigger className="text-[#FFF5E4] hover:text-[#FFF5E4]/90 text-lg font-medium">
+                    Is my data private when using this tool?
+                  </AccordionTrigger>
+                  <AccordionContent className="text-[#FFF5E4]/80">
+                    Your images are processed directly through the Gemini API and are subject to Google's data privacy policies. We do not store your images or the generated prompts on our servers. Your API key is stored locally in your browser for convenience.
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+          </div>
         </div>
-
-        <div className="text-center space-y-4 pt-12 pb-8">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        
+        <div className="text-center py-8">
+          <p className="text-sm text-[#FFF5E4]/60">
             Powered by Google Gemini API • Image to Prompt Converter
           </p>
         </div>
