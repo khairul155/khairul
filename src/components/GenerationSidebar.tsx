@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Info, Zap, Diamond, Star, Square, Maximize2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -43,8 +44,6 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
   settings,
   onSettingsChange,
 }) => {
-  const [showModeOptions, setShowModeOptions] = useState(settings.mode !== "fast");
-  
   // Available generation modes
   const generationModes: GenerationMode[] = [
     { id: "fast", name: "Fast", steps: 11, icon: <Zap className="h-4 w-4" /> },
@@ -70,15 +69,6 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
     const mode = generationModes.find(m => m.id === modeId);
     if (mode) {
       onSettingsChange({ mode: modeId, steps: mode.steps });
-    }
-  };
-
-  const handleToggleChange = (checked: boolean) => {
-    setShowModeOptions(checked);
-    if (checked) {
-      handleModeChange("quality");
-    } else {
-      handleModeChange("fast");
     }
   };
 
@@ -111,61 +101,6 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
             <h3 className="text-md font-medium">Basic Settings</h3>
             <Info className="h-4 w-4 text-gray-400" />
           </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h4 className="text-sm font-medium">Generation Mode</h4>
-              <Info className="h-4 w-4 text-gray-400 cursor-pointer" />
-            </div>
-            <Switch 
-              checked={showModeOptions} 
-              onCheckedChange={handleToggleChange}
-            />
-          </div>
-
-          {showModeOptions && (
-            <div className="grid grid-cols-3 gap-2">
-              <Button
-                key="fast"
-                variant="outline"
-                className={cn(
-                  "relative h-10 border border-purple-700/20 bg-gray-800 hover:bg-gray-700",
-                  settings.mode === "fast" && "border-purple-500 bg-purple-900/30"
-                )}
-                onClick={() => handleModeChange("fast")}
-              >
-                <span className="text-sm">Fast</span>
-              </Button>
-              
-              <Button
-                key="quality"
-                variant="outline"
-                className={cn(
-                  "relative h-10 border border-purple-700/20 bg-gray-800 hover:bg-gray-700",
-                  settings.mode === "quality" && "border-purple-500 bg-purple-900/30"
-                )}
-                onClick={() => handleModeChange("quality")}
-              >
-                <span className="text-sm">Quality</span>
-                <Badge className="absolute -top-2 -right-2 bg-purple-600 text-[10px] px-1 py-0">PRO</Badge>
-              </Button>
-              
-              <Button
-                key="ultra"
-                variant="outline"
-                className={cn(
-                  "relative h-10 border border-purple-700/20 bg-gray-800 hover:bg-gray-700",
-                  settings.mode === "ultra" && "border-purple-500 bg-purple-900/30"
-                )}
-                onClick={() => handleModeChange("ultra")}
-              >
-                <span className="text-sm">Ultra</span>
-                <Badge className="absolute -top-2 -right-2 bg-blue-600 text-[10px] px-1 py-0">NEW</Badge>
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 

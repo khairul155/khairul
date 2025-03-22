@@ -138,17 +138,6 @@ const ImageGenerator = () => {
                 </Select>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="fast-mode" className="cursor-pointer">Generation Mode</Label>
-                </div>
-                <Switch
-                  id="fast-mode"
-                  checked={fastMode}
-                  onCheckedChange={setFastMode}
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label>Image Dimensions</Label>
                 <Select value={aspectRatio} onValueChange={setAspectRatio}>
