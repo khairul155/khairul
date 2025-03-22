@@ -43,8 +43,6 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
   settings,
   onSettingsChange,
 }) => {
-  const [sliderValue, setSliderValue] = useState([settings.steps]);
-  
   // Available generation modes
   const generationModes: GenerationMode[] = [
     { id: "fast", name: "Fast", steps: 12, icon: <Zap className="h-4 w-4" /> },
@@ -70,21 +68,6 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
     const mode = generationModes.find(m => m.id === modeId);
     if (mode) {
       onSettingsChange({ mode: modeId, steps: mode.steps });
-      setSliderValue([mode.steps]);
-    }
-  };
-
-  const handleStepsChange = (value: number[]) => {
-    setSliderValue(value);
-    onSettingsChange({ steps: value[0] });
-    
-    // Update mode based on steps value
-    if (value[0] <= 12) {
-      onSettingsChange({ mode: "fast" });
-    } else if (value[0] <= 14) {
-      onSettingsChange({ mode: "quality" });
-    } else {
-      onSettingsChange({ mode: "ultra" });
     }
   };
 
@@ -119,46 +102,38 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          {generationModes.map((mode) => (
-            <Button
-              key={mode.id}
-              variant="outline"
-              className={cn(
-                "relative flex-col h-14 p-2 border border-purple-700/20 bg-gray-800 hover:bg-gray-700",
-                settings.mode === mode.id && "border-purple-600 bg-gray-800"
-              )}
-              onClick={() => handleModeChange(mode.id)}
-            >
-              <div className="flex items-center justify-center gap-1">
-                {mode.icon}
-                <span className="text-sm">{mode.name}</span>
-              </div>
-              {mode.isPro && (
-                <Badge className="absolute -top-2 -right-2 bg-purple-600 text-[10px] px-1 py-0">PRO</Badge>
-              )}
-              {mode.isNew && (
-                <Badge className="absolute -top-2 -right-2 bg-blue-600 text-[10px] px-1 py-0">NEW</Badge>
-              )}
-            </Button>
-          ))}
-        </div>
-
-        <div className="pt-2">
-          <div className="flex justify-between text-xs text-gray-400 mb-1">
-            <span>Generation Mode: {sliderValue[0]}</span>
-            <span>
-              {sliderValue[0] <= 12 ? "Fast" : sliderValue[0] <= 14 ? "Quality" : "Ultra"}
-            </span>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-medium">Generation Mode</h4>
+              <Info className="h-4 w-4 text-gray-400" />
+            </div>
           </div>
-          <Slider
-            value={sliderValue}
-            min={8}
-            max={20}
-            step={1}
-            onValueChange={handleStepsChange}
-            className="w-full"
-          />
+
+          <div className="grid grid-cols-3 gap-2">
+            {generationModes.map((mode) => (
+              <Button
+                key={mode.id}
+                variant="outline"
+                className={cn(
+                  "relative flex-col h-14 p-2 border border-purple-700/20 bg-gray-800 hover:bg-gray-700",
+                  settings.mode === mode.id && "border-purple-600 bg-gray-800"
+                )}
+                onClick={() => handleModeChange(mode.id)}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  {mode.icon}
+                  <span className="text-sm">{mode.name}</span>
+                </div>
+                {mode.isPro && (
+                  <Badge className="absolute -top-2 -right-2 bg-purple-600 text-[10px] px-1 py-0">PRO</Badge>
+                )}
+                {mode.isNew && (
+                  <Badge className="absolute -top-2 -right-2 bg-blue-600 text-[10px] px-1 py-0">NEW</Badge>
+                )}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
