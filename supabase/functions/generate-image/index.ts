@@ -18,7 +18,7 @@ serve(async (req) => {
       width = 1024, 
       height = 1024,
       negative_prompt = "",
-      num_inference_steps = 11, // Default to fast mode (11 steps)
+      num_inference_steps = 7, // Default to fast mode (7 steps)
       num_images = 1
     } = await req.json()
     

@@ -27,7 +27,7 @@ const ImageGenerator = () => {
   // Generation settings with updated default steps for fast mode
   const [generationSettings, setGenerationSettings] = useState<GenerationSettings>({
     mode: "fast",
-    steps: 11, // Default for fast mode
+    steps: 7, // Default for fast mode updated to 7
     dimensionId: "1:1",
     width: 832,
     height: 832,
