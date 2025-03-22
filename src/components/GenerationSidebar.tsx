@@ -79,9 +79,10 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
     }
   };
 
-  // Handle generation mode change
+  // Handle generation mode change with updated steps values
   const handleModeChange = (mode: "fast" | "quality" | "ultra") => {
-    const steps = mode === "fast" ? 11 : mode === "quality" ? 13 : 16;
+    // Map each mode to the correct number of inference steps
+    const steps = mode === "fast" ? 11 : mode === "quality" ? 14 : 16;
     onSettingsChange({ mode, steps });
   };
 

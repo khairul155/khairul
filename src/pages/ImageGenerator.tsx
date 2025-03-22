@@ -24,7 +24,7 @@ const ImageGenerator = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   
-  // Generation settings
+  // Generation settings with updated default steps for fast mode
   const [generationSettings, setGenerationSettings] = useState<GenerationSettings>({
     mode: "fast",
     steps: 11, // Default for fast mode
