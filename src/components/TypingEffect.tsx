@@ -8,7 +8,7 @@ interface TypingEffectProps {
 
 const TypingEffect: React.FC<TypingEffectProps> = ({ 
   text, 
-  typingSpeed = 15 // Speed of typing animation (ms per character)
+  typingSpeed = 2 // Much faster typing speed (ms per character)
 }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -38,7 +38,7 @@ const TypingEffect: React.FC<TypingEffectProps> = ({
     <p className="whitespace-pre-wrap">
       {displayedText}
       {!isComplete && (
-        <span className="inline-block w-1 h-4 ml-1 bg-[#E9762B] animate-pulse"></span>
+        <span className="inline-block w-1 h-4 ml-1 bg-[#FAF7F0] animate-pulse"></span>
       )}
     </p>
   );
