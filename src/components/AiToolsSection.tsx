@@ -1,27 +1,13 @@
 
 import { useNavigate, useLocation } from "react-router-dom";
 import AiToolIcon from "./AiToolIcon";
-import { useAuth } from "@/components/AuthProvider";
-import { useToast } from "@/hooks/use-toast";
 
 const AiToolsSection = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
-  const { toast } = useToast();
 
   const handleToolClick = (toolName: string, route?: string) => {
     console.log(`${toolName} clicked`);
-    
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to access this feature",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
     
     if (route) {
       navigate(route);

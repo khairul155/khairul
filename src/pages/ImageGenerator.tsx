@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,23 +7,16 @@ import { Loader2, ChevronLeft, ImageIcon, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import ImageGrid from "@/components/ImageGrid";
-import { Link, Navigate } from "react-router-dom";
-import { useAuth } from "@/components/AuthProvider";
+import { Link } from "react-router-dom";
 import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
 
 const ImageGenerator = () => {
-  const { user, isLoading: authLoading } = useAuth();
   const [prompt, setPrompt] = useState("");
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  
-  // If not authenticated and we've checked auth status, redirect to login
-  if (!user && !authLoading) {
-    return <Navigate to="/auth" />;
-  }
   
   // Generation settings with updated default steps for fast mode
   const [generationSettings, setGenerationSettings] = useState<GenerationSettings>({
