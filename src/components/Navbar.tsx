@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
@@ -9,6 +10,10 @@ import {
   ChevronDown, 
   LogOut, 
   User,
+  Settings,
+  HelpCircle,
+  Trash2,
+  Crown,
   Wand2
 } from "lucide-react";
 import {
@@ -16,6 +21,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -23,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   NavigationMenuLink
 } from "@/components/ui/navigation-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Subcomponent for navigation menu items
 const ListItem = React.forwardRef<
@@ -59,6 +66,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -84,6 +92,7 @@ const Navbar = () => {
       title: "Signed out",
       description: "You have been successfully signed out.",
     });
+    navigate("/");
   };
 
   const navbarClasses = cn(
@@ -92,6 +101,11 @@ const Navbar = () => {
       ? "bg-black/80 backdrop-blur-md shadow-md"
       : "bg-transparent"
   );
+
+  const getInitials = (email: string | undefined) => {
+    if (!email) return "U";
+    return email.substring(0, 2).toUpperCase();
+  };
 
   return (
     <nav className={navbarClasses}>
@@ -114,11 +128,11 @@ const Navbar = () => {
           </div>
 
           {/* Centered Logo and Site Name */}
-          <Link to="/" className="flex items-center space-x-2 mx-auto">
+          <Link to="/" className="flex items-center space-x-2 mx-auto md:mx-0">
             <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center border border-white/20">
               <Wand2 className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-[#443627]">
+            <span className="text-xl font-bold text-white">
               PixcraftAI
             </span>
           </Link>
@@ -137,6 +151,12 @@ const Navbar = () => {
                     variant="outline" 
                     className="ml-4 border-gray-700 text-white bg-transparent hover:bg-white hover:text-black"
                   >
+                    <Avatar className="h-6 w-6 mr-2">
+                      <AvatarImage src="" />
+                      <AvatarFallback className="bg-primary text-xs">
+                        {getInitials(user.email)}
+                      </AvatarFallback>
+                    </Avatar>
                     My Account
                     <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
@@ -144,14 +164,47 @@ const Navbar = () => {
                 <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
                   <DropdownMenuGroup>
                     <DropdownMenuItem asChild className="hover:bg-white hover:text-black cursor-pointer">
-                      <Link to="/profile" className="flex">
+                      <Link to="/profile" className="flex w-full">
                         <User className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
+                        <span>View Profile</span>
                       </Link>
                     </DropdownMenuItem>
+                    
+                    <DropdownMenuItem asChild className="hover:bg-white hover:text-black cursor-pointer">
+                      <Link to="/upgrade" className="flex w-full">
+                        <Crown className="mr-2 h-4 w-4" />
+                        <span>Upgrade Plan</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem asChild className="hover:bg-white hover:text-black cursor-pointer">
+                      <Link to="/help" className="flex w-full">
+                        <HelpCircle className="mr-2 h-4 w-4" />
+                        <span>Help</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem asChild className="hover:bg-white hover:text-black cursor-pointer">
+                      <Link to="/settings" className="flex w-full">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuSeparator className="bg-gray-800" />
+                    
+                    <DropdownMenuItem asChild className="hover:bg-white hover:text-black cursor-pointer text-destructive hover:text-destructive">
+                      <Link to="/delete-account" className="flex w-full">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        <span>Delete Account</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuSeparator className="bg-gray-800" />
+                    
                     <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white hover:text-black cursor-pointer">
                       <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
+                      <span>Sign Out</span>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
@@ -208,15 +261,30 @@ const Navbar = () => {
                   to="/profile" 
                   className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
                 >
-                  Profile
+                  View Profile
                 </Link>
+                
+                <Link 
+                  to="/upgrade" 
+                  className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
+                >
+                  Upgrade Plan
+                </Link>
+                
+                <Link 
+                  to="/settings" 
+                  className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
+                >
+                  Settings
+                </Link>
+                
                 <Button 
                   variant="outline" 
                   className="w-full justify-start bg-transparent border-gray-700 text-white hover:bg-white hover:text-black"
                   onClick={handleSignOut}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Log out
+                  Sign Out
                 </Button>
               </>
             ) : (

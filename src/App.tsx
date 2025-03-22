@@ -8,6 +8,7 @@ import { AuthProvider } from "./components/AuthProvider";
 import Index from "./pages/Index";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./components/ThemeProvider";
 import MetadataGenerator from "./pages/MetadataGenerator";
@@ -49,6 +50,11 @@ const App = () => (
               <Route path="/generator" element={<Navigate to="/home" replace />} />
               <Route path="/home" element={<Home />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
               <Route path="/image-generator" element={
                 <ProtectedRoute>
                   <ImageGenerator />

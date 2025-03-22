@@ -137,7 +137,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Sign out error:", error);
+        toast({
+          title: "Sign Out Failed",
+          description: error.message || "There was a problem signing out.",
+          variant: "destructive",
+        });
+      } else {
+        setUser(null);
+        setSession(null);
+      }
+    } catch (error) {
+      console.error("Sign out exception:", error);
+      toast({
+        title: "Sign Out Failed",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
