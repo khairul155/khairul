@@ -16,7 +16,6 @@ import ImageUpscaler from "./pages/ImageUpscaler";
 import GraphicDesignerBot from "./pages/GraphicDesignerBot";
 import BulkImageSizeIncreaser from "./pages/BulkImageSizeIncreaser";
 import ImageGenerator from "./pages/ImageGenerator";
-import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -30,43 +29,14 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/generator" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-              
-              {/* Protected Routes */}
-              <Route path="/image-generator" element={
-                <ProtectedRoute>
-                  <ImageGenerator />
-                </ProtectedRoute>
-              } />
-              <Route path="/metadata-generator" element={
-                <ProtectedRoute>
-                  <MetadataGenerator />
-                </ProtectedRoute>
-              } />
-              <Route path="/image-to-prompt" element={
-                <ProtectedRoute>
-                  <ImageToPrompt />
-                </ProtectedRoute>
-              } />
-              <Route path="/image-upscaler" element={
-                <ProtectedRoute>
-                  <ImageUpscaler />
-                </ProtectedRoute>
-              } />
-              <Route path="/graphic-designer-bot" element={
-                <ProtectedRoute>
-                  <GraphicDesignerBot />
-                </ProtectedRoute>
-              } />
-              <Route path="/bulk-image-size-increaser" element={
-                <ProtectedRoute>
-                  <BulkImageSizeIncreaser />
-                </ProtectedRoute>
-              } />
-              
-              {/* Redirect generator path to index */}
-              <Route path="/generator" element={<Navigate to="/" replace />} />
-              
+              <Route path="/image-generator" element={<ImageGenerator />} />
+              <Route path="/metadata-generator" element={<MetadataGenerator />} />
+              <Route path="/image-to-prompt" element={<ImageToPrompt />} />
+              <Route path="/image-upscaler" element={<ImageUpscaler />} />
+              <Route path="/graphic-designer-bot" element={<GraphicDesignerBot />} />
+              <Route path="/bulk-image-size-increaser" element={<BulkImageSizeIncreaser />} />
               {/* Redirect any unknown routes to the 404 component */}
               <Route path="/404" element={<NotFound />} />
               <Route path="*" element={<NotFound />} />
