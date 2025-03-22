@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   ChevronDown, 
@@ -10,7 +11,8 @@ import {
   Upload,
   FolderOpen,
   Camera,
-  History
+  History,
+  Gem
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -133,20 +135,55 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
               </div>
             </div>
 
-            {/* Fast Mode Toggle */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Label className="text-sm text-gray-400">Fast mode</Label>
-                <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
-                  <Info className="h-3 w-3 text-gray-500" />
-                </Button>
+            {/* Generation Mode Selection */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Label className="text-sm text-gray-400">Generation mode</Label>
+                  <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
+                    <Info className="h-3 w-3 text-gray-500" />
+                  </Button>
+                </div>
               </div>
-              <Switch 
-                checked={settings.mode === "fast"}
-                onCheckedChange={(checked) => 
-                  handleModeChange(checked ? "fast" : "quality")
-                }
-              />
+              
+              <RadioGroup 
+                className="grid grid-cols-3 gap-2"
+                value={settings.mode}
+                onValueChange={(value) => handleModeChange(value as "fast" | "quality" | "ultra")}
+              >
+                <div>
+                  <RadioGroupItem value="fast" id="mode-fast" className="peer sr-only" />
+                  <Label 
+                    htmlFor="mode-fast" 
+                    className="flex flex-col items-center justify-center gap-1 rounded-md border border-gray-700 p-2 hover:bg-gray-800 hover:text-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-950/30 peer-data-[state=checked]:text-blue-500 cursor-pointer text-center"
+                  >
+                    <Zap className="h-5 w-5" />
+                    <span className="text-xs">Fast</span>
+                  </Label>
+                </div>
+                
+                <div>
+                  <RadioGroupItem value="quality" id="mode-quality" className="peer sr-only" />
+                  <Label 
+                    htmlFor="mode-quality" 
+                    className="flex flex-col items-center justify-center gap-1 rounded-md border border-gray-700 p-2 hover:bg-gray-800 hover:text-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-950/30 peer-data-[state=checked]:text-blue-500 cursor-pointer text-center"
+                  >
+                    <Star className="h-5 w-5" />
+                    <span className="text-xs">Quality</span>
+                  </Label>
+                </div>
+                
+                <div>
+                  <RadioGroupItem value="ultra" id="mode-ultra" className="peer sr-only" />
+                  <Label 
+                    htmlFor="mode-ultra" 
+                    className="flex flex-col items-center justify-center gap-1 rounded-md border border-gray-700 p-2 hover:bg-gray-800 hover:text-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-950/30 peer-data-[state=checked]:text-blue-500 cursor-pointer text-center"
+                  >
+                    <Gem className="h-5 w-5" />
+                    <span className="text-xs">Ultra</span>
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
 
             {/* Aspect Ratio */}
