@@ -12,7 +12,8 @@ import {
   FolderOpen,
   Camera,
   History,
-  Gem
+  Gem,
+  Sparkles
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export interface GenerationSettings {
   dimensionId: string;
   width: number;
   height: number;
+  negativePrompt?: string;
 }
 
 interface GenerationSidebarProps {
@@ -50,12 +52,11 @@ interface GenerationSidebarProps {
 const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProps) => {
   // Manage collapsible sections
   const [isGeneralOpen, setIsGeneralOpen] = useState(true);
-  const [isContentTypeOpen, setIsContentTypeOpen] = useState(true);
+  const [isQualityEnhancerOpen, setIsQualityEnhancerOpen] = useState(true);
   const [isCompositionOpen, setIsCompositionOpen] = useState(true);
   
-  // Content type selection
-  const [contentType, setContentType] = useState("art");
-  const [autoContentType, setAutoContentType] = useState(false);
+  // Default negative prompt example
+  const negativePromptExample = "blurry, low quality, poorly drawn, unclear details, cut-off";
   
   // Aspect ratios
   const aspectRatios = [
@@ -65,9 +66,6 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
     { id: "16:9", label: "16:9", width: 1024, height: 576 },
     { id: "9:16", label: "9:16", width: 576, height: 1024 },
   ];
-
-  // Negative prompt
-  const [negativePrompt, setNegativePrompt] = useState("");
 
   // Set aspect ratio dimensions
   const handleAspectRatioChange = (ratioId: string) => {
@@ -85,6 +83,11 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
   const handleModeChange = (mode: "fast" | "quality" | "ultra") => {
     const steps = mode === "fast" ? 11 : mode === "quality" ? 13 : 16;
     onSettingsChange({ mode, steps });
+  };
+
+  // Handle negative prompt change
+  const handleNegativePromptChange = (value: string) => {
+    onSettingsChange({ negativePrompt: value });
   };
 
   return (
@@ -218,53 +221,43 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
           </CollapsibleContent>
         </Collapsible>
         
-        {/* Content Type */}
+        {/* Quality Enhancer */}
         <Collapsible 
-          open={isContentTypeOpen} 
-          onOpenChange={setIsContentTypeOpen}
+          open={isQualityEnhancerOpen} 
+          onOpenChange={setIsQualityEnhancerOpen}
           className="border border-gray-800 rounded-lg overflow-hidden"
         >
           <CollapsibleTrigger className="flex items-center justify-between w-full p-4 text-left focus:outline-none">
             <div className="flex items-center gap-2">
-              <ChevronDown className={`h-4 w-4 transition-transform ${isContentTypeOpen ? 'transform rotate-180' : ''}`} />
-              <span className="font-medium">Content type</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isQualityEnhancerOpen ? 'transform rotate-180' : ''}`} />
+              <span className="font-medium">Quality Enhancer ✨</span>
             </div>
           </CollapsibleTrigger>
           <CollapsibleContent className="px-4 pb-4">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex gap-2">
-                <Button 
-                  variant={contentType === "art" ? "default" : "outline"}
-                  size="sm" 
-                  className={cn(
-                    "rounded-full h-8",
-                    contentType === "art" ? "bg-[#2776FF] hover:bg-[#1665F2]" : ""
-                  )}
-                  onClick={() => setContentType("art")}
-                >
-                  <Paintbrush className="h-4 w-4 mr-1" />
-                  Art
-                </Button>
-                <Button 
-                  variant={contentType === "photo" ? "default" : "outline"}
-                  size="sm" 
-                  className={cn(
-                    "rounded-full h-8",
-                    contentType === "photo" ? "bg-[#2776FF] hover:bg-[#1665F2]" : ""
-                  )}
-                  onClick={() => setContentType("photo")}
-                >
-                  <Camera className="h-4 w-4 mr-1" />
-                  Photo
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-gray-400">Negative Prompt</Label>
+                <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
+                  <Info className="h-3 w-3 text-gray-500" />
                 </Button>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-400">Auto</span>
-                <Switch 
-                  checked={autoContentType}
-                  onCheckedChange={setAutoContentType}
-                />
+              <Textarea 
+                placeholder={negativePromptExample}
+                className="bg-[#0F0F0F] border-gray-700 min-h-[80px] resize-none text-sm"
+                value={settings.negativePrompt || ""}
+                onChange={(e) => handleNegativePromptChange(e.target.value)}
+              />
+              
+              <div className="flex justify-end">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs text-gray-400 hover:text-white"
+                  onClick={() => handleNegativePromptChange("")}
+                >
+                  Reset
+                </Button>
               </div>
             </div>
           </CollapsibleContent>

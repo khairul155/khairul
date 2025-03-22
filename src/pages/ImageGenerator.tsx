@@ -23,7 +23,6 @@ const ImageGenerator = () => {
   const [progress, setProgress] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const [negativePrompt, setNegativePrompt] = useState("");
   
   // Generation settings
   const [generationSettings, setGenerationSettings] = useState<GenerationSettings>({
@@ -31,7 +30,8 @@ const ImageGenerator = () => {
     steps: 11, // Default for fast mode
     dimensionId: "1:1",
     width: 832,
-    height: 832
+    height: 832,
+    negativePrompt: ""
   });
 
   const generateImage = async () => {
@@ -56,7 +56,7 @@ const ImageGenerator = () => {
           prompt,
           width: generationSettings.width,
           height: generationSettings.height,
-          negative_prompt: negativePrompt,
+          negative_prompt: generationSettings.negativePrompt || "",
           num_images: 1,
           num_inference_steps: generationSettings.steps
         }
