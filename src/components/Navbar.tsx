@@ -18,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -135,10 +136,19 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className="ml-4 border-gray-700 text-white bg-transparent hover:bg-white hover:text-black"
+                    className="ml-4 border-gray-700 text-white bg-transparent hover:bg-white hover:text-black flex items-center gap-2"
                   >
-                    My Account
-                    <ChevronDown className="ml-2 h-4 w-4" />
+                    <Avatar className="h-8 w-8 border border-gray-700">
+                      <AvatarImage 
+                        src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=80&h=80" 
+                        alt={user.email || "User"} 
+                      />
+                      <AvatarFallback className="bg-primary text-white">
+                        {user.email ? user.email.substring(0, 2).toUpperCase() : "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:inline">My Account</span>
+                    <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
@@ -204,6 +214,18 @@ const Navbar = () => {
             </Link>
             {user ? (
               <>
+                <div className="flex items-center gap-3 px-3 py-2">
+                  <Avatar className="h-8 w-8 border border-gray-700">
+                    <AvatarImage 
+                      src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=80&h=80" 
+                      alt={user.email || "User"} 
+                    />
+                    <AvatarFallback className="bg-primary text-white">
+                      {user.email ? user.email.substring(0, 2).toUpperCase() : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-gray-300 font-medium">{user.email}</span>
+                </div>
                 <Link 
                   to="/profile" 
                   className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
