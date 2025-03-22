@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
-import Index from "./pages/Index";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -29,7 +28,6 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<LandingPage />} />
-              <Route path="/generator" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/image-generator" element={<ImageGenerator />} />
               <Route path="/metadata-generator" element={<MetadataGenerator />} />
@@ -37,6 +35,7 @@ const App = () => (
               <Route path="/image-upscaler" element={<ImageUpscaler />} />
               <Route path="/graphic-designer-bot" element={<GraphicDesignerBot />} />
               <Route path="/bulk-image-size-increaser" element={<BulkImageSizeIncreaser />} />
+              <Route path="/generator" element={<Navigate to="/" replace />} />
               {/* Redirect any unknown routes to the 404 component */}
               <Route path="/404" element={<NotFound />} />
               <Route path="*" element={<NotFound />} />
