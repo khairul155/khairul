@@ -56,7 +56,7 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
   const [isCompositionOpen, setIsCompositionOpen] = useState(true);
   
   // Default negative prompt example
-  const negativePromptExample = "blurry, low quality, poorly drawn, unclear details, cut-off";
+  const negativePromptExample = "Blurry, Low-Quality, Poorly Drawn, Unclear Details, Cut-Off..";
   
   // Aspect ratios
   const aspectRatios = [
@@ -236,7 +236,7 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
           <CollapsibleContent className="px-4 pb-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-gray-400">Negative Prompt</Label>
+                <Label className="text-sm text-gray-400">Keep This Out</Label>
                 <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
                   <Info className="h-3 w-3 text-gray-500" />
                 </Button>
