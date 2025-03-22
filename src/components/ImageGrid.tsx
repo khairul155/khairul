@@ -38,7 +38,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt }) => {
     <div className="space-y-4">
       <div className="flex justify-center">
         {images.map((image, index) => (
-          <div key={index} className="relative group overflow-hidden rounded-lg max-w-full mx-auto">
+          <div key={index} className="relative group overflow-hidden rounded-lg max-w-full mx-auto w-[85%]">
             <img 
               src={image} 
               alt={`Generated image ${index + 1}`}

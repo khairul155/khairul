@@ -128,7 +128,7 @@ const ImageGenerator = () => {
         {/* Main Content Area */}
         <div className="flex-1 overflow-auto p-6 flex items-center justify-center">
           {generatedImages.length > 0 && !isLoading ? (
-            <div className="max-w-xl w-full">
+            <div className="max-w-md w-full">
               <ImageGrid images={generatedImages} prompt={prompt} />
             </div>
           ) : (
@@ -146,10 +146,10 @@ const ImageGenerator = () => {
           )}
         </div>
 
-        {/* Bottom Prompt Bar - Redesigned to be wider with external button */}
+        {/* Bottom Prompt Bar - Redesigned with button in right corner */}
         <div className="border-t border-gray-800 p-6">
           <div className="max-w-4xl mx-auto">
-            <div className="flex flex-col items-center">
+            <div className="relative">
               <div className="w-full bg-[#1A1A1A] rounded-lg border border-gray-800 overflow-hidden mb-4">
                 <Textarea
                   ref={textareaRef}
@@ -157,7 +157,7 @@ const ImageGenerator = () => {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   disabled={isLoading}
-                  className="min-h-[60px] px-4 py-3 bg-transparent border-none text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
+                  className="min-h-[60px] px-4 py-3 bg-transparent border-none text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full pr-32"
                 />
                 {isLoading && (
                   <div className="px-4 py-2">
@@ -169,8 +169,8 @@ const ImageGenerator = () => {
               <Button
                 onClick={generateImage}
                 disabled={isLoading || !prompt.trim()}
-                className="bg-[#2776FF] hover:bg-[#1665F2] text-white px-8 py-2 rounded-full"
-                size="lg"
+                className="absolute right-2 bottom-6 bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-full"
+                size="sm"
               >
                 {isLoading ? (
                   <>
