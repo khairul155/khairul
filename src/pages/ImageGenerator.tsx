@@ -4,16 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, ImageIcon } from "lucide-react";
+import { Loader2, ChevronLeft, ImageIcon, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import ImageGrid from "@/components/ImageGrid";
 import { Link } from "react-router-dom";
-import { 
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
 
 const ImageGenerator = () => {
@@ -68,10 +63,7 @@ const ImageGenerator = () => {
       const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
       setGeneratedImages(images);
       
-      toast({
-        title: "Success",
-        description: `Generated ${images.length} image${images.length > 1 ? 's' : ''}!`,
-      });
+      // Success toast has been removed as requested
     } catch (error) {
       console.error('Error generating image:', error);
       toast({
@@ -86,6 +78,12 @@ const ImageGenerator = () => {
         setProgress(0);
         setIsLoading(false);
       }, 500);
+    }
+  };
+
+  const handleRegenerate = () => {
+    if (prompt) {
+      generateImage();
     }
   };
 
@@ -125,11 +123,25 @@ const ImageGenerator = () => {
           </div>
         </div>
 
-        {/* Main Content Area */}
+        {/* Main Content Area with animation */}
         <div className="flex-1 overflow-auto p-6 flex items-center justify-center">
           {generatedImages.length > 0 && !isLoading ? (
-            <div className="max-w-md w-full">
-              <ImageGrid images={generatedImages} prompt={prompt} />
+            <div className="max-w-md w-full animate-fade-in">
+              <ImageGrid 
+                images={generatedImages} 
+                prompt={prompt} 
+                onRegenerate={handleRegenerate}
+              />
+            </div>
+          ) : isLoading ? (
+            <div className="text-center max-w-md mx-auto animate-pulse">
+              <div className="flex flex-col items-center justify-center gap-6">
+                <div className="rounded-full bg-gradient-to-br from-[#FF5353]/20 to-[#FFA725]/20 p-6">
+                  <Loader2 className="h-12 w-12 text-[#FFA725] animate-spin" />
+                </div>
+                <h2 className="text-2xl font-bold">Creating your masterpiece...</h2>
+                <Progress value={progress} className="h-1 w-64 bg-gray-700" />
+              </div>
             </div>
           ) : (
             <div className="text-center max-w-md mx-auto">
@@ -146,7 +158,7 @@ const ImageGenerator = () => {
           )}
         </div>
 
-        {/* Bottom Prompt Bar - Redesigned with button in right corner */}
+        {/* Bottom Prompt Bar with Generate button on right */}
         <div className="border-t border-gray-800 p-6">
           <div className="max-w-4xl mx-auto">
             <div className="relative">

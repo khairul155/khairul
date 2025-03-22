@@ -1,15 +1,16 @@
 
 import React from 'react';
-import { Download, Share2 } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 interface ImageGridProps {
   images: string[];
   prompt: string;
+  onRegenerate: () => void;
 }
 
-const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt }) => {
+const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate }) => {
   const { toast } = useToast();
 
   const downloadImage = (imageUrl: string, index: number) => {
@@ -23,14 +24,6 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt }) => {
     toast({
       title: "Download started",
       description: "Your image is being downloaded",
-    });
-  };
-
-  const copyPrompt = () => {
-    navigator.clipboard.writeText(prompt);
-    toast({
-      title: "Copied!",
-      description: "Prompt copied to clipboard",
     });
   };
 
@@ -54,24 +47,21 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt }) => {
                 >
                   <Download className="w-4 h-4" />
                 </Button>
-                <Button 
-                  onClick={copyPrompt} 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-full bg-black/50 backdrop-blur-sm hover:bg-white hover:text-black border-white/20 text-white"
-                >
-                  <Share2 className="w-4 h-4" />
-                </Button>
               </div>
             </div>
           </div>
         ))}
       </div>
       
-      <div className="bg-black/50 backdrop-blur-md rounded-lg p-4 border border-gray-800">
-        <p className="text-sm text-gray-300">
-          <span className="font-semibold">Prompt:</span> {prompt}
-        </p>
+      <div className="flex justify-center mt-4">
+        <Button 
+          onClick={onRegenerate} 
+          variant="outline" 
+          size="sm" 
+          className="flex items-center gap-2 text-gray-300 bg-black/50 backdrop-blur-sm border-gray-800 hover:bg-white/10 hover:text-white"
+        >
+          <RefreshCw className="w-4 h-4" /> Regenerate
+        </Button>
       </div>
     </div>
   );
