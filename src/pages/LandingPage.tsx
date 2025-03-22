@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -66,15 +67,26 @@ const LandingPage = () => {
                   Contact
                 </a>
               </li>
-              <li>
-                <Button asChild className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-full">
-                  {user ? (
+              {user ? (
+                <li>
+                  <Button asChild className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-full">
                     <Link to="/home">Dashboard</Link>
-                  ) : (
-                    <Link to="/auth">Get Started</Link>
-                  )}
-                </Button>
-              </li>
+                  </Button>
+                </li>
+              ) : (
+                <>
+                  <li>
+                    <Button asChild variant="ghost" className="hover:text-[#FFA725] transition-colors">
+                      <Link to="/auth">Sign In</Link>
+                    </Button>
+                  </li>
+                  <li>
+                    <Button asChild className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-full">
+                      <Link to="/auth">Get Started</Link>
+                    </Button>
+                  </li>
+                </>
+              )}
             </ul>
           </nav>
         </div>
@@ -115,6 +127,17 @@ const LandingPage = () => {
             >
               <a href="#features">Learn More</a>
             </Button>
+            
+            {!user && (
+              <Button 
+                variant="ghost" 
+                size="lg" 
+                asChild
+                className="rounded-full px-8 py-3 text-lg hover:text-[#FFA725]"
+              >
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )}
           </div>
         </div>
         
