@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,13 +6,13 @@ import { useAuth } from "@/components/AuthProvider";
 import { 
   Menu, 
   X, 
-  Wand2, 
+  Image, 
   ChevronDown, 
   LogOut, 
   User,
-  Image,
   ImagePlus,
-  Sparkles
+  Sparkles,
+  Wand
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,6 +32,36 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+
+// Subcomponent for navigation menu items
+const ListItem = React.forwardRef<
+  React.ElementRef<"a">,
+  React.ComponentPropsWithoutRef<"a"> & { icon?: React.ReactNode }
+>(({ className, title, children, icon, ...props }, ref) => {
+  return (
+    <li>
+      <NavigationMenuLink asChild>
+        <a
+          ref={ref}
+          className={cn(
+            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+            className
+          )}
+          {...props}
+        >
+          <div className="flex items-center gap-2 text-sm font-medium leading-none">
+            {icon}
+            <span>{title}</span>
+          </div>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+            {children}
+          </p>
+        </a>
+      </NavigationMenuLink>
+    </li>
+  );
+});
+ListItem.displayName = "ListItem";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -69,14 +98,14 @@ const Navbar = () => {
   const navbarClasses = cn(
     "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
     isScrolled 
-      ? "bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-md"
+      ? "bg-black/80 backdrop-blur-md shadow-md"
       : "bg-transparent"
   );
 
   const navLinkClasses = cn(
     "px-4 py-2 text-sm font-medium rounded-md transition-colors",
     isScrolled 
-      ? "text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+      ? "text-gray-300 hover:text-white"
       : "text-gray-200 hover:text-white"
   );
 
@@ -86,17 +115,16 @@ const Navbar = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <Wand2 className={cn(
-              "h-6 w-6 transition-colors",
-              isScrolled ? "text-purple-600 dark:text-purple-400" : "text-purple-400"
-            )} />
+            <div className="h-8 w-8 bg-white rounded-md flex items-center justify-center">
+              <Wand className="h-5 w-5 text-black" />
+            </div>
             <span className={cn(
               "text-xl font-bold",
               isScrolled 
-                ? "text-gray-900 dark:text-white" 
+                ? "text-white" 
                 : "text-white"
             )}>
-              AIMagine
+              PixcraftAI
             </span>
           </Link>
 
@@ -105,35 +133,33 @@ const Navbar = () => {
             <NavigationMenu className="hidden md:block">
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className={isScrolled 
-                    ? "text-gray-700 dark:text-gray-300" 
-                    : "text-gray-200 dark:text-gray-200"}>
+                  <NavigationMenuTrigger className="text-gray-200">
                     Tools
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] bg-black">
                       <ListItem 
                         title="Image Generator" 
                         href="/image-generator"
-                        icon={<ImagePlus className="h-4 w-4 text-purple-500" />}>
+                        icon={<ImagePlus className="h-4 w-4 text-white" />}>
                         Create stunning AI-generated images from text descriptions
                       </ListItem>
                       <ListItem 
                         title="Image to Prompt" 
                         href="/image-to-prompt"
-                        icon={<Image className="h-4 w-4 text-blue-500" />}>
+                        icon={<Image className="h-4 w-4 text-white" />}>
                         Convert images to detailed text prompts
                       </ListItem>
                       <ListItem 
                         title="Image Upscaler" 
                         href="/image-upscaler"
-                        icon={<Sparkles className="h-4 w-4 text-amber-500" />}>
+                        icon={<Sparkles className="h-4 w-4 text-white" />}>
                         Enhance resolution and quality of your images
                       </ListItem>
                       <ListItem 
                         title="Bulk Image Size Increaser" 
                         href="/bulk-image-size-increaser"
-                        icon={<Image className="h-4 w-4 text-green-500" />}>
+                        icon={<Image className="h-4 w-4 text-white" />}>
                         Process multiple images at once
                       </ListItem>
                     </ul>
@@ -154,26 +180,21 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className={cn(
-                      "ml-4",
-                      isScrolled 
-                        ? "border-gray-300 dark:border-gray-700" 
-                        : "border-gray-700 text-white"
-                    )}
+                    className="ml-4 border-gray-700 text-white bg-transparent hover:bg-white hover:text-black"
                   >
                     My Account
                     <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
+                <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem asChild>
-                      <Link to="/profile" className="flex cursor-pointer">
+                    <DropdownMenuItem asChild className="hover:bg-white hover:text-black cursor-pointer">
+                      <Link to="/profile" className="flex">
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSignOut}>
+                    <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white hover:text-black cursor-pointer">
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log out</span>
                     </DropdownMenuItem>
@@ -183,7 +204,7 @@ const Navbar = () => {
             ) : (
               <Button 
                 variant="default" 
-                className="ml-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                className="ml-4 bg-white text-black hover:bg-gray-300"
                 asChild
               >
                 <Link to="/auth">Sign In</Link>
@@ -197,12 +218,7 @@ const Navbar = () => {
             <Button 
               variant="ghost" 
               size="icon" 
-              className={cn(
-                "ml-2",
-                isScrolled 
-                  ? "text-gray-700 dark:text-gray-300" 
-                  : "text-white"
-              )}
+              className="ml-2 text-white"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? (
@@ -217,29 +233,29 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-gray-900 shadow-lg">
+        <div className="md:hidden bg-black shadow-lg">
           <div className="px-4 pt-2 pb-5 space-y-3">
             <Link 
               to="/" 
-              className="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               Home
             </Link>
             <Link 
               to="/image-generator" 
-              className="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               Image Generator
             </Link>
             <Link 
               to="/image-to-prompt" 
-              className="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               Image to Prompt
             </Link>
             <Link 
               to="/image-upscaler" 
-              className="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+              className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               Image Upscaler
             </Link>
@@ -247,13 +263,13 @@ const Navbar = () => {
               <>
                 <Link 
                   to="/profile" 
-                  className="block px-3 py-2 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+                  className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
                 >
                   Profile
                 </Link>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  className="w-full justify-start bg-transparent border-gray-700 text-white hover:bg-white hover:text-black"
                   onClick={handleSignOut}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -262,7 +278,7 @@ const Navbar = () => {
               </>
             ) : (
               <Button 
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
+                className="w-full bg-white text-black hover:bg-gray-300"
                 asChild
               >
                 <Link to="/auth">Sign In</Link>
@@ -275,34 +291,6 @@ const Navbar = () => {
   );
 };
 
-// Subcomponent for navigation menu items
-const ListItem = React.forwardRef<
-  React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a"> & { icon?: React.ReactNode }
->(({ className, title, children, icon, ...props }, ref) => {
-  return (
-    <li>
-      <NavigationMenuLink asChild>
-        <a
-          ref={ref}
-          className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-            className
-          )}
-          {...props}
-        >
-          <div className="flex items-center gap-2 text-sm font-medium leading-none">
-            {icon}
-            <span>{title}</span>
-          </div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
-        </a>
-      </NavigationMenuLink>
-    </li>
-  );
-});
-ListItem.displayName = "ListItem";
+// Keep ListItem component as it was
 
 export default Navbar;

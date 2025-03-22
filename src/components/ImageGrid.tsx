@@ -15,7 +15,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt }) => {
   const downloadImage = (imageUrl: string, index: number) => {
     const link = document.createElement('a');
     link.href = imageUrl;
-    link.download = `ai-generated-image-${Date.now()}-${index}.webp`;
+    link.download = `pixcraft-ai-image-${Date.now()}-${index}.webp`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -50,7 +50,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt }) => {
                   onClick={() => downloadImage(image, index)} 
                   variant="outline" 
                   size="sm" 
-                  className="rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 border-transparent text-white"
+                  className="rounded-full bg-black/50 backdrop-blur-sm hover:bg-white hover:text-black border-white/20 text-white"
                 >
                   <Download className="w-4 h-4" />
                 </Button>
@@ -58,7 +58,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt }) => {
                   onClick={copyPrompt} 
                   variant="outline" 
                   size="sm" 
-                  className="rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 border-transparent text-white"
+                  className="rounded-full bg-black/50 backdrop-blur-sm hover:bg-white hover:text-black border-white/20 text-white"
                 >
                   <Share2 className="w-4 h-4" />
                 </Button>
@@ -68,7 +68,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt }) => {
         ))}
       </div>
       
-      <div className="bg-white/10 backdrop-blur-md rounded-lg p-4">
+      <div className="bg-black/50 backdrop-blur-md rounded-lg p-4 border border-gray-800">
         <p className="text-sm text-gray-300">
           <span className="font-semibold">Prompt:</span> {prompt}
         </p>
