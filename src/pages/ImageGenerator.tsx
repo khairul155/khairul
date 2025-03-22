@@ -121,12 +121,6 @@ const ImageGenerator = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="ghost" className="text-gray-300 hover:text-white">
-              Gallery
-            </Button>
-            <Button className="bg-[#2776FF] hover:bg-[#1665F2] text-white">
-              Generate
-            </Button>
             <ThemeToggle />
           </div>
         </div>
@@ -143,51 +137,50 @@ const ImageGenerator = () => {
                 <div className="rounded-full bg-gradient-to-br from-[#FF5353]/20 to-[#FFA725]/20 p-6">
                   <ImageIcon className="h-12 w-12 text-[#FFA725]" />
                 </div>
-                <h2 className="text-2xl font-bold">Start generating images</h2>
+                <h2 className="text-2xl font-bold">Turn your imagination into reality</h2>
                 <p className="text-gray-400">
-                  Describe the image you want to generate in the prompt field, or go to Gallery and select images generated with sample prompts for you to try.
+                  We provide you only one best result✨
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Bottom Prompt Bar */}
-        <div className="border-t border-gray-800 p-4">
-          <div className="flex items-start max-w-3xl mx-auto">
-            <div className="flex-1">
-              <div className="bg-[#1A1A1A] rounded-lg border border-gray-800 overflow-hidden">
+        {/* Bottom Prompt Bar - Redesigned to be wider with external button */}
+        <div className="border-t border-gray-800 p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-col items-center">
+              <div className="w-full bg-[#1A1A1A] rounded-lg border border-gray-800 overflow-hidden mb-4">
                 <Textarea
                   ref={textareaRef}
-                  placeholder="Describe the image you want to generate..."
+                  placeholder="Enter prompt"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   disabled={isLoading}
-                  className="min-h-[60px] px-4 py-3 bg-transparent border-none text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0"
+                  className="min-h-[60px] px-4 py-3 bg-transparent border-none text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
                 />
-                <div className="px-4 py-2 flex items-center justify-between">
-                  {isLoading && (
-                    <div className="flex-1 mx-4">
-                      <Progress value={progress} className="h-1 bg-gray-700" />
-                    </div>
-                  )}
-                  
-                  <Button
-                    onClick={generateImage}
-                    disabled={isLoading || !prompt.trim()}
-                    className="bg-[#2776FF] hover:bg-[#1665F2] text-white ml-auto"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      "Generate"
-                    )}
-                  </Button>
-                </div>
+                {isLoading && (
+                  <div className="px-4 py-2">
+                    <Progress value={progress} className="h-1 bg-gray-700" />
+                  </div>
+                )}
               </div>
+              
+              <Button
+                onClick={generateImage}
+                disabled={isLoading || !prompt.trim()}
+                className="bg-[#2776FF] hover:bg-[#1665F2] text-white px-8 py-2 rounded-full"
+                size="lg"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate"
+                )}
+              </Button>
             </div>
           </div>
         </div>
