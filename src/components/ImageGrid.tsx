@@ -31,7 +31,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate }) =
     <div className="space-y-4">
       <div className="flex justify-center">
         {images.map((image, index) => (
-          <div key={index} className="relative group overflow-hidden rounded-lg max-w-full mx-auto w-[70%]">
+          <div key={index} className="relative group overflow-hidden rounded-lg max-w-full mx-auto w-[75%]">
             <img 
               src={image} 
               alt={`Generated image ${index + 1}`}
@@ -39,6 +39,14 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate }) =
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
               <div className="flex justify-end gap-2">
+                <Button 
+                  onClick={onRegenerate} 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-full bg-black/50 backdrop-blur-sm hover:bg-white hover:text-black border-white/20 text-white"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
                 <Button 
                   onClick={() => downloadImage(image, index)} 
                   variant="outline" 

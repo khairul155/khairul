@@ -61,10 +61,10 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
   // Aspect ratios
   const aspectRatios = [
     { id: "1:1", label: "Square (1:1)", width: 1024, height: 1024 },
-    { id: "4:3", label: "4:3", width: 1024, height: 768 },
-    { id: "3:4", label: "3:4", width: 768, height: 1024 },
-    { id: "16:9", label: "16:9", width: 1024, height: 576 },
-    { id: "9:16", label: "9:16", width: 576, height: 1024 },
+    { id: "4:3", label: "Landscape (4:3)", width: 1024, height: 768 },
+    { id: "3:4", label: "Portrait (3:4)", width: 768, height: 1024 },
+    { id: "16:9", label: "Widescreen (16:9)", width: 1024, height: 576 },
+    { id: "9:16", label: "Portrait (9:16)", width: 576, height: 1024 },
   ];
 
   // Set aspect ratio dimensions
@@ -89,6 +89,25 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
   // Handle negative prompt change
   const handleNegativePromptChange = (value: string) => {
     onSettingsChange({ negativePrompt: value });
+  };
+
+  // Render the aspect ratio icons
+  const renderAspectRatioIcon = (ratioId: string) => {
+    return (
+      <div className="flex items-center">
+        <div 
+          className={cn(
+            "mr-2 h-5 w-5 border border-gray-600 flex items-center justify-center bg-transparent overflow-hidden",
+            settings.dimensionId === ratioId && "border-blue-500 bg-blue-950/30"
+          )}
+        >
+          {settings.dimensionId === ratioId && (
+            <Check className="h-3 w-3 text-blue-500" />
+          )}
+        </div>
+        {aspectRatios.find(r => r.id === ratioId)?.label || ratioId}
+      </div>
+    );
   };
 
   return (
@@ -125,14 +144,12 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
                   />
                 </div>
                 <div className="flex-1">
-                  <Select defaultValue="firefly">
+                  <Select defaultValue="pixcraftai">
                     <SelectTrigger className="border-0 h-8 p-0 bg-transparent focus:ring-0">
                       <SelectValue placeholder="Select model" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="firefly">Firefly Image 3</SelectItem>
-                      <SelectItem value="stable">Stable Diffusion</SelectItem>
-                      <SelectItem value="dall-e">DALL-E 3</SelectItem>
+                      <SelectItem value="pixcraftai">Pixcraftai 1</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -190,30 +207,20 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
               </RadioGroup>
             </div>
 
-            {/* Aspect Ratio */}
+            {/* Image Dimensions */}
             <div className="space-y-2">
-              <Label className="text-sm text-gray-400">Aspect ratio</Label>
+              <Label className="text-sm text-gray-400">Image dimensions</Label>
               <Select 
                 value={settings.dimensionId}
                 onValueChange={handleAspectRatioChange}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select aspect ratio" />
+                  <SelectValue placeholder="Select dimensions" />
                 </SelectTrigger>
                 <SelectContent>
                   {aspectRatios.map(ratio => (
                     <SelectItem key={ratio.id} value={ratio.id}>
-                      <div className="flex items-center">
-                        <div className={cn(
-                          "mr-2 h-4 w-4 border border-gray-600 overflow-hidden relative",
-                          ratio.id === "1:1" && "aspect-square",
-                          ratio.id === "4:3" && "aspect-[4/3]",
-                          ratio.id === "3:4" && "aspect-[3/4]",
-                          ratio.id === "16:9" && "aspect-[16/9]",
-                          ratio.id === "9:16" && "aspect-[9/16]",
-                        )} />
-                        {ratio.label}
-                      </div>
+                      {renderAspectRatioIcon(ratio.id)}
                     </SelectItem>
                   ))}
                 </SelectContent>
