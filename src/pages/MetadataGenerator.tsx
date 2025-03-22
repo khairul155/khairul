@@ -18,7 +18,8 @@ import {
   Star,
   Users,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  Save
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -47,20 +48,42 @@ interface ImageReference {
   keywords: string[];
 }
 
+// New reference images from user uploads
 const KEYWORD_EXAMPLES: ImageReference[] = [
   {
     id: 1,
-    title: "A Splash of Fruity Freshness",
-    description: "Vibrant mix of citrus fruits and strawberries splashed with water, perfect for designs promoting freshness, health, and summer beverages.",
-    imageUrl: "/lovable-uploads/e3606774-8acd-4a87-8690-3c0ef6785c0d.png",
-    keywords: ["fruits", "splash", "water", "fresh", "citrus", "strawberries", "orange", "lime", "healthy", "summer", "juice", "beverage", "vitamin", "refreshment", "organic", "natural", "diet", "drink", "food", "cocktail", "background", "blue", "drops", "vibrant", "dynamic", "delicious", "juicy"]
+    title: "Girl in Flower Field with Butterfly",
+    description: "A beautiful young girl with long red hair stands in a vibrant field of wildflowers, gently holding a butterfly. The sunlit scene evokes a sense of peace and natural beauty.",
+    imageUrl: "/lovable-uploads/efbaf0ec-bfd1-4475-b015-3f52c495b8ed.png",
+    keywords: ["girl", "flower field", "wildflowers", "butterfly", "red hair", "summer", "spring", "nature", "child", "beautiful", "pretty", "outdoors", "sunlight", "sunshine", "landscape", "idyllic", "peaceful"]
   },
   {
     id: 2,
-    title: "Sunset Beach Photography",
-    description: "Beautiful sunset over the ocean with silhouette of palm trees, a perfect backdrop for travel websites, vacation ads, or relaxation themes.",
-    imageUrl: "/lovable-uploads/6728be41-6f99-46b1-bb5e-1985617fcb26.png",
-    keywords: ["sunset", "beach", "ocean", "palm trees", "silhouette", "travel", "vacation", "paradise", "tropical", "relaxation", "horizon", "seascape", "nature", "coastal", "dusk", "evening", "tranquil", "peaceful", "idyllic", "scenery", "landscape", "getaway", "wanderlust", "holiday", "destination", "photographic", "wallpaper"]
+    title: "Family Picnic by the Creek",
+    description: "A heartwarming image of a multigenerational family enjoying a delightful picnic lunch by a creek. The scene is filled with delicious food, laughter, and the beauty of nature.",
+    imageUrl: "/lovable-uploads/77a0c942-d56d-4275-a274-340bae22f3ad.png",
+    keywords: ["picnic", "family", "summer", "outdoor", "creek", "nature", "food", "lunch", "gathering", "multigenerational", "grandparents", "children", "parents", "happiness", "joy"]
+  },
+  {
+    id: 3,
+    title: "Tropical Fruit Abundance",
+    description: "A vibrant display of fresh tropical fruits, including ripe mangoes, juicy papayas, pineapple, and exotic yellow fruits, bathed in sunlight on a rustic wooden table.",
+    imageUrl: "/lovable-uploads/1a8d6ca9-56ef-4abb-b531-9ea5edfd2dfb.png",
+    keywords: ["mangoes", "papayas", "pineapple", "tropical fruits", "exotic fruits", "yellow fruits", "fruit bowl", "wooden table", "sunlight", "summer", "healthy eating"]
+  },
+  {
+    id: 4,
+    title: "Old Farmer with Dog on Porch",
+    description: "A heartwarming image of an elderly farmer sitting on his porch with his loyal dog, enjoying the peaceful mountain view. The scene evokes a sense of tranquility and connection with nature.",
+    imageUrl: "/lovable-uploads/3d10f3cf-b927-46f0-a05a-fe0b27dbca7e.png",
+    keywords: ["old farmer", "dog", "porch", "mountains", "countryside", "rural", "landscape", "senior", "man", "pet", "animal", "nature", "peaceful", "tranquility"]
+  },
+  {
+    id: 5,
+    title: "Adorable 5-Year-Old Boy Building Sandcastle",
+    description: "A charming illustration of a cute five-year-old boy with chubby cheeks, wearing a straw hat and overalls, joyfully building a sandcastle at a playground. The vibrant scene includes a slide, blooming trees, and cheerful springtime colors.",
+    imageUrl: "/lovable-uploads/19291550-78ea-4aca-8f69-fd20f36d1191.png",
+    keywords: ["cute boy", "chubby cheeks", "five year old", "sandcastle", "playground", "illustration", "child", "kids", "toddler", "boy", "hat", "straw hat", "overalls"]
   }
 ];
 
@@ -119,6 +142,7 @@ const MetadataGenerator = () => {
   const [error, setError] = useState<string | null>(null);
   const [keywordLimit, setKeywordLimit] = useState(30);
   const [currentReferenceIndex, setCurrentReferenceIndex] = useState(0);
+  const [saveApiKey, setSaveApiKey] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -130,13 +154,6 @@ const MetadataGenerator = () => {
       setApiKey(savedApiKey);
     }
   }, []);
-
-  // Save API key to localStorage when it changes
-  useEffect(() => {
-    if (apiKey) {
-      localStorage.setItem("geminiApiKey", apiKey);
-    }
-  }, [apiKey]);
 
   // Auto-rotate through reference images
   useEffect(() => {
@@ -209,6 +226,11 @@ const MetadataGenerator = () => {
         variant: "destructive",
       });
       return;
+    }
+
+    // Save API key if option is enabled
+    if (saveApiKey) {
+      localStorage.setItem("geminiApiKey", apiKey);
     }
 
     setIsLoading(true);
@@ -443,7 +465,7 @@ const MetadataGenerator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#696969] text-[#E9762B]">
+    <div className="min-h-screen bg-[#0C0C0C] text-[#E9762B]">
       <div className="max-w-6xl mx-auto p-4 space-y-8 relative">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute w-64 h-64 -left-32 -top-32 bg-[#E9762B] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
@@ -478,7 +500,7 @@ const MetadataGenerator = () => {
           </p>
         </div>
 
-        <div className="space-y-8 backdrop-blur-lg bg-[#696969]/80 p-8 rounded-2xl border border-[#E9762B]/30 shadow-xl">
+        <div className="space-y-8 backdrop-blur-lg bg-[#0C0C0C]/90 p-8 rounded-2xl border border-[#E9762B]/30 shadow-xl">
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertTitle>Error</AlertTitle>
@@ -487,7 +509,7 @@ const MetadataGenerator = () => {
           )}
           
           <div className="space-y-6">
-            <div className="p-4 border border-dashed border-[#E9762B]/50 rounded-lg bg-[#696969]/50 text-center cursor-pointer hover:bg-[#696969]/70 transition-all"
+            <div className="p-6 border border-dashed border-[#E9762B]/50 rounded-xl bg-[#0C0C0C]/50 text-center cursor-pointer hover:bg-[#0C0C0C]/70 transition-all"
               onClick={() => fileInputRef.current?.click()}
             >
               <input
@@ -499,9 +521,9 @@ const MetadataGenerator = () => {
                 className="hidden"
                 disabled={isLoading}
               />
-              <div className="flex flex-col items-center justify-center gap-2 py-4">
-                <Upload className="w-10 h-10 text-[#E9762B]" />
-                <p className="text-lg font-medium text-[#E9762B]">
+              <div className="flex flex-col items-center justify-center gap-3 py-6">
+                <Upload className="w-12 h-12 text-[#E9762B]" />
+                <p className="text-xl font-medium text-[#E9762B]">
                   {selectedFiles.length > 0 
                     ? `${selectedFiles.length} image${selectedFiles.length !== 1 ? 's' : ''} selected` 
                     : "Click to upload images (multiple allowed)"}
@@ -535,26 +557,41 @@ const MetadataGenerator = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <KeyIcon className="w-5 h-5 text-[#E9762B]" />
-                <Input
-                  type="password"
-                  placeholder="Enter your Gemini API key"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  disabled={isLoading}
-                  className="flex-1 h-12 text-lg backdrop-blur-sm bg-[#696969]/80 border-2 border-[#E9762B]/30 focus:border-[#E9762B] text-white placeholder:text-[#E9762B]/50"
-                />
-              </div>
-              <div className="flex justify-end">
-                <a 
-                  href="https://aistudio.google.com/app/apikey" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-400 hover:underline"
-                >
-                  Get a free Gemini API key
-                </a>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <KeyIcon className="w-5 h-5 text-[#E9762B]" />
+                  <Input
+                    type="password"
+                    placeholder="Enter your Gemini API key"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    disabled={isLoading}
+                    className="flex-1 h-12 text-lg backdrop-blur-sm bg-[#0C0C0C]/80 border-2 border-[#E9762B]/30 focus:border-[#E9762B] text-white placeholder:text-[#E9762B]/50"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="saveApiKey"
+                      checked={saveApiKey}
+                      onChange={(e) => setSaveApiKey(e.target.checked)}
+                      className="w-4 h-4 accent-[#E9762B]"
+                    />
+                    <label htmlFor="saveApiKey" className="text-sm text-[#E9762B]/80 flex items-center gap-1">
+                      <Save className="w-4 h-4" /> Save API key for future use
+                    </label>
+                  </div>
+                  <a 
+                    href="https://aistudio.google.com/app/apikey" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-400 hover:underline"
+                  >
+                    Get a free Gemini API key
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -562,7 +599,7 @@ const MetadataGenerator = () => {
               <Button 
                 onClick={generateMetadata} 
                 disabled={isLoading || selectedFiles.length === 0 || !apiKey}
-                className="w-full sm:w-auto h-12 px-6 bg-gradient-to-r from-[#E9762B] to-blue-600 hover:from-[#E9762B]/90 hover:to-blue-700 text-white font-medium rounded-lg transition-all duration-300 transform hover:scale-105"
+                className="w-full sm:w-auto h-12 px-8 bg-gradient-to-r from-[#E9762B] to-blue-600 hover:from-[#E9762B]/90 hover:to-blue-700 text-white font-medium rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {isLoading ? (
                   <>
@@ -586,7 +623,7 @@ const MetadataGenerator = () => {
                 </div>
                 <Progress 
                   value={progress} 
-                  className="h-2 bg-gray-200 dark:bg-gray-700"
+                  className="h-2 bg-[#1A1A1A] dark:bg-[#1A1A1A]"
                 />
                 <p className="text-sm text-center text-[#E9762B]/80 animate-pulse">
                   {isLoading ? `Analyzing image and generating metadata...` : ''}
@@ -598,14 +635,14 @@ const MetadataGenerator = () => {
           {imagePreview && (
             <div className="flex flex-col md:flex-row gap-8">
               <div className="md:w-1/2">
-                <h3 className="text-lg font-semibold mb-3 text-[#E9762B]">Image Preview</h3>
+                <h3 className="text-xl font-semibold mb-3 text-[#E9762B]">Image Preview</h3>
                 <div className="relative group overflow-hidden rounded-lg">
                   <div className="absolute -inset-1 bg-gradient-to-r from-[#E9762B] to-blue-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
                   <div className="relative">
                     <img
                       src={imagePreview}
                       alt="Selected image preview"
-                      className="w-full h-auto rounded-lg shadow-lg"
+                      className="w-full h-auto rounded-lg shadow-lg object-cover"
                     />
                   </div>
                 </div>
@@ -633,7 +670,7 @@ const MetadataGenerator = () => {
               {results.length > 0 && (
                 <div className="md:w-1/2">
                   <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-lg font-semibold text-[#E9762B]">Generated Metadata</h3>
+                    <h3 className="text-xl font-semibold text-[#E9762B]">Generated Metadata</h3>
                     <Button 
                       onClick={downloadCSV}
                       variant="outline"
@@ -644,7 +681,7 @@ const MetadataGenerator = () => {
                       Download CSV
                     </Button>
                   </div>
-                  <div className="bg-[#696969]/70 backdrop-blur-md rounded-lg p-4 shadow-lg space-y-4 max-h-[500px] overflow-y-auto">
+                  <div className="bg-[#0C0C0C]/70 backdrop-blur-md rounded-lg p-4 shadow-lg space-y-4 max-h-[500px] overflow-y-auto">
                     {results.map((result, index) => (
                       <div key={index} className="space-y-2 border-b border-[#E9762B]/20 pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
                         <div>
@@ -675,7 +712,7 @@ const MetadataGenerator = () => {
         </div>
 
         {/* Example Image Reference Section */}
-        <div className="overflow-hidden bg-[#696969]/80 backdrop-blur-lg rounded-2xl border border-[#E9762B]/30 shadow-xl">
+        <div className="overflow-hidden bg-[#0C0C0C]/80 backdrop-blur-lg rounded-2xl border border-[#E9762B]/30 shadow-xl">
           <div className="p-6">
             <h2 className="text-2xl font-bold mb-6 text-center text-[#E9762B]">Example Keywords</h2>
             
@@ -733,17 +770,35 @@ const MetadataGenerator = () => {
         </div>
 
         {/* How It Works Section */}
-        <div className="p-6 bg-[#696969]/80 backdrop-blur-sm rounded-xl border border-[#E9762B]/30 shadow-lg">
+        <div className="p-6 bg-[#0C0C0C]/80 backdrop-blur-sm rounded-xl border border-[#E9762B]/30 shadow-lg">
           <h3 className="text-xl font-semibold mb-4 text-[#E9762B]">How It Works</h3>
           <ol className="space-y-4 list-decimal list-inside text-white">
-            <li>Upload one or multiple images you want to generate metadata for</li>
-            <li>Set your desired keyword limit (1-50 keywords)</li>
-            <li>Enter your Gemini API key (get a free key from Google AI Studio)</li>
-            <li>Click "Generate Metadata" and wait as each image is processed</li>
-            <li>Review the AI-generated title, description, and keywords for each image</li>
-            <li>Download the results as a CSV file for easy use</li>
+            <li className="flex items-start">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#E9762B] text-white font-bold text-xs mr-2 mt-0.5">1</span>
+              <span>Upload one or multiple images you want to generate metadata for</span>
+            </li>
+            <li className="flex items-start">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#E9762B] text-white font-bold text-xs mr-2 mt-0.5">2</span>
+              <span>Set your desired keyword limit (1-50 keywords)</span>
+            </li>
+            <li className="flex items-start">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#E9762B] text-white font-bold text-xs mr-2 mt-0.5">3</span>
+              <span>Enter your Gemini API key (get a free key from Google AI Studio)</span>
+            </li>
+            <li className="flex items-start">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#E9762B] text-white font-bold text-xs mr-2 mt-0.5">4</span>
+              <span>Click "Generate Metadata" and wait as each image is processed</span>
+            </li>
+            <li className="flex items-start">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#E9762B] text-white font-bold text-xs mr-2 mt-0.5">5</span>
+              <span>Review the AI-generated title, description, and keywords for each image</span>
+            </li>
+            <li className="flex items-start">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#E9762B] text-white font-bold text-xs mr-2 mt-0.5">6</span>
+              <span>Download the results as a CSV file for easy use</span>
+            </li>
           </ol>
-          <div className="mt-4 p-3 bg-amber-900/30 rounded-lg border border-amber-800">
+          <div className="mt-6 p-4 bg-amber-900/30 rounded-lg border border-amber-800">
             <div className="flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5" />
               <p className="text-sm text-amber-300">
@@ -755,7 +810,7 @@ const MetadataGenerator = () => {
         </div>
         
         {/* FAQ Section */}
-        <div className="p-6 bg-[#696969]/80 backdrop-blur-sm rounded-xl border border-[#E9762B]/30 shadow-lg">
+        <div className="p-6 bg-[#0C0C0C]/80 backdrop-blur-sm rounded-xl border border-[#E9762B]/30 shadow-lg">
           <h3 className="text-xl font-semibold mb-4 text-center text-[#E9762B]">Frequently Asked Questions</h3>
           <Accordion type="single" collapsible className="w-full">
             {FAQ_ITEMS.map((item, index) => (
@@ -775,11 +830,11 @@ const MetadataGenerator = () => {
         </div>
         
         {/* Testimonials */}
-        <div className="p-6 bg-[#696969]/80 backdrop-blur-sm rounded-xl border border-[#E9762B]/30 shadow-lg">
+        <div className="p-6 bg-[#0C0C0C]/80 backdrop-blur-sm rounded-xl border border-[#E9762B]/30 shadow-lg">
           <h3 className="text-xl font-semibold mb-6 text-center text-[#E9762B]">What Our Users Say</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {TESTIMONIALS.map((testimonial, index) => (
-              <div key={index} className="p-4 rounded-lg bg-[#696969]/50 border border-[#E9762B]/20 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+              <div key={index} className="p-4 rounded-lg bg-[#0C0C0C]/50 border border-[#E9762B]/20 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                 <div className="flex items-center gap-1 mb-3">
                   {[...Array(5)].map((_, i) => (
                     <Star 
