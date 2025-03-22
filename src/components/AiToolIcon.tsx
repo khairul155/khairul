@@ -49,10 +49,10 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full"></div>
         )}
         <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm">
-          <span className="text-xl font-bold">{icon}</span>
+          <span className="text-xl font-bold text-gray-800 dark:text-gray-200">{icon}</span>
         </div>
       </div>
-      <h3 className="font-semibold text-sm md:text-base">{label}</h3>
+      <h3 className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">{label}</h3>
       <p className="text-xs text-gray-600 dark:text-gray-300 max-w-[200px] mt-1">{description}</p>
     </div>
   );

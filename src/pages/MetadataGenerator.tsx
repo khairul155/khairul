@@ -9,7 +9,9 @@ import {
   Loader2, 
   Image as ImageIcon, 
   Key as KeyIcon,
-  ArrowLeft
+  ArrowLeft,
+  FileCheck,
+  AlertCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -25,8 +27,9 @@ interface MetadataResult {
 }
 
 const MetadataGenerator = () => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [apiKey, setApiKey] = useState("");
@@ -52,36 +55,53 @@ const MetadataGenerator = () => {
   }, [apiKey]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArray = Array.from(e.target.files);
       
-      // Check if file is an image
-      if (!file.type.startsWith("image/")) {
+      // Filter to only include image files
+      const imageFiles = filesArray.filter(file => file.type.startsWith("image/"));
+      
+      if (imageFiles.length === 0) {
         toast({
-          title: "Invalid file",
-          description: "Please select an image file (JPEG, PNG, etc.)",
+          title: "Invalid files",
+          description: "Please select image files (JPEG, PNG, etc.)",
           variant: "destructive",
         });
         return;
       }
       
-      setSelectedFile(file);
+      if (imageFiles.length !== filesArray.length) {
+        toast({
+          title: "Some files ignored",
+          description: `${filesArray.length - imageFiles.length} non-image files were ignored.`,
+          variant: "default",
+        });
+      }
+      
+      setSelectedFiles(imageFiles);
       setError(null);
       
-      // Create and set preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Create and set preview for the first image
+      if (imageFiles.length > 0) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(imageFiles[0]);
+      }
+
+      toast({
+        title: "Files selected",
+        description: `${imageFiles.length} image${imageFiles.length !== 1 ? 's' : ''} selected`,
+      });
     }
   };
 
   const generateMetadata = async () => {
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       toast({
-        title: "No file selected",
-        description: "Please select an image file first",
+        title: "No files selected",
+        description: "Please select image files first",
         variant: "destructive",
       });
       return;
@@ -99,128 +119,185 @@ const MetadataGenerator = () => {
     setIsLoading(true);
     setProgress(0);
     setError(null);
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 5, 90));
-    }, 300);
+    setCurrentFileIndex(0);
+    
+    // Clear previous results if starting a new batch
+    setResults([]);
+
+    // Process files one by one
+    await processNextFile(0);
+  };
+
+  const processNextFile = async (index: number) => {
+    if (index >= selectedFiles.length) {
+      // All files processed
+      setIsLoading(false);
+      setProgress(100);
+      setTimeout(() => setProgress(0), 1000);
+      toast({
+        title: "Processing complete",
+        description: `Processed ${selectedFiles.length} images successfully.`,
+      });
+      return;
+    }
+
+    setCurrentFileIndex(index);
+    
+    // Update progress based on how many files we've processed
+    const progressValue = Math.floor((index / selectedFiles.length) * 100);
+    setProgress(progressValue);
+    
+    // Update preview to current file
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(selectedFiles[index]);
 
     try {
-      // Convert image to base64
-      const imageBase64 = await fileToBase64(selectedFile);
-      const base64Data = imageBase64.split(",")[1]; // Remove data URL prefix
-
-      // Updated to use gemini-1.5-flash model instead of gemini-pro-vision
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      // Process current file
+      await processFile(selectedFiles[index], index);
       
-      const payload = {
-        contents: [
-          {
-            parts: [
-              {
-                text: `Generate SEO metadata for this image with the filename "${selectedFile.name}". Provide the following in JSON format with these exact keys:
-                  1. "title": A concise, SEO-friendly title
-                  2. "description": A detailed description (2-3 sentences)
-                  3. "keywords": A comma-separated list of relevant keywords (5-10 keywords)
-                  
-                  Return ONLY valid JSON without any other text, formatted like:
-                  {
-                    "title": "...",
-                    "description": "...",
-                    "keywords": "..."
-                  }`
-              },
-              {
-                inline_data: {
-                  mime_type: selectedFile.type,
-                  data: base64Data
-                }
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          topK: 32,
-          topP: 1,
-          maxOutputTokens: 4096
-        }
-      };
-
-      console.log("Sending request to Gemini API...");
-      
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Gemini API error response:", errorData);
-        throw new Error(`Gemini API error: ${response.status} ${errorData?.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log("Gemini API response:", data);
-
-      // Extract the text from the Gemini response
-      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      if (!responseText) {
-        throw new Error("Empty or invalid response from Gemini API");
-      }
-
-      console.log("Raw text from Gemini:", responseText);
-
-      // Parse the JSON from the response text
-      let extractedJson;
-      try {
-        // Try to parse the response directly first
-        extractedJson = JSON.parse(responseText);
-      } catch (error) {
-        console.log("Direct JSON parsing failed, attempting to extract JSON from text");
+      // Wait for rate limiting (Gemini allows 15 RPM)
+      // Wait 5 seconds between API calls to stay within rate limits
+      if (index < selectedFiles.length - 1) {
+        toast({
+          title: "Rate limiting",
+          description: `Waiting before processing next image to respect API limits...`,
+        });
         
-        // Try to find JSON within the text
-        const jsonMatch = responseText.match(/{[\s\S]*?}/);
-        if (jsonMatch) {
-          extractedJson = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error("No JSON found in response");
-        }
+        setTimeout(() => {
+          processNextFile(index + 1);
+        }, 5000); // 5-second delay between images
+      } else {
+        // Last file processed
+        setIsLoading(false);
+        setProgress(100);
+        setTimeout(() => setProgress(0), 1000);
       }
-
-      // Create a new result
-      const newResult: MetadataResult = {
-        fileName: selectedFile.name,
-        title: extractedJson.title || "No title generated",
-        description: extractedJson.description || "No description generated",
-        keywords: extractedJson.keywords || "No keywords generated"
-      };
-
-      // Add to results
-      setResults(prev => [...prev, newResult]);
-
-      toast({
-        title: "Success",
-        description: "Metadata generated successfully!",
-      });
     } catch (error: any) {
-      console.error("Error generating metadata:", error);
-      setError(error.message || "Failed to generate metadata. Please try again.");
+      console.error(`Error processing file ${index + 1}:`, error);
+      
+      // Continue with next file after delay despite error
       toast({
-        title: "Error",
-        description: error.message || "Failed to generate metadata. Please try again.",
+        title: `Error with image ${index + 1}`,
+        description: error.message || "Failed to generate metadata. Continuing with next image...",
         variant: "destructive",
       });
-    } finally {
-      clearInterval(progressInterval);
-      setProgress(100);
+      
       setTimeout(() => {
-        setProgress(0);
-        setIsLoading(false);
-      }, 500);
+        processNextFile(index + 1);
+      }, 5000);
     }
+  };
+
+  const processFile = async (file: File, index: number) => {
+    toast({
+      title: "Processing image",
+      description: `Processing ${index + 1} of ${selectedFiles.length}: ${file.name}`,
+    });
+
+    // Convert image to base64
+    const imageBase64 = await fileToBase64(file);
+    const base64Data = imageBase64.split(",")[1]; // Remove data URL prefix
+
+    // Updated to use gemini-1.5-flash model instead of gemini-pro-vision
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `Generate SEO metadata for this image with the filename "${file.name}". Provide the following in JSON format with these exact keys:
+                1. "title": A concise, SEO-friendly title
+                2. "description": A detailed description (2-3 sentences)
+                3. "keywords": A comma-separated list of relevant keywords (5-10 keywords)
+                
+                Return ONLY valid JSON without any other text, formatted like:
+                {
+                  "title": "...",
+                  "description": "...",
+                  "keywords": "..."
+                }`
+            },
+            {
+              inline_data: {
+                mime_type: file.type,
+                data: base64Data
+              }
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.4,
+        topK: 32,
+        topP: 1,
+        maxOutputTokens: 4096
+      }
+    };
+
+    console.log(`Sending request to Gemini API for image ${index + 1}...`);
+    
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Gemini API error response:", errorData);
+      throw new Error(`Gemini API error: ${response.status} ${errorData?.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Gemini API response for image ${index + 1}:`, data);
+
+    // Extract the text from the Gemini response
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!responseText) {
+      throw new Error("Empty or invalid response from Gemini API");
+    }
+
+    console.log(`Raw text from Gemini for image ${index + 1}:`, responseText);
+
+    // Parse the JSON from the response text
+    let extractedJson;
+    try {
+      // Try to parse the response directly first
+      extractedJson = JSON.parse(responseText);
+    } catch (error) {
+      console.log("Direct JSON parsing failed, attempting to extract JSON from text");
+      
+      // Try to find JSON within the text
+      const jsonMatch = responseText.match(/{[\s\S]*?}/);
+      if (jsonMatch) {
+        extractedJson = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("No JSON found in response");
+      }
+    }
+
+    // Create a new result
+    const newResult: MetadataResult = {
+      fileName: file.name,
+      title: extractedJson.title || "No title generated",
+      description: extractedJson.description || "No description generated",
+      keywords: extractedJson.keywords || "No keywords generated"
+    };
+
+    // Add to results
+    setResults(prev => [...prev, newResult]);
+
+    toast({
+      title: "Success",
+      description: `Metadata generated for image ${index + 1}: ${file.name}`,
+    });
   };
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -311,6 +388,7 @@ const MetadataGenerator = () => {
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
+                multiple  // Added multiple attribute
                 ref={fileInputRef}
                 className="hidden"
                 disabled={isLoading}
@@ -318,10 +396,12 @@ const MetadataGenerator = () => {
               <div className="flex flex-col items-center justify-center gap-2 py-4">
                 <Upload className="w-10 h-10 text-gray-400" />
                 <p className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                  {selectedFile ? selectedFile.name : "Click to upload an image"}
+                  {selectedFiles.length > 0 
+                    ? `${selectedFiles.length} image${selectedFiles.length !== 1 ? 's' : ''} selected` 
+                    : "Click to upload images (multiple allowed)"}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  JPG, PNG or GIF (max 10MB)
+                  JPG, PNG or GIF (max 10MB each)
                 </p>
               </div>
             </div>
@@ -353,18 +433,18 @@ const MetadataGenerator = () => {
             <div className="flex justify-center">
               <Button 
                 onClick={generateMetadata} 
-                disabled={isLoading || !selectedFile || !apiKey}
+                disabled={isLoading || selectedFiles.length === 0 || !apiKey}
                 className="w-full sm:w-auto h-12 px-6 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium rounded-lg transition-all duration-300 transform hover:scale-105"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Generating...
+                    Processing {currentFileIndex + 1} of {selectedFiles.length}...
                   </>
                 ) : (
                   <>
                     <ImageIcon className="mr-2 h-5 w-5" />
-                    Generate Metadata
+                    {selectedFiles.length > 1 ? "Generate Metadata for All Images" : "Generate Metadata"}
                   </>
                 )}
               </Button>
@@ -372,12 +452,16 @@ const MetadataGenerator = () => {
 
             {isLoading && (
               <div className="space-y-3">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                  <span>Processing image {currentFileIndex + 1} of {selectedFiles.length}</span>
+                  <span>{progress}%</span>
+                </div>
                 <Progress 
                   value={progress} 
                   className="h-2 bg-gray-200 dark:bg-gray-700"
                 />
                 <p className="text-sm text-center text-gray-600 dark:text-gray-400 animate-pulse">
-                  Analyzing image and generating metadata... {progress}%
+                  {isLoading ? `Analyzing image and generating metadata...` : ''}
                 </p>
               </div>
             )}
@@ -397,6 +481,25 @@ const MetadataGenerator = () => {
                     />
                   </div>
                 </div>
+                {selectedFiles.length > 0 && (
+                  <div className="mt-3 flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {selectedFiles.length > 1 ? (
+                        `${currentFileIndex + 1} of ${selectedFiles.length} images`
+                      ) : (
+                        selectedFiles[0].name
+                      )}
+                    </span>
+                    {selectedFiles.length > 1 && (
+                      <div className="flex items-center gap-1">
+                        <FileCheck className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Multiple images selected
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {results.length > 0 && (
@@ -413,9 +516,9 @@ const MetadataGenerator = () => {
                       Download CSV
                     </Button>
                   </div>
-                  <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-md rounded-lg p-4 shadow-lg space-y-4">
+                  <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-md rounded-lg p-4 shadow-lg space-y-4 max-h-[500px] overflow-y-auto">
                     {results.map((result, index) => (
-                      <div key={index} className="space-y-2">
+                      <div key={index} className="space-y-2 border-b border-gray-200 dark:border-gray-700 pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
                         <div>
                           <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Filename:</span>
                           <p className="text-gray-800 dark:text-gray-200">{result.fileName}</p>
@@ -444,12 +547,21 @@ const MetadataGenerator = () => {
         <div className="p-6 bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg">
           <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">How It Works</h3>
           <ol className="space-y-4 list-decimal list-inside text-gray-600 dark:text-gray-300">
-            <li>Upload an image you want to generate metadata for</li>
+            <li>Upload one or multiple images you want to generate metadata for</li>
             <li>Enter your Gemini API key (get a free key from Google AI Studio)</li>
-            <li>Click "Generate Metadata" and wait a few seconds</li>
-            <li>Review the AI-generated title, description, and keywords</li>
+            <li>Click "Generate Metadata" and wait as each image is processed</li>
+            <li>Review the AI-generated title, description, and keywords for each image</li>
             <li>Download the results as a CSV file for easy use</li>
           </ol>
+          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg border border-amber-200 dark:border-amber-800">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5" />
+              <p className="text-sm text-amber-800 dark:text-amber-300">
+                Note: Gemini API has a rate limit of 15 requests per minute. When processing multiple images, 
+                we automatically add a 5-second delay between each image to avoid hitting these limits.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

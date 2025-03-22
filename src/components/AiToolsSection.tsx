@@ -22,7 +22,7 @@ const AiToolsSection = () => {
   };
 
   return (
-    <div className="py-12 px-4">
+    <div className="py-12 px-4 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-10 text-gray-800 dark:text-white">
           Our AI Tools
