@@ -131,11 +131,11 @@ const Navbar = () => {
           </div>
 
           {/* Centered Logo and Site Name */}
-          <Link to="/" className="flex items-center space-x-2 mx-auto">
+          <Link to="/" className="flex items-center space-x-2 mx-auto md:mx-0">
             <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center border border-white/20">
               <Wand2 className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-[#443627]">
+            <span className="text-xl font-bold text-white">
               PixcraftAI
             </span>
           </Link>
@@ -191,7 +191,37 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Empty div to balance the navbar for center alignment */}
+          {/* Empty div to balance the navbar for center alignment on mobile */}
+          <div className="md:hidden">
+            {user ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                <Avatar className="h-8 w-8 border border-gray-700">
+                  <AvatarImage 
+                    src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&q=80&w=80&h=80" 
+                    alt={user.email || "User"} 
+                  />
+                  <AvatarFallback className="bg-primary text-white">
+                    {user.email ? user.email.substring(0, 2).toUpperCase() : "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="opacity-0 pointer-events-none"
+              >
+                <Menu className="h-6 w-6" />
+              </Button>
+            )}
+          </div>
+
+          {/* Empty div to balance the navbar for center alignment on desktop */}
           <div className="hidden md:block">
             <ThemeToggle />
           </div>

@@ -17,6 +17,7 @@ import GraphicDesignerBot from "./pages/GraphicDesignerBot";
 import BulkImageSizeIncreaser from "./pages/BulkImageSizeIncreaser";
 import ImageGenerator from "./pages/ImageGenerator";
 import Home from "./pages/Home";
+import Profile from "./pages/Profile";
 import { useAuth } from "./components/AuthProvider";
 
 // Route guard component for protected routes
@@ -49,6 +50,11 @@ const App = () => (
               <Route path="/generator" element={<Navigate to="/home" replace />} />
               <Route path="/home" element={<Home />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
               <Route path="/image-generator" element={
                 <ProtectedRoute>
                   <ImageGenerator />
