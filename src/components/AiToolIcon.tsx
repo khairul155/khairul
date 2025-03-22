@@ -51,7 +51,7 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
         <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm">
           <span className={cn(
             "text-xl font-bold",
-            icon === "MD" ? "text-[#E9762B]" : "text-gray-800 dark:text-gray-200"
+            icon === "MD" || icon === "GD" ? "text-[#E9762B]" : "text-gray-800 dark:text-gray-200"
           )}>
             {icon}
           </span>
@@ -59,7 +59,7 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
       </div>
       <h3 className={cn(
         "font-semibold text-sm md:text-base",
-        icon === "MD" ? "text-[#E9762B]" : "text-gray-800 dark:text-gray-200"
+        icon === "MD" || icon === "GD" ? "text-[#E9762B]" : "text-gray-800 dark:text-gray-200"
       )}>
         {label}
       </h3>
