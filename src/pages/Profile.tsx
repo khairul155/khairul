@@ -13,6 +13,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  console.log("Profile page user:", user);
+
   const handleSignOut = async () => {
     try {
       await signOut();

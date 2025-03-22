@@ -24,6 +24,9 @@ import { useAuth } from "./components/AuthProvider";
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   
+  // Debug log
+  console.log("ProtectedRoute - user:", user, "isLoading:", isLoading);
+  
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }

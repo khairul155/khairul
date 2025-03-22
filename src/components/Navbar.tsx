@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -64,6 +63,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  console.log("Current auth user:", user); // Debug user state
+
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -82,6 +83,7 @@ const Navbar = () => {
   }, [location.pathname]);
 
   const handleSignOut = async () => {
+    console.log("Sign out clicked");
     try {
       await signOut();
       toast({
@@ -140,11 +142,8 @@ const Navbar = () => {
             </span>
           </Link>
 
-          {/* Desktop Navigation - Hidden on image-generator page */}
-          <div className={cn(
-            "hidden md:flex items-center space-x-1",
-            location.pathname === "/image-generator" ? "invisible" : ""
-          )}>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-3">
             <ThemeToggle />
 
             {user ? (
@@ -152,7 +151,7 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className="ml-4 border-gray-700 text-white bg-transparent hover:bg-white hover:text-black flex items-center gap-2"
+                    className="ml-2 border-gray-700 text-white bg-transparent hover:bg-white hover:text-black flex items-center gap-2"
                   >
                     <Avatar className="h-8 w-8 border border-gray-700">
                       <AvatarImage 
@@ -191,7 +190,7 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Empty div to balance the navbar for center alignment on mobile */}
+          {/* Mobile user avatar or empty spacer */}
           <div className="md:hidden">
             {user ? (
               <Button
@@ -221,7 +220,7 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Empty div to balance the navbar for center alignment on desktop */}
+          {/* Empty div for balance on desktop */}
           <div className="hidden md:block">
             <ThemeToggle />
           </div>
