@@ -7,7 +7,7 @@ import {
   Check, 
   Star,
   ImageIcon,
-  PaintBrush,
+  Paintbrush,
   Upload,
   FolderOpen,
   Camera,
@@ -206,7 +206,7 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
                   )}
                   onClick={() => setContentType("art")}
                 >
-                  <PaintBrush className="h-4 w-4 mr-1" />
+                  <Paintbrush className="h-4 w-4 mr-1" />
                   Art
                 </Button>
                 <Button 
@@ -228,7 +228,6 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
                 <Switch 
                   checked={autoContentType}
                   onCheckedChange={setAutoContentType}
-                  size="sm"
                 />
               </div>
             </div>
@@ -285,3 +284,4 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
 };
 
 export default GenerationSidebar;
+
