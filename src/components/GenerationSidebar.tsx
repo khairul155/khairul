@@ -47,8 +47,8 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
   
   // Available generation modes
   const generationModes: GenerationMode[] = [
-    { id: "fast", name: "Fast", steps: 8, icon: <Zap className="h-4 w-4" /> },
-    { id: "quality", name: "Quality", steps: 12, icon: <Diamond className="h-4 w-4" />, isPro: true },
+    { id: "fast", name: "Fast", steps: 12, icon: <Zap className="h-4 w-4" /> },
+    { id: "quality", name: "Quality", steps: 14, icon: <Diamond className="h-4 w-4" />, isPro: true },
     { id: "ultra", name: "Ultra", steps: 16, icon: <Star className="h-4 w-4" />, isNew: true },
   ];
 
@@ -79,9 +79,9 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
     onSettingsChange({ steps: value[0] });
     
     // Update mode based on steps value
-    if (value[0] <= 8) {
+    if (value[0] <= 12) {
       onSettingsChange({ mode: "fast" });
-    } else if (value[0] <= 12) {
+    } else if (value[0] <= 14) {
       onSettingsChange({ mode: "quality" });
     } else {
       onSettingsChange({ mode: "ultra" });
@@ -114,7 +114,7 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-md font-medium">Generation Mode</h3>
+            <h3 className="text-md font-medium">Basic Settings</h3>
             <Info className="h-4 w-4 text-gray-400" />
           </div>
         </div>
@@ -146,14 +146,14 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
 
         <div className="pt-2">
           <div className="flex justify-between text-xs text-gray-400 mb-1">
-            <span>Interface Steps: {sliderValue[0]}</span>
+            <span>Generation Mode: {sliderValue[0]}</span>
             <span>
-              {sliderValue[0] <= 8 ? "Fast" : sliderValue[0] <= 12 ? "Quality" : "Ultra"}
+              {sliderValue[0] <= 12 ? "Fast" : sliderValue[0] <= 14 ? "Quality" : "Ultra"}
             </span>
           </div>
           <Slider
             value={sliderValue}
-            min={4}
+            min={8}
             max={20}
             step={1}
             onValueChange={handleStepsChange}

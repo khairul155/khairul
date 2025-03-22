@@ -6,13 +6,10 @@ import { useAuth } from "@/components/AuthProvider";
 import { 
   Menu, 
   X, 
-  Image, 
   ChevronDown, 
   LogOut, 
   User,
-  ImagePlus,
-  Sparkles,
-  Wand
+  Wand2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -21,17 +18,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import {
+  NavigationMenuLink
+} from "@/components/ui/navigation-menu";
 
 // Subcomponent for navigation menu items
 const ListItem = React.forwardRef<
@@ -102,77 +93,41 @@ const Navbar = () => {
       : "bg-transparent"
   );
 
-  const navLinkClasses = cn(
-    "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-    isScrolled 
-      ? "text-gray-300 hover:text-white"
-      : "text-gray-200 hover:text-white"
-  );
-
   return (
     <nav className={navbarClasses}>
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 bg-white rounded-md flex items-center justify-center">
-              <Wand className="h-5 w-5 text-black" />
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-white"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </Button>
+          </div>
+
+          {/* Centered Logo and Site Name */}
+          <Link to="/" className="flex items-center space-x-2 mx-auto">
+            <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center border border-white/20">
+              <Wand2 className="h-5 w-5 text-white" />
             </div>
-            <span className={cn(
-              "text-xl font-bold",
-              isScrolled 
-                ? "text-white" 
-                : "text-white"
-            )}>
+            <span className="text-xl font-bold text-[#443627]">
               PixcraftAI
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            <NavigationMenu className="hidden md:block">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-gray-200">
-                    Tools
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] bg-black">
-                      <ListItem 
-                        title="Image Generator" 
-                        href="/image-generator"
-                        icon={<ImagePlus className="h-4 w-4 text-white" />}>
-                        Create stunning AI-generated images from text descriptions
-                      </ListItem>
-                      <ListItem 
-                        title="Image to Prompt" 
-                        href="/image-to-prompt"
-                        icon={<Image className="h-4 w-4 text-white" />}>
-                        Convert images to detailed text prompts
-                      </ListItem>
-                      <ListItem 
-                        title="Image Upscaler" 
-                        href="/image-upscaler"
-                        icon={<Sparkles className="h-4 w-4 text-white" />}>
-                        Enhance resolution and quality of your images
-                      </ListItem>
-                      <ListItem 
-                        title="Bulk Image Size Increaser" 
-                        href="/bulk-image-size-increaser"
-                        icon={<Image className="h-4 w-4 text-white" />}>
-                        Process multiple images at once
-                      </ListItem>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/image-generator" className={navigationMenuTriggerStyle()}>
-                    Create
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
+          {/* Desktop Navigation - Hidden on image-generator page */}
+          <div className={cn(
+            "hidden md:flex items-center space-x-1",
+            location.pathname === "/image-generator" ? "invisible" : ""
+          )}>
             <ThemeToggle />
 
             {user ? (
@@ -212,21 +167,9 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
+          {/* Empty div to balance the navbar for center alignment */}
+          <div className="hidden md:block">
             <ThemeToggle />
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="ml-2 text-white"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </Button>
           </div>
         </div>
       </div>
@@ -290,7 +233,5 @@ const Navbar = () => {
     </nav>
   );
 };
-
-// Keep ListItem component as it was
 
 export default Navbar;

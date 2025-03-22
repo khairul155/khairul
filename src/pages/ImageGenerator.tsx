@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
@@ -123,7 +121,7 @@ const ImageGenerator = () => {
                     isSettingsOpen ? "transform rotate-180" : ""
                   }`}
                 />
-                <span className="font-medium">General settings</span>
+                <span className="font-medium">Basic Settings</span>
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent className="p-4 bg-[#1A1A1A] space-y-4">
@@ -142,7 +140,7 @@ const ImageGenerator = () => {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Label htmlFor="fast-mode" className="cursor-pointer">Fast mode</Label>
+                  <Label htmlFor="fast-mode" className="cursor-pointer">Generation Mode</Label>
                 </div>
                 <Switch
                   id="fast-mode"
@@ -152,7 +150,7 @@ const ImageGenerator = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Aspect ratio</Label>
+                <Label>Image Dimensions</Label>
                 <Select value={aspectRatio} onValueChange={setAspectRatio}>
                   <SelectTrigger className="w-full bg-[#262626] border-gray-700 flex items-center">
                     <div className="flex items-center">
@@ -298,17 +296,10 @@ const ImageGenerator = () => {
               <ArrowLeft className="w-4 h-4" />
               Back
             </Link>
-            
-            <Tabs defaultValue="generate" className="ml-4">
-              <TabsList className="bg-[#1A1A1A]">
-                <TabsTrigger value="gallery" className="data-[state=active]:bg-[#333] data-[state=active]:text-white">
-                  Gallery
-                </TabsTrigger>
-                <TabsTrigger value="generate" className="data-[state=active]:bg-[#333] data-[state=active]:text-white">
-                  Generate
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+          </div>
+          
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold text-[#443627]">PixcraftAI</h1>
           </div>
           
           <div className="flex items-center gap-2">
@@ -319,7 +310,7 @@ const ImageGenerator = () => {
         {/* Main Content Area */}
         <div className="flex-1 overflow-auto p-6 flex items-center justify-center">
           {generatedImages.length > 0 && !isLoading ? (
-            <div className="max-w-2xl w-full">
+            <div className="max-w-xl w-full">
               <ImageGrid images={generatedImages} prompt={prompt} />
             </div>
           ) : (
@@ -341,7 +332,7 @@ const ImageGenerator = () => {
 
         {/* Bottom Prompt Bar */}
         <div className="border-t border-gray-800 p-4">
-          <div className="flex items-start">
+          <div className="flex items-start max-w-3xl mx-auto">
             <div className="flex-1">
               <div className="bg-[#1A1A1A] rounded-lg border border-gray-800 overflow-hidden">
                 <Textarea
@@ -373,7 +364,7 @@ const ImageGenerator = () => {
                   <Button
                     onClick={generateImage}
                     disabled={isLoading || !prompt.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-[#FFA725] hover:bg-[#e99b22] text-white"
                   >
                     {isLoading ? (
                       <>
