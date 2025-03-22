@@ -32,6 +32,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import AspectRatioSelector from "./AspectRatioSelector";
 import { cn } from "@/lib/utils";
 
@@ -136,12 +142,8 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
             <div className="space-y-2">
               <Label className="text-sm text-gray-400">Model</Label>
               <div className="flex items-center space-x-3 border border-gray-800 rounded-md p-2">
-                <div className="h-8 w-8 rounded overflow-hidden">
-                  <img 
-                    src="/placeholder.svg" 
-                    alt="Model" 
-                    className="h-full w-full object-cover"
-                  />
+                <div className="h-8 w-8 rounded overflow-hidden bg-[#3C3D37] flex items-center justify-center">
+                  <span className="text-[#FFA725] text-xs font-bold">AI</span>
                 </div>
                 <div className="flex-1">
                   <Select defaultValue="pixcraftai">
@@ -161,9 +163,18 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Label className="text-sm text-gray-400">Generation mode</Label>
-                  <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
-                    <Info className="h-3 w-3 text-gray-500" />
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
+                          <Info className="h-3 w-3 text-[#FFA725]" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-[#3C3D37] text-[#FFA725] border-[#3C3D37]">
+                        <p>Controls speed and quality balance</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
               
@@ -176,7 +187,7 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
                   <RadioGroupItem value="fast" id="mode-fast" className="peer sr-only" />
                   <Label 
                     htmlFor="mode-fast" 
-                    className="flex flex-col items-center justify-center gap-1 rounded-md border border-gray-700 p-2 hover:bg-gray-800 hover:text-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-950/30 peer-data-[state=checked]:text-blue-500 cursor-pointer text-center"
+                    className="flex flex-col items-center justify-center gap-1 rounded-md border border-gray-700 p-2 hover:bg-gray-800 hover:text-gray-50 peer-data-[state=checked]:border-[#FFA725] peer-data-[state=checked]:bg-[#3C3D37]/30 peer-data-[state=checked]:text-[#FFA725] cursor-pointer text-center"
                   >
                     <Zap className="h-5 w-5" />
                     <span className="text-xs">Fast</span>
@@ -187,7 +198,7 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
                   <RadioGroupItem value="quality" id="mode-quality" className="peer sr-only" />
                   <Label 
                     htmlFor="mode-quality" 
-                    className="flex flex-col items-center justify-center gap-1 rounded-md border border-gray-700 p-2 hover:bg-gray-800 hover:text-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-950/30 peer-data-[state=checked]:text-blue-500 cursor-pointer text-center"
+                    className="flex flex-col items-center justify-center gap-1 rounded-md border border-gray-700 p-2 hover:bg-gray-800 hover:text-gray-50 peer-data-[state=checked]:border-[#FFA725] peer-data-[state=checked]:bg-[#3C3D37]/30 peer-data-[state=checked]:text-[#FFA725] cursor-pointer text-center"
                   >
                     <Star className="h-5 w-5" />
                     <span className="text-xs">Quality</span>
@@ -198,7 +209,7 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
                   <RadioGroupItem value="ultra" id="mode-ultra" className="peer sr-only" />
                   <Label 
                     htmlFor="mode-ultra" 
-                    className="flex flex-col items-center justify-center gap-1 rounded-md border border-gray-700 p-2 hover:bg-gray-800 hover:text-gray-50 peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-950/30 peer-data-[state=checked]:text-blue-500 cursor-pointer text-center"
+                    className="flex flex-col items-center justify-center gap-1 rounded-md border border-gray-700 p-2 hover:bg-gray-800 hover:text-gray-50 peer-data-[state=checked]:border-[#FFA725] peer-data-[state=checked]:bg-[#3C3D37]/30 peer-data-[state=checked]:text-[#FFA725] cursor-pointer text-center"
                   >
                     <Gem className="h-5 w-5" />
                     <span className="text-xs">Ultra</span>
@@ -245,9 +256,18 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm text-gray-400">Keep This Out</Label>
-                <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
-                  <Info className="h-3 w-3 text-gray-500" />
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
+                        <Info className="h-3 w-3 text-[#FFA725]" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-[#3C3D37] text-[#FFA725] border-[#3C3D37]">
+                      <p>Optimizes images for better results</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               
               <Textarea 

@@ -43,7 +43,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate }) =
                   onClick={onRegenerate} 
                   variant="outline" 
                   size="sm" 
-                  className="rounded-full bg-black/50 backdrop-blur-sm hover:bg-white hover:text-black border-white/20 text-white"
+                  className="rounded-full bg-black/50 backdrop-blur-sm hover:bg-[#3C3D37] hover:text-[#FFA725] border-white/20 text-white"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </Button>
@@ -51,7 +51,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate }) =
                   onClick={() => downloadImage(image, index)} 
                   variant="outline" 
                   size="sm" 
-                  className="rounded-full bg-black/50 backdrop-blur-sm hover:bg-white hover:text-black border-white/20 text-white"
+                  className="rounded-full bg-black/50 backdrop-blur-sm hover:bg-[#3C3D37] hover:text-[#FFA725] border-white/20 text-white"
                 >
                   <Download className="w-4 h-4" />
                 </Button>
@@ -66,7 +66,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate }) =
           onClick={onRegenerate} 
           variant="outline" 
           size="sm" 
-          className="flex items-center gap-2 text-gray-300 bg-black/50 backdrop-blur-sm border-gray-800 hover:bg-white/10 hover:text-white"
+          className="flex items-center gap-2 text-gray-300 bg-black/50 backdrop-blur-sm border-gray-800 hover:bg-[#3C3D37] hover:text-[#FFA725]"
         >
           <RefreshCw className="w-4 h-4" /> Regenerate
         </Button>
