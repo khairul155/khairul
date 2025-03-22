@@ -24,7 +24,7 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
   // Map of background colors for each icon type
   const colorMap = {
     IG: "bg-gradient-to-br from-green-400 to-yellow-300", // Image Generator
-    MD: "bg-gradient-to-br from-green-300 to-lime-200", // Meta Data Generator
+    MD: "bg-gradient-to-br from-[#696969] to-[#4d4d4d]", // Meta Data Generator - Updated with requested color
     GD: "bg-gradient-to-br from-purple-400 to-violet-300", // Graphic Designer Bot
     IP: "bg-gradient-to-br from-orange-400 to-amber-300", // Image to Prompt
     IU: "bg-gradient-to-br from-rose-400 to-pink-300", // Image Upscaler
@@ -49,10 +49,20 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full"></div>
         )}
         <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm">
-          <span className="text-xl font-bold text-gray-800 dark:text-gray-200">{icon}</span>
+          <span className={cn(
+            "text-xl font-bold",
+            icon === "MD" ? "text-[#E9762B]" : "text-gray-800 dark:text-gray-200" // Updated text color for MD
+          )}>
+            {icon}
+          </span>
         </div>
       </div>
-      <h3 className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">{label}</h3>
+      <h3 className={cn(
+        "font-semibold text-sm md:text-base",
+        icon === "MD" ? "text-[#E9762B]" : "text-gray-800 dark:text-gray-200" // Updated text color for MD
+      )}>
+        {label}
+      </h3>
       <p className="text-xs text-gray-600 dark:text-gray-300 max-w-[200px] mt-1">{description}</p>
     </div>
   );

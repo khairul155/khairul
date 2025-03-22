@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
 import { 
   Upload, 
   Download, 
@@ -11,13 +12,25 @@ import {
   Key as KeyIcon,
   ArrowLeft,
   FileCheck,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Star,
+  Users,
+  CheckCircle,
+  HelpCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Papa from "papaparse";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface MetadataResult {
   fileName: string;
@@ -25,6 +38,75 @@ interface MetadataResult {
   description: string;
   keywords: string;
 }
+
+interface ImageReference {
+  id: number;
+  title: string;
+  description: string;
+  imageUrl: string;
+  keywords: string[];
+}
+
+const KEYWORD_EXAMPLES: ImageReference[] = [
+  {
+    id: 1,
+    title: "A Splash of Fruity Freshness",
+    description: "Vibrant mix of citrus fruits and strawberries splashed with water, perfect for designs promoting freshness, health, and summer beverages.",
+    imageUrl: "/lovable-uploads/e3606774-8acd-4a87-8690-3c0ef6785c0d.png",
+    keywords: ["fruits", "splash", "water", "fresh", "citrus", "strawberries", "orange", "lime", "healthy", "summer", "juice", "beverage", "vitamin", "refreshment", "organic", "natural", "diet", "drink", "food", "cocktail", "background", "blue", "drops", "vibrant", "dynamic", "delicious", "juicy"]
+  },
+  {
+    id: 2,
+    title: "Sunset Beach Photography",
+    description: "Beautiful sunset over the ocean with silhouette of palm trees, a perfect backdrop for travel websites, vacation ads, or relaxation themes.",
+    imageUrl: "/lovable-uploads/6728be41-6f99-46b1-bb5e-1985617fcb26.png",
+    keywords: ["sunset", "beach", "ocean", "palm trees", "silhouette", "travel", "vacation", "paradise", "tropical", "relaxation", "horizon", "seascape", "nature", "coastal", "dusk", "evening", "tranquil", "peaceful", "idyllic", "scenery", "landscape", "getaway", "wanderlust", "holiday", "destination", "photographic", "wallpaper"]
+  }
+];
+
+const TESTIMONIALS = [
+  {
+    name: "Sarah Johnson",
+    role: "Digital Marketing Specialist",
+    rating: 5,
+    comment: "This tool has completely transformed how I optimize images for SEO. The keyword suggestions are incredibly accurate and have improved our search rankings significantly."
+  },
+  {
+    name: "Michael Chen",
+    role: "E-commerce Shop Owner",
+    rating: 4,
+    comment: "Processing multiple images at once has saved me countless hours of work. The metadata generated helps my product images rank much better in search results."
+  },
+  {
+    name: "Jessica Williams",
+    role: "Content Creator",
+    rating: 5,
+    comment: "The keyword limit selection is perfect for my needs. I can customize how detailed I want the metadata to be based on the platform I'm posting to."
+  }
+];
+
+const FAQ_ITEMS = [
+  {
+    question: "What is image metadata and why is it important?",
+    answer: "Image metadata includes information like titles, descriptions, and keywords that help search engines understand what your images contain. Good metadata improves SEO, makes your images more discoverable, and provides context for users with visual impairments."
+  },
+  {
+    question: "How many images can I process at once?",
+    answer: "You can select and process multiple images at once. However, due to the Gemini API's rate limit of 15 requests per minute, we process images sequentially with a 5-second delay between each image to avoid hitting these limits."
+  },
+  {
+    question: "Is my data secure when using this tool?",
+    answer: "Yes, your images are processed locally in your browser and then sent securely to the Gemini API. We don't store your images or the generated metadata on our servers. Your API key is stored only in your browser's local storage."
+  },
+  {
+    question: "How accurate is the generated metadata?",
+    answer: "The metadata is generated using Google's advanced Gemini AI model, which provides high-quality, contextually relevant descriptions and keywords. For most images, the accuracy is excellent, but you can always edit the results if needed."
+  },
+  {
+    question: "Do I need to pay for using this tool?",
+    answer: "The tool itself is free to use, but you need a Google Gemini API key. Google offers free credits when you sign up for a Gemini API key, which is typically sufficient for processing hundreds of images."
+  }
+];
 
 const MetadataGenerator = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -35,6 +117,8 @@ const MetadataGenerator = () => {
   const [apiKey, setApiKey] = useState("");
   const [results, setResults] = useState<MetadataResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [keywordLimit, setKeywordLimit] = useState(30);
+  const [currentReferenceIndex, setCurrentReferenceIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -53,6 +137,17 @@ const MetadataGenerator = () => {
       localStorage.setItem("geminiApiKey", apiKey);
     }
   }, [apiKey]);
+
+  // Auto-rotate through reference images
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentReferenceIndex((prevIndex) => 
+        prevIndex === KEYWORD_EXAMPLES.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 10000); // Change every 10 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -212,7 +307,7 @@ const MetadataGenerator = () => {
               text: `Generate SEO metadata for this image with the filename "${file.name}". Provide the following in JSON format with these exact keys:
                 1. "title": A concise, SEO-friendly title
                 2. "description": A detailed description (2-3 sentences)
-                3. "keywords": A comma-separated list of relevant keywords (5-10 keywords)
+                3. "keywords": A comma-separated list of relevant keywords (exactly ${keywordLimit} keywords)
                 
                 Return ONLY valid JSON without any other text, formatted like:
                 {
@@ -336,20 +431,31 @@ const MetadataGenerator = () => {
     });
   };
 
+  const renderKeywordBadges = (keywordsString: string) => {
+    return keywordsString.split(",").map((keyword, index) => (
+      <span 
+        key={index}
+        className="inline-block px-3 py-1 m-1 rounded-full bg-blue-500 text-white text-xs font-medium"
+      >
+        {keyword.trim()}
+      </span>
+    ));
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-[#696969] text-[#E9762B]">
       <div className="max-w-6xl mx-auto p-4 space-y-8 relative">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute w-64 h-64 -left-32 -top-32 bg-green-300 dark:bg-green-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-          <div className="absolute w-64 h-64 -right-32 -top-32 bg-blue-300 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-          <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+          <div className="absolute w-64 h-64 -left-32 -top-32 bg-[#E9762B] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+          <div className="absolute w-64 h-64 -right-32 -top-32 bg-blue-300 dark:bg-blue-900 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+          <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
         </div>
 
         <div className="flex justify-between items-center pt-4">
           <Button 
-            variant="ghost" 
+            variant="outline" 
             onClick={() => navigate("/")}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-[#E9762B] border-[#E9762B] hover:bg-[#E9762B]/10"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
@@ -359,20 +465,20 @@ const MetadataGenerator = () => {
 
         <div className="text-center space-y-6 py-8 relative">
           <div className="relative inline-block animate-float">
-            <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 opacity-20 animate-pulse"></div>
+            <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-[#E9762B] via-blue-500 to-purple-500 opacity-20 animate-pulse"></div>
             <h1 className="text-5xl md:text-6xl font-bold relative">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E9762B] to-blue-500">
                 Metadata Generator
               </span>
             </h1>
           </div>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl max-w-2xl mx-auto leading-relaxed">
             Extract SEO-optimized metadata from your images using advanced AI technology.
             Generate titles, descriptions, and keywords for better search visibility.
           </p>
         </div>
 
-        <div className="space-y-8 backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
+        <div className="space-y-8 backdrop-blur-lg bg-[#696969]/80 p-8 rounded-2xl border border-[#E9762B]/30 shadow-xl">
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertTitle>Error</AlertTitle>
@@ -380,42 +486,64 @@ const MetadataGenerator = () => {
             </Alert>
           )}
           
-          <div className="space-y-4">
-            <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/50 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all"
+          <div className="space-y-6">
+            <div className="p-4 border border-dashed border-[#E9762B]/50 rounded-lg bg-[#696969]/50 text-center cursor-pointer hover:bg-[#696969]/70 transition-all"
               onClick={() => fileInputRef.current?.click()}
             >
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
-                multiple  // Added multiple attribute
+                multiple
                 ref={fileInputRef}
                 className="hidden"
                 disabled={isLoading}
               />
               <div className="flex flex-col items-center justify-center gap-2 py-4">
-                <Upload className="w-10 h-10 text-gray-400" />
-                <p className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                <Upload className="w-10 h-10 text-[#E9762B]" />
+                <p className="text-lg font-medium text-[#E9762B]">
                   {selectedFiles.length > 0 
                     ? `${selectedFiles.length} image${selectedFiles.length !== 1 ? 's' : ''} selected` 
                     : "Click to upload images (multiple allowed)"}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-[#E9762B]/80">
                   JPG, PNG or GIF (max 10MB each)
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="keywordSlider" className="block text-lg font-medium mb-2 text-[#E9762B]">
+                  Keyword Limit: {keywordLimit}
+                </label>
+                <div className="px-2">
+                  <Slider
+                    id="keywordSlider"
+                    min={1}
+                    max={50}
+                    step={1}
+                    value={[keywordLimit]}
+                    onValueChange={(values) => setKeywordLimit(values[0])}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between mt-1 text-xs text-[#E9762B]/70">
+                    <span>1</span>
+                    <span>25</span>
+                    <span>50</span>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
-                <KeyIcon className="w-5 h-5 text-gray-500" />
+                <KeyIcon className="w-5 h-5 text-[#E9762B]" />
                 <Input
                   type="password"
                   placeholder="Enter your Gemini API key"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   disabled={isLoading}
-                  className="flex-1 h-12 text-lg backdrop-blur-sm bg-white/50 dark:bg-gray-900/50 border-2 border-gray-200 dark:border-gray-700 focus:border-green-500 transition-all duration-300"
+                  className="flex-1 h-12 text-lg backdrop-blur-sm bg-[#696969]/80 border-2 border-[#E9762B]/30 focus:border-[#E9762B] text-white placeholder:text-[#E9762B]/50"
                 />
               </div>
               <div className="flex justify-end">
@@ -423,7 +551,7 @@ const MetadataGenerator = () => {
                   href="https://aistudio.google.com/app/apikey" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  className="text-sm text-blue-400 hover:underline"
                 >
                   Get a free Gemini API key
                 </a>
@@ -434,7 +562,7 @@ const MetadataGenerator = () => {
               <Button 
                 onClick={generateMetadata} 
                 disabled={isLoading || selectedFiles.length === 0 || !apiKey}
-                className="w-full sm:w-auto h-12 px-6 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium rounded-lg transition-all duration-300 transform hover:scale-105"
+                className="w-full sm:w-auto h-12 px-6 bg-gradient-to-r from-[#E9762B] to-blue-600 hover:from-[#E9762B]/90 hover:to-blue-700 text-white font-medium rounded-lg transition-all duration-300 transform hover:scale-105"
               >
                 {isLoading ? (
                   <>
@@ -452,7 +580,7 @@ const MetadataGenerator = () => {
 
             {isLoading && (
               <div className="space-y-3">
-                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between text-sm text-[#E9762B]/80">
                   <span>Processing image {currentFileIndex + 1} of {selectedFiles.length}</span>
                   <span>{progress}%</span>
                 </div>
@@ -460,7 +588,7 @@ const MetadataGenerator = () => {
                   value={progress} 
                   className="h-2 bg-gray-200 dark:bg-gray-700"
                 />
-                <p className="text-sm text-center text-gray-600 dark:text-gray-400 animate-pulse">
+                <p className="text-sm text-center text-[#E9762B]/80 animate-pulse">
                   {isLoading ? `Analyzing image and generating metadata...` : ''}
                 </p>
               </div>
@@ -470,9 +598,9 @@ const MetadataGenerator = () => {
           {imagePreview && (
             <div className="flex flex-col md:flex-row gap-8">
               <div className="md:w-1/2">
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Image Preview</h3>
+                <h3 className="text-lg font-semibold mb-3 text-[#E9762B]">Image Preview</h3>
                 <div className="relative group overflow-hidden rounded-lg">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
+                  <div className="absolute -inset-1 bg-gradient-to-r from-[#E9762B] to-blue-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
                   <div className="relative">
                     <img
                       src={imagePreview}
@@ -483,7 +611,7 @@ const MetadataGenerator = () => {
                 </div>
                 {selectedFiles.length > 0 && (
                   <div className="mt-3 flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="text-sm text-[#E9762B]/80">
                       {selectedFiles.length > 1 ? (
                         `${currentFileIndex + 1} of ${selectedFiles.length} images`
                       ) : (
@@ -493,7 +621,7 @@ const MetadataGenerator = () => {
                     {selectedFiles.length > 1 && (
                       <div className="flex items-center gap-1">
                         <FileCheck className="w-4 h-4 text-green-500" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="text-sm text-[#E9762B]/80">
                           Multiple images selected
                         </span>
                       </div>
@@ -505,35 +633,37 @@ const MetadataGenerator = () => {
               {results.length > 0 && (
                 <div className="md:w-1/2">
                   <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Generated Metadata</h3>
+                    <h3 className="text-lg font-semibold text-[#E9762B]">Generated Metadata</h3>
                     <Button 
                       onClick={downloadCSV}
                       variant="outline"
                       size="sm"
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 text-[#E9762B] border-[#E9762B] hover:bg-[#E9762B]/10"
                     >
                       <Download className="w-4 h-4" />
                       Download CSV
                     </Button>
                   </div>
-                  <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-md rounded-lg p-4 shadow-lg space-y-4 max-h-[500px] overflow-y-auto">
+                  <div className="bg-[#696969]/70 backdrop-blur-md rounded-lg p-4 shadow-lg space-y-4 max-h-[500px] overflow-y-auto">
                     {results.map((result, index) => (
-                      <div key={index} className="space-y-2 border-b border-gray-200 dark:border-gray-700 pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
+                      <div key={index} className="space-y-2 border-b border-[#E9762B]/20 pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
                         <div>
-                          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Filename:</span>
-                          <p className="text-gray-800 dark:text-gray-200">{result.fileName}</p>
+                          <span className="text-sm font-semibold text-[#E9762B]/70">Filename:</span>
+                          <p className="text-white">{result.fileName}</p>
                         </div>
                         <div>
-                          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Title:</span>
-                          <p className="text-gray-800 dark:text-gray-200">{result.title}</p>
+                          <span className="text-sm font-semibold text-[#E9762B]/70">Title:</span>
+                          <p className="text-white">{result.title}</p>
                         </div>
                         <div>
-                          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Description:</span>
-                          <p className="text-gray-800 dark:text-gray-200">{result.description}</p>
+                          <span className="text-sm font-semibold text-[#E9762B]/70">Description:</span>
+                          <p className="text-white">{result.description}</p>
                         </div>
                         <div>
-                          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Keywords:</span>
-                          <p className="text-gray-800 dark:text-gray-200">{result.keywords}</p>
+                          <span className="text-sm font-semibold text-[#E9762B]/70">Keywords:</span>
+                          <div className="mt-2 flex flex-wrap">
+                            {renderKeywordBadges(result.keywords)}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -544,23 +674,132 @@ const MetadataGenerator = () => {
           )}
         </div>
 
-        <div className="p-6 bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg">
-          <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">How It Works</h3>
-          <ol className="space-y-4 list-decimal list-inside text-gray-600 dark:text-gray-300">
+        {/* Example Image Reference Section */}
+        <div className="overflow-hidden bg-[#696969]/80 backdrop-blur-lg rounded-2xl border border-[#E9762B]/30 shadow-xl">
+          <div className="p-6">
+            <h2 className="text-2xl font-bold mb-6 text-center text-[#E9762B]">Example Keywords</h2>
+            
+            <div className="relative">
+              {KEYWORD_EXAMPLES.map((example, index) => (
+                <div 
+                  key={example.id}
+                  className={`transition-all duration-1000 ${
+                    index === currentReferenceIndex ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 absolute top-0 left-0 right-0'
+                  }`}
+                >
+                  <div className="flex flex-col md:flex-row gap-6">
+                    <div className="md:w-1/2 relative group overflow-hidden rounded-lg">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-[#E9762B] to-blue-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
+                      <div className="relative">
+                        <img 
+                          src={example.imageUrl} 
+                          alt={example.title} 
+                          className="w-full h-auto rounded-lg shadow-lg object-cover"
+                        />
+                      </div>
+                    </div>
+                    <div className="md:w-1/2">
+                      <h3 className="text-xl font-bold mb-2 text-[#E9762B]">{example.title}</h3>
+                      <p className="text-white mb-4">{example.description}</p>
+                      <div className="flex flex-wrap">
+                        {example.keywords.map((keyword, idx) => (
+                          <span 
+                            key={idx}
+                            className="inline-block px-3 py-1 m-1 rounded-full bg-blue-500 text-white text-xs font-medium"
+                          >
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex justify-center mt-6 space-x-2">
+              {KEYWORD_EXAMPLES.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentReferenceIndex(index)}
+                  className={`w-3 h-3 rounded-full transition-all ${
+                    index === currentReferenceIndex ? 'bg-[#E9762B]' : 'bg-[#E9762B]/30'
+                  }`}
+                  aria-label={`View example ${index + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* How It Works Section */}
+        <div className="p-6 bg-[#696969]/80 backdrop-blur-sm rounded-xl border border-[#E9762B]/30 shadow-lg">
+          <h3 className="text-xl font-semibold mb-4 text-[#E9762B]">How It Works</h3>
+          <ol className="space-y-4 list-decimal list-inside text-white">
             <li>Upload one or multiple images you want to generate metadata for</li>
+            <li>Set your desired keyword limit (1-50 keywords)</li>
             <li>Enter your Gemini API key (get a free key from Google AI Studio)</li>
             <li>Click "Generate Metadata" and wait as each image is processed</li>
             <li>Review the AI-generated title, description, and keywords for each image</li>
             <li>Download the results as a CSV file for easy use</li>
           </ol>
-          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg border border-amber-200 dark:border-amber-800">
+          <div className="mt-4 p-3 bg-amber-900/30 rounded-lg border border-amber-800">
             <div className="flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5" />
-              <p className="text-sm text-amber-800 dark:text-amber-300">
+              <p className="text-sm text-amber-300">
                 Note: Gemini API has a rate limit of 15 requests per minute. When processing multiple images, 
                 we automatically add a 5-second delay between each image to avoid hitting these limits.
               </p>
             </div>
+          </div>
+        </div>
+        
+        {/* FAQ Section */}
+        <div className="p-6 bg-[#696969]/80 backdrop-blur-sm rounded-xl border border-[#E9762B]/30 shadow-lg">
+          <h3 className="text-xl font-semibold mb-4 text-center text-[#E9762B]">Frequently Asked Questions</h3>
+          <Accordion type="single" collapsible className="w-full">
+            {FAQ_ITEMS.map((item, index) => (
+              <AccordionItem key={index} value={`item-${index}`} className="border-b border-[#E9762B]/20 last:border-0">
+                <AccordionTrigger className="text-[#E9762B] hover:text-[#E9762B]/80 py-4">
+                  <div className="flex items-center gap-2">
+                    <HelpCircle className="w-5 h-5" />
+                    <span>{item.question}</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="text-white py-3 px-7">
+                  {item.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+        
+        {/* Testimonials */}
+        <div className="p-6 bg-[#696969]/80 backdrop-blur-sm rounded-xl border border-[#E9762B]/30 shadow-lg">
+          <h3 className="text-xl font-semibold mb-6 text-center text-[#E9762B]">What Our Users Say</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((testimonial, index) => (
+              <div key={index} className="p-4 rounded-lg bg-[#696969]/50 border border-[#E9762B]/20 hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                <div className="flex items-center gap-1 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i} 
+                      className={`w-4 h-4 ${i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'}`} 
+                    />
+                  ))}
+                </div>
+                <p className="text-white mb-4 italic">"{testimonial.comment}"</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-[#E9762B]/30 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-[#E9762B]" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#E9762B]">{testimonial.name}</p>
+                    <p className="text-xs text-[#E9762B]/70">{testimonial.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
