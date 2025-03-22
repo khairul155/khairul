@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
@@ -60,6 +61,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -80,11 +82,25 @@ const Navbar = () => {
   }, [location.pathname]);
 
   const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: "Signed out",
-      description: "You have been successfully signed out.",
-    });
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account",
+      });
+      navigate("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Sign out failed",
+        description: "There was a problem signing you out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleProfileClick = () => {
+    navigate("/profile");
   };
 
   const navbarClasses = cn(
@@ -153,11 +169,9 @@ const Navbar = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem asChild className="hover:bg-white hover:text-black cursor-pointer">
-                      <Link to="/profile" className="flex">
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
-                      </Link>
+                    <DropdownMenuItem onClick={handleProfileClick} className="hover:bg-white hover:text-black cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white hover:text-black cursor-pointer">
                       <LogOut className="mr-2 h-4 w-4" />
@@ -230,7 +244,10 @@ const Navbar = () => {
                   to="/profile" 
                   className="block px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
                 >
-                  Profile
+                  <span className="flex items-center">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </span>
                 </Link>
                 <Button 
                   variant="outline" 
