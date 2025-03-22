@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   ChevronDown, 
@@ -284,4 +283,3 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
 };
 
 export default GenerationSidebar;
-
