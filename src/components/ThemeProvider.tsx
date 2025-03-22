@@ -11,13 +11,20 @@ type ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
+  // Initialize with a default theme to avoid null dispatcher
+  const [theme, setTheme] = useState<Theme>("dark");
+  
+  // Use useEffect to safely access browser APIs after mount
+  useEffect(() => {
     // Check if theme was saved in localStorage
     const savedTheme = localStorage.getItem("theme") as Theme;
     // Check system preference if no saved theme
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    return savedTheme || (prefersDark ? "dark" : "light");
-  });
+    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
+    
+    // Update the theme state
+    setTheme(initialTheme);
+  }, []);
 
   useEffect(() => {
     // Update document with current theme
