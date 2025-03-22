@@ -47,7 +47,7 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
   // Available generation modes
   const generationModes: GenerationMode[] = [
     { id: "fast", name: "Fast", steps: 11, icon: <Zap className="h-4 w-4" /> },
-    { id: "quality", name: "Quality", steps: 14, icon: <Diamond className="h-4 w-4" />, isPro: true },
+    { id: "quality", name: "Quality", steps: 13, icon: <Diamond className="h-4 w-4" />, isPro: true },
     { id: "ultra", name: "Ultra", steps: 16, icon: <Star className="h-4 w-4" />, isNew: true },
   ];
 
@@ -100,6 +100,38 @@ const GenerationSidebar: React.FC<GenerationSidebarProps> = ({
           <div className="flex items-center gap-2">
             <h3 className="text-md font-medium">Basic Settings</h3>
             <Info className="h-4 w-4 text-gray-400" />
+          </div>
+        </div>
+
+        {/* Generation Mode Selection */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-medium">Generation Mode</h4>
+              <Info className="h-4 w-4 text-gray-400" />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-2">
+            {generationModes.map((mode) => (
+              <Button
+                key={mode.id}
+                variant="outline"
+                className={cn(
+                  "relative h-10 border border-purple-700/20 bg-gray-800 hover:bg-gray-700",
+                  settings.mode === mode.id && "border-purple-500 bg-purple-900/30"
+                )}
+                onClick={() => handleModeChange(mode.id)}
+              >
+                <span className="text-sm">{mode.name}</span>
+                {mode.isPro && (
+                  <Badge className="absolute -top-2 -right-2 bg-purple-600 text-[10px] px-1 py-0">PRO</Badge>
+                )}
+                {mode.isNew && (
+                  <Badge className="absolute -top-2 -right-2 bg-blue-600 text-[10px] px-1 py-0">NEW</Badge>
+                )}
+              </Button>
+            ))}
           </div>
         </div>
       </div>

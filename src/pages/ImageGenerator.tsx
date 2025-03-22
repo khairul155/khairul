@@ -32,11 +32,11 @@ const ImageGenerator = () => {
   const { toast } = useToast();
   const [negativePrompt, setNegativePrompt] = useState("");
   const [contentType, setContentType] = useState("art");
-  const [fastMode, setFastMode] = useState(true);
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [isSettingsOpen, setIsSettingsOpen] = useState(true);
   const [isContentTypeOpen, setIsContentTypeOpen] = useState(true);
   const [isCompositionOpen, setIsCompositionOpen] = useState(true);
+  const [generationMode, setGenerationMode] = useState("fast");
 
   const aspectRatios = {
     "1:1": { width: 1024, height: 1024 },
@@ -65,6 +65,11 @@ const ImageGenerator = () => {
     try {
       const { width, height } = aspectRatios[aspectRatio as keyof typeof aspectRatios];
       
+      // Set the inference steps based on the generation mode
+      let steps = 11; // default for fast mode
+      if (generationMode === "quality") steps = 13;
+      if (generationMode === "ultra") steps = 16;
+      
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt,
@@ -72,7 +77,7 @@ const ImageGenerator = () => {
           height,
           negative_prompt: negativePrompt,
           num_images: 1,
-          num_inference_steps: fastMode ? 8 : 16
+          num_inference_steps: steps
         }
       });
 
