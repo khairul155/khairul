@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, ImageIcon, RefreshCw, LogIn } from "lucide-react";
+import { Loader2, ChevronLeft, ImageIcon, RefreshCw, LogIn, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import ImageGrid from "@/components/ImageGrid";
@@ -17,6 +17,7 @@ const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
   const [progress, setProgress] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -106,6 +107,35 @@ const ImageGenerator = () => {
       ...prev,
       ...settings
     }));
+  };
+
+  // Get inspiration prompt
+  const getInspiration = async () => {
+    setIsLoadingPrompt(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-prompt', {
+        body: {}
+      });
+
+      if (error) throw error;
+
+      if (data && data.prompt) {
+        setPrompt(data.prompt);
+        toast({
+          title: "Inspiration ready!",
+          description: "New prompt has been generated",
+        });
+      }
+    } catch (error) {
+      console.error('Error getting inspiration:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get inspiration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPrompt(false);
+    }
   };
 
   return (
@@ -204,21 +234,39 @@ const ImageGenerator = () => {
                   )}
                 </div>
                 
-                <Button
-                  onClick={generateImage}
-                  disabled={isLoading || !prompt.trim()}
-                  className="absolute right-2 bottom-6 bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-full"
-                  size="sm"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    "Generate"
-                  )}
-                </Button>
+                <div className="absolute right-2 bottom-6 flex gap-2">
+                  <Button
+                    onClick={getInspiration}
+                    disabled={isLoadingPrompt}
+                    className="bg-[#343434] hover:bg-[#444444] text-white rounded-full"
+                    size="sm"
+                  >
+                    {isLoadingPrompt ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Get inspiration
+                      </>
+                    )}
+                  </Button>
+                
+                  <Button
+                    onClick={generateImage}
+                    disabled={isLoading || !prompt.trim()}
+                    className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-full"
+                    size="sm"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate"
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
