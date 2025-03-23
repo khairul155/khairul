@@ -31,7 +31,9 @@ const ImageGenerator = () => {
     dimensionId: "1:1",
     width: 832,
     height: 832,
-    negativePrompt: ""
+    negativePrompt: "",
+    seed: -1, // Add seed with default value of -1 (random)
+    useSeed: false // Add flag to track if seed should be used
   });
 
   const generateImage = async () => {
@@ -64,6 +66,8 @@ const ImageGenerator = () => {
     const startTime = new Date();
 
     try {
+      const seedToUse = generationSettings.useSeed ? generationSettings.seed : -1;
+      
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt,
@@ -71,7 +75,8 @@ const ImageGenerator = () => {
           height: generationSettings.height,
           negative_prompt: generationSettings.negativePrompt || "",
           num_images: 1,
-          num_inference_steps: generationSettings.steps
+          num_inference_steps: generationSettings.steps,
+          seed: seedToUse
         }
       });
 
@@ -220,7 +225,6 @@ const ImageGenerator = () => {
           <div className="bg-[#0A0A0A] border-t border-gray-800 p-5">
             <div className="max-w-5xl mx-auto">
               <div className="mb-4">
-                <div className="text-sm text-gray-400 mb-2 font-medium">Prompt</div>
                 <Textarea
                   ref={textareaRef}
                   placeholder="Describe the image you want to generate"
@@ -228,7 +232,7 @@ const ImageGenerator = () => {
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={isLoading}
-                  className="min-h-[60px] px-4 py-3 bg-[#171717] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
+                  className="min-h-[50px] max-h-[50px] px-4 py-2 bg-[#171717] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
                 />
               </div>
               

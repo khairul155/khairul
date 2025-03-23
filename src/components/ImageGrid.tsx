@@ -8,7 +8,7 @@ interface ImageGridProps {
   images: string[];
   prompt: string;
   onRegenerate: () => void;
-  generationTime?: string; // Add generation time prop
+  generationTime?: string;
 }
 
 const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate, generationTime }) => {
@@ -49,15 +49,12 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate, gen
       <div className="flex justify-center">
         {images.map((image, index) => (
           <div key={index} className="relative group overflow-hidden rounded-lg max-w-full mx-auto w-[90%]">
-            {/* Add border to the image */}
-            <div className="border-2 border-[#FFA725] rounded-lg">
-              <img 
-                src={image} 
-                alt={`Generated image ${index + 1}`}
-                className="w-full h-auto object-contain rounded-lg"
-                style={{ maxWidth: "90vw", maxHeight: "70vh" }}
-              />
-            </div>
+            <img 
+              src={image} 
+              alt={`Generated image ${index + 1}`}
+              className="w-full h-auto object-contain rounded-lg"
+              style={{ maxWidth: "90vw", maxHeight: "70vh" }}
+            />
             
             {/* Show generation time if available */}
             {generationTime && (

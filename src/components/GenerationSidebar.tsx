@@ -13,13 +13,15 @@ import {
   Camera,
   History,
   Gem,
-  Sparkles
+  Sparkles,
+  Hash
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { 
   Select,
   SelectContent,
@@ -48,6 +50,8 @@ export interface GenerationSettings {
   width: number;
   height: number;
   negativePrompt?: string;
+  seed?: number;
+  useSeed?: boolean;
 }
 
 interface GenerationSidebarProps {
@@ -59,7 +63,7 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
   // Manage collapsible sections
   const [isGeneralOpen, setIsGeneralOpen] = useState(true);
   const [isQualityEnhancerOpen, setIsQualityEnhancerOpen] = useState(true);
-  const [isCompositionOpen, setIsCompositionOpen] = useState(true);
+  const [isSeedOpen, setIsSeedOpen] = useState(true);
   
   // Default negative prompt example
   const negativePromptExample = "Blurry, Low-Quality, Poorly Drawn, Unclear Details, Cut-Off..";
@@ -95,6 +99,23 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
   // Handle negative prompt change
   const handleNegativePromptChange = (value: string) => {
     onSettingsChange({ negativePrompt: value });
+  };
+
+  // Handle seed number change
+  const handleSeedChange = (value: string) => {
+    const seedValue = parseInt(value) || -1;
+    onSettingsChange({ seed: seedValue });
+  };
+
+  // Handle seed toggle
+  const handleSeedToggle = (checked: boolean) => {
+    onSettingsChange({ useSeed: checked });
+  };
+
+  // Generate random seed
+  const generateRandomSeed = () => {
+    const randomSeed = Math.floor(Math.random() * 1000000);
+    onSettingsChange({ seed: randomSeed });
   };
 
   // Render the aspect ratio icons
@@ -291,46 +312,71 @@ const GenerationSidebar = ({ settings, onSettingsChange }: GenerationSidebarProp
           </CollapsibleContent>
         </Collapsible>
         
-        {/* Composition */}
+        {/* Seed Number (replaced Composition) */}
         <Collapsible 
-          open={isCompositionOpen} 
-          onOpenChange={setIsCompositionOpen}
+          open={isSeedOpen} 
+          onOpenChange={setIsSeedOpen}
           className="border border-gray-800 rounded-lg overflow-hidden"
         >
           <CollapsibleTrigger className="flex items-center justify-between w-full p-4 text-left focus:outline-none">
             <div className="flex items-center gap-2">
-              <ChevronDown className={`h-4 w-4 transition-transform ${isCompositionOpen ? 'transform rotate-180' : ''}`} />
-              <span className="font-medium">Composition</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isSeedOpen ? 'transform rotate-180' : ''}`} />
+              <span className="font-medium">Seed Number</span>
             </div>
           </CollapsibleTrigger>
           <CollapsibleContent className="px-4 pb-4 space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-gray-400">Reference</Label>
-                <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
-                  <Info className="h-3 w-3 text-gray-500" />
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Label className="text-sm text-gray-400">Use Seed</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full p-0">
+                          <Info className="h-3 w-3 text-[#FFA725]" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-[#3C3D37] text-[#FFA725] border-[#3C3D37]">
+                        <p>Enable to use a specific seed for consistent results</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Switch 
+                  checked={settings.useSeed || false}
+                  onCheckedChange={handleSeedToggle}
+                />
               </div>
               
-              <div className="border border-dashed border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center text-center">
-                <div className="w-full flex flex-col gap-2">
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload image
-                  </Button>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <FolderOpen className="h-4 w-4 mr-2" />
-                    Browse gallery
+              <div className="space-y-2">
+                <Label className="text-sm text-gray-400">Seed Value</Label>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Input 
+                      type="number"
+                      placeholder="Seed number"
+                      className="pl-9 bg-[#0F0F0F] border-gray-700"
+                      value={settings.seed === -1 ? "" : settings.seed}
+                      onChange={(e) => handleSeedChange(e.target.value)}
+                      disabled={!settings.useSeed}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="bg-[#0F0F0F] border-gray-700"
+                    onClick={generateRandomSeed}
+                    disabled={!settings.useSeed}
+                  >
+                    <Hash className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-2 mt-4">
-                {[1, 2, 3].map((item) => (
-                  <div key={item} className="aspect-square bg-gray-800 rounded-md overflow-hidden">
-                    {/* Sample image thumbnails could go here */}
-                  </div>
-                ))}
+                <p className="text-xs text-gray-500">
+                  {settings.useSeed 
+                    ? "Using the same seed will create similar results with the same prompt." 
+                    : "Random seed will be used (different results each time)."}
+                </p>
               </div>
             </div>
           </CollapsibleContent>

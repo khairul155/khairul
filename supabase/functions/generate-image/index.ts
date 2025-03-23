@@ -19,7 +19,8 @@ serve(async (req) => {
       height = 1024,
       negative_prompt = "",
       num_inference_steps = 7, // Default to fast mode (7 steps)
-      num_images = 1
+      num_images = 1,
+      seed = -1 // Add seed parameter with default -1 (random)
     } = await req.json()
     
     const apiKey = Deno.env.get('NEBIUS_API_KEY1')
@@ -28,7 +29,7 @@ serve(async (req) => {
       throw new Error('API key not found')
     }
 
-    console.log(`Generating ${num_images} image(s) for prompt: ${prompt} with size: ${width}x${height} and steps: ${num_inference_steps}`)
+    console.log(`Generating ${num_images} image(s) for prompt: ${prompt} with size: ${width}x${height}, steps: ${num_inference_steps}, and seed: ${seed}`)
 
     const response = await fetch("https://api.studio.nebius.com/v1/images/generations", {
       method: "POST",
@@ -45,7 +46,7 @@ serve(async (req) => {
         height: parseInt(String(height)),
         num_inference_steps: parseInt(String(num_inference_steps)),
         negative_prompt: negative_prompt,
-        seed: -1,
+        seed: parseInt(String(seed)), // Use the provided seed
         prompt: prompt,
         n: parseInt(String(num_images)),
       }),
