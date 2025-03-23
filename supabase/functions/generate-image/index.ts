@@ -22,7 +22,7 @@ serve(async (req) => {
       num_images = 1
     } = await req.json()
     
-    const apiKey = Deno.env.get('NEBIUS_API_KEY')
+    const apiKey = Deno.env.get('NEBIUS_API_KEY1')
 
     if (!apiKey) {
       throw new Error('API key not found')

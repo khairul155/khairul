@@ -150,6 +150,3 @@ enabled = false
 port = 54327
 vector_port = 54328
 backend = "postgres"
-
-# Removed the problematic [experimental] section with the invalid 'traces' key
-
