@@ -1,7 +1,6 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark";
+type Theme = "dark";
 
 type ThemeContextType = {
   theme: Theme;
@@ -11,32 +10,20 @@ type ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Initialize with a default theme to avoid null dispatcher
+  // Always using dark theme now
   const [theme, setTheme] = useState<Theme>("dark");
   
-  // Use useEffect to safely access browser APIs after mount
   useEffect(() => {
-    // Check if theme was saved in localStorage
-    const savedTheme = localStorage.getItem("theme") as Theme;
-    // Check system preference if no saved theme
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
-    
-    // Update the theme state
-    setTheme(initialTheme);
+    // Always set to dark theme
+    const root = window.document.documentElement;
+    root.classList.remove("light");
+    root.classList.add("dark");
+    // No longer saving to localStorage as it's always dark
   }, []);
 
-  useEffect(() => {
-    // Update document with current theme
-    const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
-    // Save theme to localStorage
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
+  // Keep the toggle function for compatibility but it does nothing now
   const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === "light" ? "dark" : "light"));
+    // No-op function
   };
 
   return (

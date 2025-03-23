@@ -36,6 +36,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate }) =
               src={image} 
               alt={`Generated image ${index + 1}`}
               className="w-full h-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"
+              style={{ maxWidth: "90vw", maxHeight: "70vh" }} // Increased size by approximately 80%
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
               <div className="flex justify-end gap-2">

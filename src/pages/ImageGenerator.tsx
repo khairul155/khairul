@@ -6,7 +6,6 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ChevronLeft, Wand2, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import ImageGrid from "@/components/ImageGrid";
 import { Link, useNavigate } from "react-router-dom";
 import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
@@ -158,7 +157,7 @@ const ImageGenerator = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <ThemeToggle />
+          {/* Dark mode toggle removed */}
         </div>
       </div>
       
@@ -194,37 +193,30 @@ const ImageGenerator = () => {
             ) : (
               <div className="text-center max-w-md mx-auto">
                 <div className="flex flex-col items-center justify-center gap-6">
-                  <div className="rounded-full bg-gradient-to-br from-[#FF5353]/20 to-[#FFA725]/20 p-6">
+                  <div>
                     <img 
-                      src="/lovable-uploads/d303a00c-0b69-4aeb-b794-742a425da64b.png" 
+                      src="/lovable-uploads/7d1a2640-2569-4f64-b96b-147f8b64f0bf.png" 
                       alt="Image Icon" 
-                      className="h-12 w-12"
+                      className="h-24 w-24"
                     />
                   </div>
                   <h2 className="text-2xl font-bold">PixCraftAI Provides You Only One Best Result.✨</h2>
                   <p className="text-gray-400">
                     Try Now!
                   </p>
-                  {!user && (
-                    <div className="mt-4">
-                      <Button variant="outline" onClick={() => navigate("/auth")} className="gap-2">
-                        <LogIn className="h-4 w-4" />
-                        Sign in
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Bottom Prompt Bar with Generate button on right - Updated for better UI */}
-          <div className="border-t border-gray-800 p-2 md:p-4">
+          {/* Bottom Prompt Bar styled more like the reference image */}
+          <div className="border-t border-gray-800 bg-[#121212] p-6">
             <div className="flex flex-col w-full">
-              <div className="relative w-full mb-2">
+              <div className="relative w-full mb-4">
+                <div className="text-sm text-gray-400 mb-2 font-medium">Prompt</div>
                 <Textarea
                   ref={textareaRef}
-                  placeholder="Enter prompt"
+                  placeholder="Describe the image you want to generate"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -242,25 +234,24 @@ const ImageGenerator = () => {
                 <Button
                   onClick={getInspiration}
                   disabled={isLoadingPrompt}
-                  className="bg-[#343434] hover:bg-[#444444] text-white rounded-full"
-                  size="sm"
+                  size="icon"
+                  className="bg-[#1A1A1A] hover:bg-[#444444] text-white rounded-md"
                 >
                   {isLoadingPrompt ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <Wand2 className="h-4 w-4" />
+                    <Wand2 className="h-5 w-5" />
                   )}
                 </Button>
               
                 <Button
                   onClick={generateImage}
                   disabled={isLoading || !prompt.trim()}
-                  className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-full"
-                  size="sm"
+                  className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-md px-6"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
                       Generating...
                     </>
                   ) : (
