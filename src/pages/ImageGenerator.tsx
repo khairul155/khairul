@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon } from "lucide-react";
+import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ImageGrid from "@/components/ImageGrid";
 import { Link, useNavigate } from "react-router-dom";
@@ -168,7 +168,10 @@ const ImageGenerator = () => {
         </div>
         
         <div className="flex items-center">
-          <h1 className="text-xl font-bold text-[#FFA725]">PixcraftAI</h1>
+          <h1 className="text-xl font-bold text-[#FFA725] flex items-center">
+            <Sparkles className="w-5 h-5 mr-1.5 text-[#FFA725]" /> {/* Changed icon to Sparkles */}
+            PixcraftAI
+          </h1>
         </div>
         
         <div className="flex items-center gap-2">
@@ -232,7 +235,7 @@ const ImageGenerator = () => {
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={isLoading}
-                  className="min-h-[50px] max-h-[50px] px-4 py-2 bg-[#171717] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
+                  className="min-h-[35px] max-h-[35px] px-4 py-1.5 bg-[#171717] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
                 />
               </div>
               

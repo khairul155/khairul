@@ -2,7 +2,6 @@
 import React from 'react';
 import { Download, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 
 interface ImageGridProps {
   images: string[];
@@ -12,8 +11,6 @@ interface ImageGridProps {
 }
 
 const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate, generationTime }) => {
-  const { toast } = useToast();
-
   const downloadImage = (imageUrl: string, index: number) => {
     // Convert webp to jpg for download
     const canvas = document.createElement('canvas');
@@ -35,10 +32,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate, gen
       link.click();
       document.body.removeChild(link);
       
-      toast({
-        title: "Download started",
-        description: "Your image is being downloaded as JPG",
-      });
+      // Removed toast notification here
     };
     
     img.src = imageUrl;
