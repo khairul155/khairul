@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, Wand2, LogIn } from "lucide-react";
+import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ImageGrid from "@/components/ImageGrid";
 import { Link, useNavigate } from "react-router-dom";
 import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
 import { useAuth } from "@/components/AuthProvider";
+import TypingEffect from "@/components/TypingEffect";
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
@@ -127,7 +128,6 @@ const ImageGenerator = () => {
 
       if (data && data.prompt) {
         setPrompt(data.prompt);
-        // Removed the toast notification for inspiration ready
       }
     } catch (error) {
       console.error('Error getting inspiration:', error);
@@ -157,7 +157,7 @@ const ImageGenerator = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Dark mode toggle removed */}
+          {/* Space for balance */}
         </div>
       </div>
       
@@ -169,11 +169,11 @@ const ImageGenerator = () => {
         />
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        <div className="flex-1 flex flex-col h-[calc(100vh-73px)] overflow-hidden">
           {/* Main Content Area with animation */}
-          <div className="flex-1 overflow-auto p-6 flex items-center justify-center">
+          <div className="flex-1 p-6 flex items-center justify-center overflow-hidden">
             {generatedImages.length > 0 && !isLoading ? (
-              <div className="max-w-4xl w-full animate-fade-in">
+              <div className="w-full max-w-5xl mx-auto animate-fade-in">
                 <ImageGrid 
                   images={generatedImages} 
                   prompt={prompt} 
@@ -194,11 +194,7 @@ const ImageGenerator = () => {
               <div className="text-center max-w-md mx-auto">
                 <div className="flex flex-col items-center justify-center gap-6">
                   <div>
-                    <img 
-                      src="/lovable-uploads/7d1a2640-2569-4f64-b96b-147f8b64f0bf.png" 
-                      alt="Image Icon" 
-                      className="h-24 w-24"
-                    />
+                    <ImageIcon className="h-24 w-24 text-gray-400" />
                   </div>
                   <h2 className="text-2xl font-bold">PixCraftAI Provides You Only One Best Result.✨</h2>
                   <p className="text-gray-400">
@@ -209,10 +205,10 @@ const ImageGenerator = () => {
             )}
           </div>
 
-          {/* Bottom Prompt Bar styled more like the reference image */}
-          <div className="border-t border-gray-800 bg-[#121212] p-6">
-            <div className="flex flex-col w-full">
-              <div className="relative w-full mb-4">
+          {/* Bottom Prompt Bar styled like the reference image */}
+          <div className="bg-[#121212] p-4 border-t border-gray-800">
+            <div className="max-w-5xl mx-auto">
+              <div className="relative mb-3">
                 <div className="text-sm text-gray-400 mb-2 font-medium">Prompt</div>
                 <Textarea
                   ref={textareaRef}
@@ -223,11 +219,6 @@ const ImageGenerator = () => {
                   disabled={isLoading}
                   className="min-h-[60px] px-4 py-3 bg-[#1A1A1A] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
                 />
-                {isLoading && (
-                  <div className="px-4 py-2">
-                    <Progress value={progress} className="h-1 bg-gray-700" />
-                  </div>
-                )}
               </div>
               
               <div className="flex justify-end gap-2">
