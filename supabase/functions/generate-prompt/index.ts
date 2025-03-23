@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Array of stock photography prompts
+// Array of stock photography prompts (base themes)
 const stockPrompts = [
   "Background", "Text effect", "Happy birthday", "Easter", "Texture",
   "Paper texture", "White background", "Eid mubarak", "Business card", "Pattern",
@@ -39,6 +39,73 @@ const stockPrompts = [
   "Church flyer", "Facebook"
 ];
 
+// Descriptive adjectives to expand prompts
+const adjectives = [
+  "beautiful", "stunning", "vibrant", "professional", "elegant", 
+  "minimalist", "colorful", "modern", "vintage", "artistic",
+  "creative", "detailed", "realistic", "abstract", "dynamic",
+  "glossy", "matte", "sleek", "rustic", "futuristic",
+  "natural", "fantastic", "magical", "dreamy", "bold",
+  "subtle", "clean", "textured", "shiny", "dramatic"
+];
+
+// Context words to expand prompts
+const contexts = [
+  "with soft lighting", "in high resolution", "with gradient effect",
+  "with shadow effects", "in pastel colors", "with bright colors",
+  "with dark tones", "with blurred background", "in flat design",
+  "with 3D effects", "with reflection", "with golden accents",
+  "on dark background", "on white background", "with bokeh effect",
+  "in photorealistic style", "in watercolor style", "in digital art style",
+  "with neon colors", "in monochrome", "with motion blur",
+  "with geometric patterns", "in landscape orientation", "in portrait orientation",
+  "with subtle gradients", "with retro vibe", "in Nordic style",
+  "with minimalist composition", "with vintage filter", "with symmetrical layout"
+];
+
+// Generate an expanded prompt with 8-16 words
+const expandPrompt = (basePrompt: string): string => {
+  // Start with the base prompt
+  let words = basePrompt.split(' ');
+  
+  // Add 1-2 random adjectives
+  const numAdjectives = Math.random() > 0.5 ? 2 : 1;
+  for (let i = 0; i < numAdjectives; i++) {
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    if (!words.includes(adjective)) {
+      words.unshift(adjective);
+    }
+  }
+  
+  // Add 1-2 context phrases
+  const numContexts = Math.random() > 0.3 ? 2 : 1;
+  for (let i = 0; i < numContexts; i++) {
+    const context = contexts[Math.floor(Math.random() * contexts.length)];
+    words.push(...context.split(' '));
+  }
+  
+  // Ensure the prompt has 8-16 words by adding or removing context words
+  while (words.length > 16) {
+    // Remove from the end (likely context words)
+    words.pop();
+  }
+  
+  while (words.length < 8) {
+    // Add another adjective or context word
+    if (Math.random() > 0.5) {
+      const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+      if (!words.includes(adjective)) {
+        words.unshift(adjective);
+      }
+    } else {
+      const contextParts = contexts[Math.floor(Math.random() * contexts.length)].split(' ');
+      words.push(contextParts[0]);
+    }
+  }
+  
+  return words.join(' ');
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -46,13 +113,17 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Generating random prompt from stock photography list')
+    console.log('Generating expanded prompt from stock photography list')
     
-    // Pick a random prompt from the array
-    const randomIndex = Math.floor(Math.random() * stockPrompts.length)
-    const generatedPrompt = stockPrompts[randomIndex]
+    // Pick a random base prompt from the array
+    const randomIndex = Math.floor(Math.random() * stockPrompts.length);
+    const basePrompt = stockPrompts[randomIndex];
     
-    console.log(`Selected prompt: ${generatedPrompt}`)
+    // Generate an expanded prompt
+    const generatedPrompt = expandPrompt(basePrompt);
+    
+    console.log(`Selected base theme: ${basePrompt}`);
+    console.log(`Expanded prompt: ${generatedPrompt}`);
     
     return new Response(JSON.stringify({ prompt: generatedPrompt }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
