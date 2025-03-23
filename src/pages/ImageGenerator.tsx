@@ -168,9 +168,9 @@ const ImageGenerator = () => {
           onSettingsChange={handleSettingsChange}
         />
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col h-[calc(100vh-73px)] overflow-hidden">
-          {/* Main Content Area with animation */}
+        {/* Main Content and Footer Structure */}
+        <div className="flex-1 flex flex-col h-[calc(100vh-73px)]">
+          {/* Main Content Area (expanded to take most space) */}
           <div className="flex-1 p-6 flex items-center justify-center overflow-hidden">
             {generatedImages.length > 0 && !isLoading ? (
               <div className="w-full max-w-5xl mx-auto animate-fade-in">
@@ -205,10 +205,10 @@ const ImageGenerator = () => {
             )}
           </div>
 
-          {/* Bottom Prompt Bar styled like the reference image */}
-          <div className="bg-[#121212] p-4 border-t border-gray-800">
+          {/* Bottom Prompt Bar - Styled like the reference image and positioned at the bottom */}
+          <div className="bg-[#0A0A0A] border-t border-gray-800 p-5">
             <div className="max-w-5xl mx-auto">
-              <div className="relative mb-3">
+              <div className="mb-4">
                 <div className="text-sm text-gray-400 mb-2 font-medium">Prompt</div>
                 <Textarea
                   ref={textareaRef}
@@ -217,22 +217,23 @@ const ImageGenerator = () => {
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={isLoading}
-                  className="min-h-[60px] px-4 py-3 bg-[#1A1A1A] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
+                  className="min-h-[60px] px-4 py-3 bg-[#171717] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
                 />
               </div>
               
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-3">
                 <Button
                   onClick={getInspiration}
                   disabled={isLoadingPrompt}
-                  size="icon"
-                  className="bg-[#1A1A1A] hover:bg-[#444444] text-white rounded-md"
+                  variant="outline"
+                  className="bg-[#171717] hover:bg-[#2a2a2a] text-white border-gray-700 rounded-md px-4"
                 >
                   {isLoadingPrompt ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   ) : (
-                    <Wand2 className="h-5 w-5" />
+                    <Wand2 className="h-5 w-5 mr-2" />
                   )}
+                  Get Inspiration
                 </Button>
               
                 <Button
