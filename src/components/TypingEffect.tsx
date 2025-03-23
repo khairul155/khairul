@@ -8,7 +8,7 @@ interface TypingEffectProps {
 
 const TypingEffect: React.FC<TypingEffectProps> = ({ 
   text, 
-  typingSpeed = 0.05 // Super fast typing speed (ms per character)
+  typingSpeed = 3000 // Changed to 3 seconds total animation time
 }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -22,11 +22,16 @@ const TypingEffect: React.FC<TypingEffectProps> = ({
   }, [text]);
 
   useEffect(() => {
+    if (text.length === 0) return;
+    
+    // Calculate time per character based on total animation time
+    const timePerChar = typingSpeed / text.length;
+    
     if (currentIndex < text.length) {
       const timeout = setTimeout(() => {
         setDisplayedText(prev => prev + text[currentIndex]);
         setCurrentIndex(prevIndex => prevIndex + 1);
-      }, typingSpeed);
+      }, timePerChar);
       
       return () => clearTimeout(timeout);
     } else {

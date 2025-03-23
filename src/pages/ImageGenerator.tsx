@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, ImageIcon, RefreshCw, LogIn, Wand2 } from "lucide-react";
+import { Loader2, ChevronLeft, Wand2, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import ImageGrid from "@/components/ImageGrid";
@@ -144,7 +144,7 @@ const ImageGenerator = () => {
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-white flex flex-col">
-      {/* Top Navigation */}
+      {/* Top Navigation - Simplified to just PixcraftAI */}
       <div className="border-b border-gray-800 p-4 flex items-center justify-between">
         <div className="flex items-center">
           <Link to="/" className="text-gray-300 hover:text-white flex items-center gap-1 transition-colors mr-4">
@@ -174,7 +174,7 @@ const ImageGenerator = () => {
           {/* Main Content Area with animation */}
           <div className="flex-1 overflow-auto p-6 flex items-center justify-center">
             {generatedImages.length > 0 && !isLoading ? (
-              <div className="max-w-md w-full animate-fade-in">
+              <div className="max-w-4xl w-full animate-fade-in">
                 <ImageGrid 
                   images={generatedImages} 
                   prompt={prompt} 
@@ -195,15 +195,18 @@ const ImageGenerator = () => {
               <div className="text-center max-w-md mx-auto">
                 <div className="flex flex-col items-center justify-center gap-6">
                   <div className="rounded-full bg-gradient-to-br from-[#FF5353]/20 to-[#FFA725]/20 p-6">
-                    <ImageIcon className="h-12 w-12 text-[#FFA725]" />
+                    <img 
+                      src="/lovable-uploads/d303a00c-0b69-4aeb-b794-742a425da64b.png" 
+                      alt="Image Icon" 
+                      className="h-12 w-12"
+                    />
                   </div>
-                  <h2 className="text-2xl font-bold">Turn your imagination into reality</h2>
+                  <h2 className="text-2xl font-bold">PixCraftAI Provides You Only One Best Result.✨</h2>
                   <p className="text-gray-400">
-                    We provide you only one best result✨
+                    Try Now!
                   </p>
                   {!user && (
-                    <div className="mt-4 text-sm text-gray-400">
-                      <p className="mb-2">You need to sign in to generate images</p>
+                    <div className="mt-4">
                       <Button variant="outline" onClick={() => navigate("/auth")} className="gap-2">
                         <LogIn className="h-4 w-4" />
                         Sign in
@@ -215,7 +218,7 @@ const ImageGenerator = () => {
             )}
           </div>
 
-          {/* Bottom Prompt Bar with Generate button on right - Updated to fill width better */}
+          {/* Bottom Prompt Bar with Generate button on right - Updated for better UI */}
           <div className="border-t border-gray-800 p-2 md:p-4">
             <div className="flex flex-col w-full">
               <div className="relative w-full mb-2">
@@ -226,7 +229,7 @@ const ImageGenerator = () => {
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={isLoading}
-                  className="min-h-[60px] px-4 py-3 bg-[#1A1A1A] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full pr-32"
+                  className="min-h-[60px] px-4 py-3 bg-[#1A1A1A] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
                 />
                 {isLoading && (
                   <div className="px-4 py-2">
@@ -245,10 +248,7 @@ const ImageGenerator = () => {
                   {isLoadingPrompt ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <>
-                      <Wand2 className="mr-2 h-4 w-4" />
-                      Get inspiration
-                    </>
+                    <Wand2 className="h-4 w-4" />
                   )}
                 </Button>
               
@@ -260,7 +260,7 @@ const ImageGenerator = () => {
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Generating...
                     </>
                   ) : (
