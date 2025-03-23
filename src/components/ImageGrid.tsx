@@ -8,23 +8,40 @@ interface ImageGridProps {
   images: string[];
   prompt: string;
   onRegenerate: () => void;
+  generationTime?: string; // Add generation time prop
 }
 
-const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate }) => {
+const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate, generationTime }) => {
   const { toast } = useToast();
 
   const downloadImage = (imageUrl: string, index: number) => {
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `pixcraft-ai-image-${Date.now()}-${index}.webp`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Convert webp to jpg for download
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
     
-    toast({
-      title: "Download started",
-      description: "Your image is being downloaded",
-    });
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      
+      // Export as JPG
+      const jpgUrl = canvas.toDataURL('image/jpeg', 0.9);
+      
+      const link = document.createElement('a');
+      link.href = jpgUrl;
+      link.download = `pixcraft-ai-image-${Date.now()}-${index}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Download started",
+        description: "Your image is being downloaded as JPG",
+      });
+    };
+    
+    img.src = imageUrl;
   };
 
   return (
@@ -32,31 +49,41 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate }) =
       <div className="flex justify-center">
         {images.map((image, index) => (
           <div key={index} className="relative group overflow-hidden rounded-lg max-w-full mx-auto w-[90%]">
-            <img 
-              src={image} 
-              alt={`Generated image ${index + 1}`}
-              className="w-full h-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"
-              style={{ maxWidth: "90vw", maxHeight: "70vh" }} // Increased size by approximately 80%
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-              <div className="flex justify-end gap-2">
-                <Button 
-                  onClick={onRegenerate} 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-full bg-black/50 backdrop-blur-sm hover:bg-[#3C3D37] hover:text-[#FFA725] border-white/20 text-white"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </Button>
-                <Button 
-                  onClick={() => downloadImage(image, index)} 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-full bg-black/50 backdrop-blur-sm hover:bg-[#3C3D37] hover:text-[#FFA725] border-white/20 text-white"
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
+            {/* Add border to the image */}
+            <div className="border-2 border-[#FFA725] rounded-lg">
+              <img 
+                src={image} 
+                alt={`Generated image ${index + 1}`}
+                className="w-full h-auto object-contain rounded-lg"
+                style={{ maxWidth: "90vw", maxHeight: "70vh" }}
+              />
+            </div>
+            
+            {/* Show generation time if available */}
+            {generationTime && (
+              <div className="absolute top-3 left-3 bg-black/60 px-3 py-1 rounded-full text-xs text-white">
+                Generated in {generationTime}
               </div>
+            )}
+            
+            {/* Buttons without darkening overlay */}
+            <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <Button 
+                onClick={onRegenerate} 
+                variant="outline" 
+                size="sm" 
+                className="rounded-full bg-black/70 backdrop-blur-sm hover:bg-[#3C3D37] hover:text-[#FFA725] border-white/20 text-white"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+              <Button 
+                onClick={() => downloadImage(image, index)} 
+                variant="outline" 
+                size="sm" 
+                className="rounded-full bg-black/70 backdrop-blur-sm hover:bg-[#3C3D37] hover:text-[#FFA725] border-white/20 text-white"
+              >
+                <Download className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         ))}

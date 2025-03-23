@@ -18,6 +18,7 @@ const ImageGenerator = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [generationTime, setGenerationTime] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -59,6 +60,9 @@ const ImageGenerator = () => {
       setProgress((prev) => Math.min(prev + 5, 90));
     }, 400);
 
+    // Record start time
+    const startTime = new Date();
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
@@ -73,6 +77,11 @@ const ImageGenerator = () => {
 
       if (error) throw error;
 
+      // Calculate generation time
+      const endTime = new Date();
+      const timeDiff = (endTime.getTime() - startTime.getTime()) / 1000; // in seconds
+      setGenerationTime(`${timeDiff.toFixed(1)}s`);
+
       // Handle multiple images if the API supports it
       const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
       setGeneratedImages(images);
@@ -84,6 +93,7 @@ const ImageGenerator = () => {
         description: "Failed to generate image. Please try again.",
         variant: "destructive",
       });
+      setGenerationTime("");
     } finally {
       clearInterval(progressInterval);
       setProgress(100);
@@ -178,6 +188,7 @@ const ImageGenerator = () => {
                   images={generatedImages} 
                   prompt={prompt} 
                   onRegenerate={handleRegenerate}
+                  generationTime={generationTime}
                 />
               </div>
             ) : isLoading ? (

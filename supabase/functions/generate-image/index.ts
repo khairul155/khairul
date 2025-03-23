@@ -40,7 +40,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "black-forest-labs/flux-schnell",
         response_format: "b64_json",
-        response_extension: "webp",
+        response_extension: "webp", // Keep webp format for API response
         width: parseInt(String(width)),
         height: parseInt(String(height)),
         num_inference_steps: parseInt(String(num_inference_steps)),
