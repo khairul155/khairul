@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -445,11 +446,6 @@ const MetadataGenerator = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    toast({
-      title: "Download started",
-      description: "Your CSV file is being downloaded",
-    });
   };
 
   const renderKeywordBadges = (keywordsString: string) => {
@@ -776,4 +772,72 @@ const MetadataGenerator = () => {
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#FFA725] text-white font-bold text-xs mr-2 mt-0.5">4</span>
               <span>Click "Generate Metadata" and wait as each image is processed</span>
             </li>
-            <li className="flex items
+            <li className="flex items-start">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#FFA725] text-white font-bold text-xs mr-2 mt-0.5">5</span>
+              <span>Download your metadata as a CSV file or copy individual results</span>
+            </li>
+          </ol>
+        </div>
+
+        {/* Testimonials Section */}
+        <div className="p-8 bg-[#0C0C0C]/80 backdrop-blur-lg rounded-xl border border-[#FDFAF6]/30 shadow-lg">
+          <h3 className="text-2xl font-semibold mb-6 text-center text-[#FDFAF6]">What Users Are Saying</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((testimonial, index) => (
+              <div key={index} className="bg-[#111111] p-6 rounded-lg shadow-lg border border-[#FDFAF6]/10">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="font-bold text-[#FDFAF6]">{testimonial.name}</h4>
+                    <p className="text-sm text-[#FDFAF6]/70">{testimonial.role}</p>
+                  </div>
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        className={`w-4 h-4 ${i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'}`} 
+                      />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-[#FDFAF6]/90 italic">"{testimonial.comment}"</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="p-8 bg-[#0C0C0C]/80 backdrop-blur-lg rounded-xl border border-[#FDFAF6]/30 shadow-lg">
+          <h3 className="text-2xl font-semibold mb-6 text-center text-[#FDFAF6]">Frequently Asked Questions</h3>
+          <Accordion type="single" collapsible className="w-full space-y-2">
+            {FAQ_ITEMS.map((item, index) => (
+              <AccordionItem 
+                key={index} 
+                value={`item-${index}`}
+                className="bg-[#111111] rounded-lg overflow-hidden border border-[#FDFAF6]/10"
+              >
+                <AccordionTrigger className="px-6 py-4 text-left text-[#FDFAF6] hover:no-underline hover:bg-[#222222]">
+                  <div className="flex items-center gap-2">
+                    <HelpCircle className="min-w-5 h-5 text-[#FFA725]" />
+                    <span>{item.question}</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-4 pt-2 text-[#FDFAF6]/90">
+                  {item.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-[#FDFAF6]/20 pt-6 text-center">
+          <p className="text-[#FDFAF6]/70 text-sm">
+            © 2024 PixCraftai Metadata Generator. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MetadataGenerator;
