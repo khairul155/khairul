@@ -23,27 +23,28 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
 }) => {
   // Map of background colors for each icon type
   const colorMap = {
-    IG: "bg-gradient-to-br from-green-400 to-yellow-300", // Image Generator
-    MD: "bg-gradient-to-br from-[#0C0C0C] to-[#242424]", // Meta Data Generator
-    GD: "bg-gradient-to-br from-purple-400 to-violet-300", // Graphic Designer Bot
-    IP: "bg-gradient-to-br from-orange-400 to-amber-300", // Image to Prompt
-    IU: "bg-gradient-to-br from-rose-400 to-pink-300", // Image Upscaler
-    BI: "bg-gradient-to-br from-amber-400 to-yellow-300", // Bulk Image Size Increaser
+    IG: "bg-blue-500", // Image Generator
+    MD: "bg-gray-800", // Meta Data Generator
+    GD: "bg-purple-600", // Graphic Designer Bot
+    IP: "bg-orange-500", // Image to Prompt
+    IU: "bg-pink-500", // Image Upscaler
+    BI: "bg-yellow-500", // Bulk Image Size Increaser
   };
 
   return (
     <div 
       className={cn(
-        "flex flex-col items-center text-center cursor-pointer transition-all duration-300",
-        isUpcoming ? "opacity-70 pointer-events-none" : "hover:scale-110",
+        "flex flex-col items-center text-center transition-all duration-300",
+        isUpcoming ? "opacity-70 pointer-events-none" : "hover:scale-110 cursor-pointer",
         isActive && "scale-110",
         className
       )}
       onClick={!isUpcoming ? onClick : undefined}
     >
       <div className={cn(
-        "w-20 h-20 rounded-full shadow-lg flex items-center justify-center mb-3 relative transform transition-transform duration-300",
+        "w-16 h-16 rounded-full shadow-lg flex items-center justify-center mb-3 relative transform transition-transform duration-300",
         colorMap[icon],
+        "hover:shadow-xl",
         isActive && "ring-2 ring-white ring-opacity-70"
       )}>
         {isActive && (
@@ -56,19 +57,11 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
           </div>
         )}
         
-        <div className="w-14 h-14 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm">
-          <span className={cn(
-            "text-lg font-bold",
-            icon === "MD" || icon === "GD" ? "text-[#FAF7F0]" : "text-gray-800 dark:text-gray-200"
-          )}>
-            {icon}
-          </span>
-        </div>
+        <span className="text-white text-lg font-bold">
+          {icon}
+        </span>
       </div>
-      <h3 className={cn(
-        "font-semibold text-sm md:text-base",
-        icon === "MD" || icon === "GD" ? "text-[#FAF7F0]" : "text-gray-800 dark:text-gray-200"
-      )}>
+      <h3 className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">
         {label}
       </h3>
     </div>
