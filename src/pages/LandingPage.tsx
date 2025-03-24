@@ -123,74 +123,7 @@ const LandingPage = () => {
 
       {/* Tools Section */}
       <section ref={toolsRef} className="py-20 bg-gray-900">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Our Tools</h2>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Powerful design and AI tools to bring your creative vision to life
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {/* Current Tools */}
-            <ToolCard 
-              icon={<Wand2 className="h-10 w-10 text-purple-400" />}
-              title="Image Generator"
-              description="Create images from text descriptions"
-              link="/image-generator"
-              color="from-purple-600 to-blue-600"
-              number="1"
-            />
-            
-            <ToolCard 
-              icon={<MessageSquareText className="h-10 w-10 text-pink-400" />}
-              title="Image to Prompt"
-              description="Convert images to text prompts"
-              link="/image-to-prompt"
-              color="from-pink-600 to-purple-600"
-              number="2"
-            />
-            
-            <ToolCard 
-              icon={<Zap className="h-10 w-10 text-amber-400" />}
-              title="Image Upscaler"
-              description="Enhance image resolution"
-              link="/image-upscaler"
-              color="from-amber-600 to-yellow-600"
-              number="3"
-            />
-            
-            <ToolCard 
-              icon={<Layers className="h-10 w-10 text-cyan-400" />}
-              title="Metadata Generator"
-              description="Extract image metadata"
-              link="/metadata-generator"
-              color="from-cyan-600 to-blue-600"
-              number="4"
-            />
-            
-            {/* Upcoming Tools */}
-            <ToolCard 
-              icon={<Palette className="h-10 w-10 text-green-400" />}
-              title="Graphic Designer Bot"
-              description="AI-powered design assistant"
-              link="/graphic-designer-bot"
-              color="from-green-600 to-emerald-600"
-              isUpcoming={true}
-              number="5"
-            />
-            
-            <ToolCard 
-              icon={<Download className="h-10 w-10 text-rose-400" />}
-              title="Bulk Image Tool"
-              description="Process multiple images at once"
-              link="/bulk-image-size-increaser"
-              color="from-rose-600 to-red-600"
-              isUpcoming={true}
-              number="6"
-            />
-          </div>
-        </div>
+        {/* Removed the container section as requested */}
       </section>
 
       {/* Features Section */}
