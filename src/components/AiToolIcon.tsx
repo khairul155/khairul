@@ -10,7 +10,6 @@ interface AiToolIconProps {
   onClick?: () => void;
   className?: string;
   isActive?: boolean;
-  isUpcoming?: boolean;
 }
 
 const AiToolIcon: React.FC<AiToolIconProps> = ({ 
@@ -20,64 +19,51 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
   color, 
   onClick,
   className,
-  isActive = false,
-  isUpcoming = false
+  isActive = false
 }) => {
-  // Map of background colors for each icon type - using vibrant gradient colors
+  // Map of background colors for each icon type
   const colorMap = {
-    IG: "bg-gradient-to-br from-purple-500 to-blue-500", // Image Generator
-    MD: "bg-gradient-to-br from-blue-500 to-teal-400", // Meta Data Generator
-    GD: "bg-gradient-to-br from-pink-500 to-orange-400", // Graphic Designer Bot
-    IP: "bg-gradient-to-br from-yellow-400 to-amber-500", // Image to Prompt
-    IU: "bg-gradient-to-br from-red-500 to-pink-500", // Image Upscaler
-    BI: "bg-gradient-to-br from-green-500 to-emerald-400", // Bulk Image Size Increaser
-  };
-
-  // Map of complementary text colors
-  const textColorMap = {
-    IG: "text-white",
-    MD: "text-white",
-    GD: "text-white",
-    IP: "text-black",
-    IU: "text-white",
-    BI: "text-white",
+    IG: "bg-gradient-to-br from-green-400 to-yellow-300", // Image Generator
+    MD: "bg-gradient-to-br from-[#0C0C0C] to-[#242424]", // Meta Data Generator - Updated with new #0C0C0C color
+    GD: "bg-gradient-to-br from-purple-400 to-violet-300", // Graphic Designer Bot
+    IP: "bg-gradient-to-br from-orange-400 to-amber-300", // Image to Prompt
+    IU: "bg-gradient-to-br from-rose-400 to-pink-300", // Image Upscaler
+    BI: "bg-gradient-to-br from-amber-400 to-yellow-300", // Bulk Image Size Increaser
   };
 
   return (
     <div 
       className={cn(
-        "flex flex-col items-center text-center cursor-pointer transition-all duration-300 hover:scale-110",
+        "flex flex-col items-center text-center cursor-pointer transition-transform hover:scale-105",
         isActive && "scale-105",
         className
       )}
       onClick={onClick}
     >
-      <div className="relative">
-        {isUpcoming && (
-          <div className="absolute -top-2 -right-2 z-10 bg-amber-500 text-xs font-bold text-white rounded-full px-2 py-0.5">
-            SOON
-          </div>
+      <div className={cn(
+        "w-24 h-24 rounded-2xl shadow-lg flex items-center justify-center mb-2 relative",
+        colorMap[icon],
+        isActive && "ring-2 ring-white ring-opacity-50"
+      )}>
+        {isActive && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full"></div>
         )}
-        <div className={cn(
-          "w-16 h-16 rounded-full shadow-lg flex items-center justify-center mb-2 transition-transform duration-300 hover:shadow-xl",
-          colorMap[icon],
-          isActive && "ring-2 ring-white"
-        )}>
-          {isActive && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-          )}
+        <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm">
           <span className={cn(
             "text-xl font-bold",
-            textColorMap[icon]
+            icon === "MD" || icon === "GD" ? "text-[#FAF7F0]" : "text-gray-800 dark:text-gray-200"
           )}>
             {icon}
           </span>
         </div>
       </div>
-      <h3 className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">
+      <h3 className={cn(
+        "font-semibold text-sm md:text-base",
+        icon === "MD" || icon === "GD" ? "text-[#FAF7F0]" : "text-gray-800 dark:text-gray-200"
+      )}>
         {label}
       </h3>
-      <p className="text-xs text-gray-600 dark:text-gray-300 max-w-[120px] mt-1">{description}</p>
+      <p className="text-xs text-gray-600 dark:text-gray-300 max-w-[200px] mt-1">{description}</p>
     </div>
   );
 };
