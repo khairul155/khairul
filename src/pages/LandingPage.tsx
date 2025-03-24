@@ -58,9 +58,7 @@ const LandingPage = () => {
               </Button>
               
               <Button variant="outline" size="lg" className="w-full sm:w-auto border-purple-500 text-purple-400 hover:bg-purple-950" asChild>
-                <Link to="/pricing">
-                  View Pricing <Coins className="ml-2 h-5 w-5" />
-                </Link>
+                
               </Button>
             </div>
           </div>
