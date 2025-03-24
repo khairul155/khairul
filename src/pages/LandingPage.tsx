@@ -1,9 +1,10 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
+import AiToolsSection from "@/components/AiToolsSection";
 import { 
   Wand2, 
   ArrowRight, 
@@ -19,7 +20,9 @@ import {
   Palette,
   MessageSquareText,
   Layers,
-  Clock
+  Clock,
+  Play,
+  Pause
 } from "lucide-react";
 import TypingEffect from "@/components/TypingEffect";
 
@@ -27,6 +30,8 @@ const LandingPage = () => {
   const { user } = useAuth();
   const featuresRef = useRef<HTMLDivElement>(null);
   const toolsRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   
   const handleScrollToFeatures = () => {
     featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -35,6 +40,46 @@ const LandingPage = () => {
   const handleScrollToTools = () => {
     toolsRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  
+  const toggleVideoPlay = () => {
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+        setIsVideoPlaying(true);
+      } else {
+        videoRef.current.pause();
+        setIsVideoPlaying(false);
+      }
+    }
+  };
+
+  // Auto-play video when it comes into view
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && videoRef.current && videoRef.current.paused) {
+            videoRef.current.play().catch(() => {
+              // Autoplay was prevented, show play button
+              setIsVideoPlaying(false);
+            });
+            setIsVideoPlaying(true);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+    
+    if (videoRef.current) {
+      observer.observe(videoRef.current);
+    }
+    
+    return () => {
+      if (videoRef.current) {
+        observer.unobserve(videoRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -121,77 +166,57 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Tools Section */}
-      <section ref={toolsRef} className="py-20 bg-gray-900">
+      {/* Demo Video Section */}
+      <section className="py-20 bg-black relative overflow-hidden">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Our Tools</h2>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">See PixcraftAI in Action</h2>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Powerful design and AI tools to bring your creative vision to life
+              Watch how easy it is to create stunning AI-generated images in seconds
             </p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {/* Current Tools */}
-            <ToolCard 
-              icon={<Wand2 className="h-10 w-10 text-purple-400" />}
-              title="Image Generator"
-              description="Create images from text descriptions"
-              link="/image-generator"
-              color="from-purple-600 to-blue-600"
-              number="1"
-            />
+          <div className="max-w-4xl mx-auto relative rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(79,70,229,0.4)]">
+            <div className="aspect-w-16 aspect-h-9 relative">
+              {/* Replace with actual demo video */}
+              <video 
+                ref={videoRef}
+                className="w-full h-full object-cover rounded-2xl" 
+                poster="/lovable-uploads/faf754c5-2d2e-42ce-827a-99290914dfdc.png"
+                loop
+                muted
+                playsInline
+              >
+                <source src="https://mazwai.com/videvo_files/video/free/2014-12/small_watermarked/alena-vidsStock_B1_preview.webm" type="video/webm" />
+                Your browser does not support the video tag.
+              </video>
+              
+              <div 
+                className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-center justify-center cursor-pointer"
+                onClick={toggleVideoPlay}
+              >
+                <div className={`${isVideoPlaying ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 bg-white/10 backdrop-blur-sm p-6 rounded-full hover:bg-white/20`}>
+                  {isVideoPlaying ? (
+                    <Pause className="w-12 h-12 text-white" />
+                  ) : (
+                    <Play className="w-12 h-12 text-white" />
+                  )}
+                </div>
+              </div>
+            </div>
             
-            <ToolCard 
-              icon={<MessageSquareText className="h-10 w-10 text-pink-400" />}
-              title="Image to Prompt"
-              description="Convert images to text prompts"
-              link="/image-to-prompt"
-              color="from-pink-600 to-purple-600"
-              number="2"
-            />
-            
-            <ToolCard 
-              icon={<Zap className="h-10 w-10 text-amber-400" />}
-              title="Image Upscaler"
-              description="Enhance image resolution"
-              link="/image-upscaler"
-              color="from-amber-600 to-yellow-600"
-              number="3"
-            />
-            
-            <ToolCard 
-              icon={<Layers className="h-10 w-10 text-cyan-400" />}
-              title="Metadata Generator"
-              description="Extract image metadata"
-              link="/metadata-generator"
-              color="from-cyan-600 to-blue-600"
-              number="4"
-            />
-            
-            {/* Upcoming Tools */}
-            <ToolCard 
-              icon={<Palette className="h-10 w-10 text-green-400" />}
-              title="Graphic Designer Bot"
-              description="AI-powered design assistant"
-              link="/graphic-designer-bot"
-              color="from-green-600 to-emerald-600"
-              isUpcoming={true}
-              number="5"
-            />
-            
-            <ToolCard 
-              icon={<Download className="h-10 w-10 text-rose-400" />}
-              title="Bulk Image Tool"
-              description="Process multiple images at once"
-              link="/bulk-image-size-increaser"
-              color="from-rose-600 to-red-600"
-              isUpcoming={true}
-              number="6"
-            />
+            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent">
+              <div className="flex items-center gap-3">
+                <div className="bg-red-600 w-3 h-3 rounded-full animate-pulse"></div>
+                <p className="text-white font-medium">Experience the magic of AI-powered design</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Tools Section */}
+      <AiToolsSection />
 
       {/* Features Section */}
       <section ref={featuresRef} className="py-20 bg-gray-950">

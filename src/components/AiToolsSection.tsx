@@ -28,7 +28,7 @@ const AiToolsSection = () => {
           Our AI Tools
         </h2>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 justify-items-center">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 justify-items-center">
           <AiToolIcon 
             icon="IG"
             label="Image Generator"
@@ -48,15 +48,6 @@ const AiToolsSection = () => {
           />
           
           <AiToolIcon 
-            icon="GD"
-            label="Graphic Designer Bot"
-            description="AI-based graphic design assistant"
-            color="purple"
-            isActive={isActive("/graphic-designer-bot")}
-            onClick={() => handleToolClick("Graphic Designer Bot", "/graphic-designer-bot")}
-          />
-          
-          <AiToolIcon 
             icon="IP"
             label="Image to Prompt"
             description="Converts images into detailed text prompts"
@@ -72,6 +63,17 @@ const AiToolsSection = () => {
             color="pink"
             isActive={isActive("/image-upscaler")}
             onClick={() => handleToolClick("Image Upscaler", "/image-upscaler")}
+            isUpcoming={true}
+          />
+          
+          <AiToolIcon 
+            icon="GD"
+            label="Graphic Designer Bot"
+            description="AI-based graphic design assistant"
+            color="purple"
+            isActive={isActive("/graphic-designer-bot")}
+            onClick={() => handleToolClick("Graphic Designer Bot", "/graphic-designer-bot")}
+            isUpcoming={true}
           />
           
           <AiToolIcon 
@@ -81,6 +83,7 @@ const AiToolsSection = () => {
             color="yellow"
             isActive={isActive("/bulk-image-size-increaser")}
             onClick={() => handleToolClick("Bulk Image Size Increaser", "/bulk-image-size-increaser")}
+            isUpcoming={true}
           />
         </div>
       </div>
