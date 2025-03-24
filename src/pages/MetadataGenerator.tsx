@@ -592,7 +592,7 @@ const MetadataGenerator = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Processing {currentFileIndex + 1} of {selectedFiles.length}...\
+                    Processing {currentFileIndex + 1} of {selectedFiles.length}...
                   </>
                 ) : (
                   <>
@@ -772,4 +772,4 @@ const MetadataGenerator = () => {
               <span>Click "Generate Metadata" and wait as each image is processed</span>
             </li>
             <li className="flex items-start">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#FFA72
