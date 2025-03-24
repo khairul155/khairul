@@ -36,9 +36,7 @@ const LandingPage = () => {
           <div className="text-center max-w-4xl mx-auto mb-16">
             <h1 className="font-bold mb-6 leading-tight">
               <span className="block text-2xl md:text-3xl text-blue-400 mb-4">PixcraftAI</span>
-              <span className="block text-6xl md:text-8xl bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500">
-                PHOTO EDITOR
-              </span>
+              <span className="block text-6xl bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 md:text-6xl">All in Products In One platform</span>
             </h1>
             <h2 className="text-2xl md:text-3xl font-semibold text-gray-200 mb-8">
               AI Image Generator and AI Design tools
