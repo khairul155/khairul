@@ -198,19 +198,19 @@ const ImageToPrompt = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-[#0C0C0C] text-[#FDFAF6]">
       <div className="max-w-6xl mx-auto p-4 space-y-8 relative">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute w-64 h-64 -left-32 -top-32 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-          <div className="absolute w-64 h-64 -right-32 -top-32 bg-yellow-300 dark:bg-yellow-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-          <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+          <div className="absolute w-64 h-64 -left-32 -top-32 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply filter blur-xl opacity-20"></div>
+          <div className="absolute w-64 h-64 -right-32 -top-32 bg-yellow-300 dark:bg-yellow-900 rounded-full mix-blend-multiply filter blur-xl opacity-20"></div>
+          <div className="absolute w-64 h-64 -left-32 -bottom-32 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply filter blur-xl opacity-20"></div>
         </div>
 
         <div className="flex justify-between items-center pt-4">
           <Button 
-            variant="ghost" 
+            variant="outline" 
             onClick={() => navigate("/")}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-[#FDFAF6] border-[#FDFAF6] hover:bg-[#FDFAF6]/10"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
@@ -219,20 +219,15 @@ const ImageToPrompt = () => {
         </div>
 
         <div className="text-center space-y-6 py-8 relative">
-          <div className="relative inline-block animate-float">
-            <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 opacity-20 animate-pulse"></div>
-            <h1 className="text-5xl md:text-6xl font-bold relative">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400">
-                Image to Prompt
-              </span>
-            </h1>
-          </div>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+          <h1 className="text-5xl md:text-6xl font-bold text-[#EC5228]">
+            Image to Prompt
+          </h1>
+          <p className="text-xl text-[#FAF1E6] max-w-2xl mx-auto leading-relaxed">
             Upload any image and our AI will generate a detailed description prompt that captures its essence.
           </p>
         </div>
 
-        <div className="space-y-8 backdrop-blur-lg bg-white/30 dark:bg-gray-800/30 p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl">
+        <div className="space-y-8 backdrop-blur-lg bg-[#0C0C0C]/90 p-8 rounded-2xl border border-[#E9762B]/30 shadow-xl">
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertTitle>Error</AlertTitle>
@@ -241,7 +236,7 @@ const ImageToPrompt = () => {
           )}
           
           <div className="space-y-4">
-            <div className="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/50 text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all"
+            <div className="p-4 border border-dashed border-[#FDFAF6]/50 rounded-lg bg-[#0C0C0C]/50 text-center cursor-pointer hover:bg-[#0C0C0C]/70 transition-all"
               onClick={() => fileInputRef.current?.click()}
             >
               <input
@@ -266,11 +261,11 @@ const ImageToPrompt = () => {
                 </div>
               ) : (
                 <div className="py-12 flex flex-col items-center">
-                  <Upload className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-3" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <Upload className="w-12 h-12 text-[#FDFAF6]/70 mb-3" />
+                  <p className="text-sm text-[#FDFAF6]/80">
                     Click to upload an image or drag and drop
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  <p className="text-xs text-[#FDFAF6]/60 mt-1">
                     JPG, PNG, WEBP, AVIF supported
                   </p>
                 </div>
@@ -284,10 +279,10 @@ const ImageToPrompt = () => {
                   value={apiKey}
                   onChange={(e) => saveApiKey(e.target.value)}
                   type="password"
-                  className="flex-1 h-12 backdrop-blur-sm bg-white/50 dark:bg-gray-900/50"
+                  className="flex-1 h-12 backdrop-blur-sm bg-[#0C0C0C]/80 border-2 border-[#FDFAF6]/30 focus:border-[#FDFAF6] text-white placeholder:text-[#FDFAF6]/50"
                 />
                 <Button
-                  className="h-12 whitespace-nowrap"
+                  className="h-12 whitespace-nowrap bg-[#FFA725] hover:bg-[#FFA725]/90 text-white"
                   variant="outline"
                   onClick={() => window.open("https://makersuite.google.com/app/apikey", "_blank")}
                 >
@@ -298,7 +293,7 @@ const ImageToPrompt = () => {
               <Button 
                 onClick={generatePrompt} 
                 disabled={isLoading || !selectedFile}
-                className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg transition-all duration-300"
+                className="w-full h-12 bg-[#FFA725] hover:bg-[#FFA725]/90 text-white font-medium rounded-lg transition-all duration-300"
               >
                 {isLoading ? (
                   <>
@@ -317,9 +312,9 @@ const ImageToPrompt = () => {
                 <div className="space-y-3">
                   <Progress 
                     value={progress} 
-                    className="h-2 bg-gray-200 dark:bg-gray-700"
+                    className="h-2 bg-[#1A1A1A]"
                   />
-                  <p className="text-sm text-center text-gray-600 dark:text-gray-400 animate-pulse">
+                  <p className="text-sm text-center text-[#FDFAF6]/80">
                     Analyzing image and generating prompt... {progress}%
                   </p>
                 </div>
@@ -328,16 +323,17 @@ const ImageToPrompt = () => {
           </div>
 
           {generatedPrompt && !isLoading && (
-            <Card className="mt-6 border border-gray-200 dark:border-gray-700 shadow-lg backdrop-blur-sm bg-white/80 dark:bg-gray-800/80">
+            <Card className="mt-6 border border-[#FDFAF6]/20 shadow-lg backdrop-blur-sm bg-[#0C0C0C]/80">
               <CardContent className="pt-6">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Generated Prompt:</h3>
+                    <h3 className="text-lg font-semibold text-[#FDFAF6]">Generated Prompt:</h3>
                     <div className="flex space-x-2">
                       <Button 
                         size="sm" 
                         variant="outline"
                         onClick={copyToClipboard}
+                        className="text-[#FDFAF6] border-[#FDFAF6] hover:bg-[#FDFAF6]/10"
                       >
                         <Copy className="w-4 h-4 mr-2" />
                         Copy
@@ -346,6 +342,7 @@ const ImageToPrompt = () => {
                         size="sm" 
                         variant="outline"
                         onClick={downloadPrompt}
+                        className="text-[#FDFAF6] border-[#FDFAF6] hover:bg-[#FDFAF6]/10"
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download
@@ -353,7 +350,7 @@ const ImageToPrompt = () => {
                     </div>
                   </div>
                   
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto whitespace-pre-wrap">
+                  <div className="bg-[#1A1A1A] p-4 rounded-lg border border-[#FDFAF6]/20 max-h-96 overflow-y-auto whitespace-pre-wrap text-[#FDFAF6]">
                     {generatedPrompt}
                   </div>
                 </div>
@@ -362,8 +359,8 @@ const ImageToPrompt = () => {
           )}
         </div>
 
-        <div className="text-center space-y-4 pt-12 pb-8">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="text-center space-y-4 pt-12 pb-8 text-[#FDFAF6]/50 text-sm">
+          <p>
             Powered by Google Gemini API • Image to Prompt Converter
           </p>
         </div>
