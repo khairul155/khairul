@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -445,6 +446,11 @@ const MetadataGenerator = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    toast({
+      title: "Download started",
+      description: "Your CSV file is being downloaded",
+    });
   };
 
   const renderKeywordBadges = (keywordsString: string) => {
@@ -772,4 +778,75 @@ const MetadataGenerator = () => {
               <span>Click "Generate Metadata" and wait as each image is processed</span>
             </li>
             <li className="flex items-start">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#FFA72
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#FFA725] text-white font-bold text-xs mr-2 mt-0.5">5</span>
+              <span>Download your results as a CSV file when processing is complete</span>
+            </li>
+          </ol>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="p-6 bg-[#0C0C0C]/80 backdrop-blur-sm rounded-xl border border-[#FDFAF6]/30 shadow-lg">
+          <h3 className="text-xl font-semibold mb-4 text-[#FDFAF6]">Frequently Asked Questions</h3>
+          <Accordion type="single" collapsible className="space-y-2">
+            {FAQ_ITEMS.map((item, index) => (
+              <AccordionItem 
+                key={index} 
+                value={`faq-${index}`}
+                className="border border-[#FDFAF6]/20 rounded-lg overflow-hidden"
+              >
+                <AccordionTrigger className="px-4 py-3 hover:bg-[#FDFAF6]/5 text-[#FDFAF6]">
+                  {item.question}
+                </AccordionTrigger>
+                <AccordionContent className="px-4 py-3 text-[#FDFAF6]/90">
+                  {item.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+
+        {/* Testimonials Section */}
+        <div className="p-6 bg-[#0C0C0C]/80 backdrop-blur-sm rounded-xl border border-[#FDFAF6]/30 shadow-lg">
+          <h3 className="text-xl font-semibold mb-4 text-center text-[#FDFAF6]">What Users Are Saying</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            {TESTIMONIALS.map((testimonial, index) => (
+              <div key={index} className="bg-[#1A1A1A] p-4 rounded-lg shadow-md">
+                <div className="flex items-center mb-3">
+                  <div className="flex">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star 
+                        key={i} 
+                        fill={i < testimonial.rating ? "#FFC107" : "none"} 
+                        className={`w-4 h-4 ${i < testimonial.rating ? "text-[#FFC107]" : "text-gray-400"}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-[#FDFAF6] mb-4 italic">"{testimonial.comment}"</p>
+                <div className="flex items-center">
+                  <div className="rounded-full bg-[#FFA725] w-8 h-8 flex items-center justify-center mr-3">
+                    <Users className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#FDFAF6]">{testimonial.name}</p>
+                    <p className="text-xs text-[#FDFAF6]/70">{testimonial.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center py-8 text-[#FDFAF6]/50 text-sm">
+          <p>© 2024 PixCraftai Metadata Generator. All rights reserved.</p>
+          <p className="mt-2">
+            Built with Google's Gemini API for high-quality image metadata generation.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MetadataGenerator;
