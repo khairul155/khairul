@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useCredits } from '@/hooks/use-credits';
+import { useCreditsContext } from './CreditsProvider';
 import { Coins } from 'lucide-react';
 import {
   Tooltip,
@@ -11,7 +11,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function TokenBalance() {
-  const { credits, loading } = useCredits();
+  const { credits, loading } = useCreditsContext();
   
   const formatNumber = (num: number) => {
     return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : num.toString();

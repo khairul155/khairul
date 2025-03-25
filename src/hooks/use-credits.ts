@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { useAuth } from '@/components/AuthProvider';
+import { Json } from '@/integrations/supabase/types';
 
 export type SubscriptionPlan = 'free' | 'basic' | 'advanced' | 'pro';
 
@@ -26,6 +27,16 @@ export interface ToolUsage {
   monthly_limit: number | null;
   usage_today: number;
   usage_this_month: number;
+}
+
+interface UseToolResponse {
+  status: string;
+  message?: string;
+  can_use?: boolean;
+  remaining_credits?: number;
+  subscription_plan?: SubscriptionPlan;
+  slow_mode?: boolean;
+  success: boolean;
 }
 
 const defaultCredits: UserCredits = {
@@ -82,12 +93,13 @@ export function useCredits() {
       if (error) throw error;
       
       if (data) {
+        const jsonData = data as Record<string, any>;
         const processedData = {
-          ...data,
-          remaining_credits: calculateRemainingCredits(data),
-          total_credits: calculateTotalCredits(data)
+          ...jsonData,
+          remaining_credits: calculateRemainingCredits(jsonData),
+          total_credits: calculateTotalCredits(jsonData)
         };
-        setCredits(processedData);
+        setCredits(processedData as UserCredits);
       }
     } catch (err) {
       console.error('Error fetching credits:', err);
@@ -128,30 +140,31 @@ export function useCredits() {
       if (error) throw error;
       
       if (data) {
-        if (data.status === 'success' || data.status === 'slow_mode') {
+        const responseData = data as Record<string, any>;
+        if (responseData.status === 'success' || responseData.status === 'slow_mode') {
           // Update local credits state
           await fetchCredits();
           
-          if (data.status === 'slow_mode') {
+          if (responseData.status === 'slow_mode') {
             toast({
               title: 'Slow Mode Enabled',
-              description: data.message,
+              description: responseData.message as string,
               variant: 'default',
             });
           }
           
           onSuccess?.();
-          return { success: true, slowMode: data.status === 'slow_mode' };
+          return { success: true, slowMode: responseData.status === 'slow_mode' };
         } else {
           // Handle insufficient credits or other issues
           toast({
             title: 'Action Blocked',
-            description: data.message,
+            description: responseData.message as string,
             variant: 'destructive',
           });
           
-          onError?.(data.message);
-          return { success: false, message: data.message };
+          onError?.(responseData.message as string);
+          return { success: false, message: responseData.message as string };
         }
       }
       
