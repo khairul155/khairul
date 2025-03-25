@@ -131,13 +131,12 @@ const Pricing = () => {
         
         try {
           setIsVerifying(true);
-          // Fix: use the correct method to invoke edge function
           const { data, error } = await supabase.functions.invoke('process-payment/verify', {
             method: 'POST',
-            body: JSON.stringify({
+            body: {
               transactionId: txnId,
               userId: user?.id
-            })
+            }
           });
           
           if (error) {
@@ -209,27 +208,30 @@ const Pricing = () => {
     setPaymentDialog(true);
     
     try {
-      // Fix: use the correct method to invoke edge function
+      console.log("Initiating payment for plan:", selectedPlan);
       const { data, error } = await supabase.functions.invoke('process-payment/initiate', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           userId: user.id,
           userEmail: user.email,
           plan: selectedPlan,
           redirectUrl: window.location.href
-        })
+        }
       });
       
       if (error) {
+        console.error("Payment function error:", error);
         throw error;
       }
       
-      if (data.url) {
+      if (data && data.url) {
         setTransactionRef(data.transactionRef || null);
+        console.log("Redirecting to payment URL:", data.url);
         window.location.href = data.url;
       } else {
+        console.error("Invalid response data:", data);
         setPaymentStatus("error");
-        setPaymentError(data.error || "Failed to initialize payment. Please try again.");
+        setPaymentError(data?.error || "Failed to initialize payment. Please try again.");
         toast({
           title: "Payment Error",
           description: "There was an issue setting up the payment. Please try again.",

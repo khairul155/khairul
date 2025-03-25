@@ -1,10 +1,13 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.48.1";
 
-// CORS headers for browser requests
+// CORS headers for browser requests - updated to be more permissive
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 // Create a Supabase client with the admin key
@@ -66,13 +69,19 @@ serve(async (req) => {
 
   const url = new URL(req.url);
   const path = url.pathname.split('/').pop();
+  console.log(`Processing ${req.method} request to ${path}`);
 
   try {
     // Endpoint to initiate payment
     if (path === 'initiate' && req.method === 'POST') {
-      const { userId, userEmail, plan, redirectUrl } = await req.json() as InitiatePaymentRequest;
+      console.log("Initiating payment process");
+      const requestData = await req.json();
+      console.log("Request data:", requestData);
+      
+      const { userId, userEmail, plan, redirectUrl } = requestData;
       
       if (!userId || !userEmail || !plan || !redirectUrl) {
+        console.error("Missing required fields:", { userId, userEmail, plan, redirectUrl });
         return new Response(JSON.stringify({ 
           error: 'Missing required fields' 
         }), {
@@ -83,6 +92,7 @@ serve(async (req) => {
       
       // Check if plan is valid
       if (!PLAN_PRICING[plan]) {
+        console.error("Invalid plan:", plan);
         return new Response(JSON.stringify({ 
           error: 'Invalid plan' 
         }), {
@@ -93,33 +103,45 @@ serve(async (req) => {
       
       // Create a transaction reference
       const transactionRef = generateTransactionRef();
+      console.log("Generated transaction reference:", transactionRef);
       
-      // Store pending payment record
-      const { error: dbError } = await supabase
-        .from('payment_logs')
-        .insert({
-          user_id: userId,
-          plan: plan,
-          amount: PLAN_PRICING[plan],
-          payment_id: transactionRef,
-          prorated: true,
-          prorated_credits: calculateProratedCredits(plan),
-          status: 'pending'
-        });
-      
-      if (dbError) {
-        console.error('Database error:', dbError);
+      try {
+        // Store pending payment record
+        const { error: dbError } = await supabase
+          .from('payment_logs')
+          .insert({
+            user_id: userId,
+            plan: plan,
+            amount: PLAN_PRICING[plan],
+            payment_id: transactionRef,
+            prorated: true,
+            prorated_credits: calculateProratedCredits(plan),
+            status: 'pending'
+          });
+        
+        if (dbError) {
+          console.error('Database error:', dbError);
+          return new Response(JSON.stringify({ 
+            error: 'Failed to create payment record',
+            details: dbError
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      } catch (insertError) {
+        console.error('Exception during database insert:', insertError);
         return new Response(JSON.stringify({ 
-          error: 'Failed to create payment record' 
+          error: 'Database exception during payment record creation',
+          details: String(insertError)
         }), {
-          status: 500,
+          status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
       
       // Generate Drutopay payment URL
-      // This is a simplified example; you would typically make an API call to Drutopay
-      const drutopayRedirectUrl = `https://pay.drutopay.com/pay?` + new URLSearchParams({
+      const drutopayParams = new URLSearchParams({
         api_key: API_KEY,
         amount: PLAN_PRICING[plan].toString(),
         currency: 'USD',
@@ -129,7 +151,10 @@ serve(async (req) => {
         description: `Upgrade to ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`,
         callback_url: `${supabaseUrl}/functions/v1/process-payment/callback?userId=${userId}&plan=${plan}`,
         redirect_url: redirectUrl
-      }).toString();
+      });
+      
+      const drutopayRedirectUrl = `https://pay.drutopay.com/pay?${drutopayParams.toString()}`;
+      console.log("Generated Drutopay URL (sanitized):", drutopayRedirectUrl.replace(API_KEY, '***'));
       
       return new Response(JSON.stringify({
         url: drutopayRedirectUrl,
@@ -319,7 +344,10 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('Unhandled error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      details: String(error)
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
