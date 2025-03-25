@@ -32,46 +32,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+    
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         console.log("Auth state changed:", event);
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        setIsLoading(false);
+        if (mounted) {
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          setIsLoading(false);
+        }
       }
     );
 
     // Then check for an existing session
     supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setIsLoading(false);
+      if (mounted) {
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        setIsLoading(false);
+      }
+    }).catch(error => {
+      console.error("Error getting session:", error);
+      if (mounted) {
+        setIsLoading(false);
+      }
     });
 
     // Check for auth redirect errors on page load
     const checkForAuthRedirectErrors = () => {
-      // Parse URL for error parameters
-      const params = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      
-      // Check both regular query params and hash params
-      const error = params.get("error") || hashParams.get("error");
-      const errorDescription = params.get("error_description") || hashParams.get("error_description");
-      
-      if (error) {
-        console.error("Auth redirect error:", error, errorDescription);
-        toast({
-          title: "Authentication Error",
-          description: errorDescription || "There was a problem with authentication.",
-          variant: "destructive",
-        });
+      try {
+        // Parse URL for error parameters
+        const params = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
         
-        // Clean up the URL to remove error parameters
-        if (window.history && window.history.replaceState) {
-          const cleanUrl = window.location.pathname;
-          window.history.replaceState({}, document.title, cleanUrl);
+        // Check both regular query params and hash params
+        const error = params.get("error") || hashParams.get("error");
+        const errorDescription = params.get("error_description") || hashParams.get("error_description");
+        
+        if (error) {
+          console.error("Auth redirect error:", error, errorDescription);
+          toast({
+            title: "Authentication Error",
+            description: errorDescription || "There was a problem with authentication.",
+            variant: "destructive",
+          });
+          
+          // Clean up the URL to remove error parameters
+          if (window.history && window.history.replaceState) {
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+          }
         }
+      } catch (err) {
+        console.error("Error checking for auth redirect errors:", err);
       }
     };
     
@@ -79,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkForAuthRedirectErrors();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
