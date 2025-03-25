@@ -63,7 +63,8 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       }
       
       if (data) {
-        setCredits(data as UserCredits);
+        // Add proper type casting here to fix the error
+        setCredits(data as unknown as UserCredits);
       }
     } catch (error) {
       console.error('Error in refreshCredits:', error);
