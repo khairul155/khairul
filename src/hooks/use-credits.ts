@@ -81,6 +81,7 @@ export function useCredits() {
   // Fetch user credits from Supabase
   const fetchCredits = async () => {
     if (!user) {
+      setCredits(defaultCredits);
       setLoading(false);
       return;
     }
@@ -104,17 +105,21 @@ export function useCredits() {
     } catch (err) {
       console.error('Error fetching credits:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch credits'));
-      toast({
-        title: 'Error',
-        description: 'Failed to load credit information',
-        variant: 'destructive',
-      });
+      
+      // Don't show the error toast on Netlify - it will be handled by the provider
+      if (!window.location.hostname.includes('netlify')) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load credit information',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Use a tool and deduct credits
+  // Use a tool and deduct credits with better error handling
   const useTool = async (
     toolName: string, 
     creditsToUse: number = 1,
@@ -151,6 +156,11 @@ export function useCredits() {
               description: responseData.message as string,
               variant: 'default',
             });
+          } else {
+            toast({
+              title: 'Success',
+              description: `Used ${creditsToUse} credit${creditsToUse > 1 ? 's' : ''} for ${toolName}`,
+            });
           }
           
           onSuccess?.();
@@ -184,7 +194,7 @@ export function useCredits() {
     }
   };
 
-  // Upgrade user plan (demo function, no payment)
+  // Upgrade user plan with better error handling
   const upgradePlan = async (plan: SubscriptionPlan) => {
     if (!user) {
       toast({
@@ -225,14 +235,39 @@ export function useCredits() {
     }
   };
 
-  // Initial load and refresh on user change
+  // Initial load and refresh on user change with better error handling
   useEffect(() => {
-    fetchCredits();
+    let mounted = true;
     
-    // Set up a periodic refresh every 60 seconds
-    const interval = setInterval(fetchCredits, 60000);
+    const loadCredits = async () => {
+      try {
+        if (user && mounted) {
+          await fetchCredits();
+        } else if (!user && mounted) {
+          setCredits(defaultCredits);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Error in loadCredits:", err);
+        if (mounted) {
+          setError(err instanceof Error ? err : new Error("Failed to load credits"));
+          setLoading(false);
+        }
+      }
+    };
     
-    return () => clearInterval(interval);
+    loadCredits();
+    
+    // Set up a periodic refresh every 60 seconds, but only if user is logged in
+    let interval: number | undefined;
+    if (user) {
+      interval = window.setInterval(fetchCredits, 60000);
+    }
+    
+    return () => {
+      mounted = false;
+      if (interval) window.clearInterval(interval);
+    };
   }, [user]);
 
   return {

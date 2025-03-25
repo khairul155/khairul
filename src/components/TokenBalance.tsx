@@ -11,11 +11,20 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function TokenBalance() {
-  const { credits, loading } = useCreditsContext();
+  const { credits, loading, error } = useCreditsContext();
   
   const formatNumber = (num: number) => {
     return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : num.toString();
   };
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-700 bg-red-900/30">
+        <Coins className="h-4 w-4 text-red-500" />
+        <span className="text-sm font-medium text-red-500">Error</span>
+      </div>
+    );
+  }
 
   if (loading) {
     return <Skeleton className="h-9 w-20 rounded-md" />;
