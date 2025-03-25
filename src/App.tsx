@@ -22,14 +22,14 @@ import Pricing from "./pages/Pricing";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider>
-    <TooltipProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <CreditsProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+  <BrowserRouter>
+    <ThemeProvider>
+      <TooltipProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <CreditsProvider>
+              <Toaster />
+              <Sonner />
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth" element={<Auth />} />
@@ -45,12 +45,12 @@ const App = () => (
                 <Route path="/404" element={<NotFound />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </CreditsProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </TooltipProvider>
-  </ThemeProvider>
+            </CreditsProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </TooltipProvider>
+    </ThemeProvider>
+  </BrowserRouter>
 );
 
 export default App;
