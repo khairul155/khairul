@@ -2,9 +2,10 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Coins, Menu, X, Zap } from "lucide-react";
+import { Wand2, Menu, X, Coins, Zap } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import UserNav from "./UserNav";
+import CreditsDisplay from "./CreditsDisplay";
 import { useAuth } from "./AuthProvider";
 import { useCredits } from "@/hooks/use-credits";
 
@@ -43,18 +44,8 @@ const Navbar = () => {
     }
   };
 
-  const getMaxCredits = () => {
-    if (!credits) return null;
-    
-    if (credits.subscription_plan === 'free') {
-      return credits.daily_credits;
-    } else {
-      return credits.monthly_credits;
-    }
-  };
-
   // Determine if credits are low (less than 10% remaining)
-  const isLowCredits = () => {
+  const isLow = () => {
     if (!credits) return false;
     
     const remaining = getRemainingCredits();
@@ -70,6 +61,7 @@ const Navbar = () => {
         <div className="flex items-center space-x-8">
           {/* Logo */}
           <Link to="/" className="flex items-center">
+            <Wand2 className="h-6 w-6 text-blue-500 mr-2" />
             <span className="text-white font-bold text-xl">PixcraftAI</span>
           </Link>
 
@@ -88,7 +80,7 @@ const Navbar = () => {
             <Link 
               to="/pricing" 
               className={`hidden sm:flex items-center space-x-1 px-3 py-1.5 rounded-lg transition-colors ${
-                isLowCredits() 
+                isLow() 
                   ? "bg-red-600/20 text-red-400 hover:bg-red-600/30" 
                   : credits.slow_mode_enabled
                     ? "bg-amber-600/20 text-amber-400 hover:bg-amber-600/30"
@@ -101,7 +93,6 @@ const Navbar = () => {
                 <Coins className="h-4 w-4" />
               )}
               <span className="text-sm font-medium">{getRemainingCredits()}</span>
-              {isLowCredits() && <AlertCircle className="h-4 w-4 ml-1 text-red-400" />}
             </Link>
           )}
 
@@ -133,15 +124,10 @@ const Navbar = () => {
           {/* Credits Display in Mobile Menu */}
           {user && !isLoading && credits && (
             <div className="flex items-center space-x-2 py-2 px-1">
-              {credits.slow_mode_enabled ? (
-                <Zap className={`h-4 w-4 ${isLowCredits() ? "text-red-400" : "text-amber-400"}`} />
-              ) : (
-                <Coins className={`h-4 w-4 ${isLowCredits() ? "text-red-400" : "text-blue-400"}`} />
-              )}
-              <span className={`text-sm ${isLowCredits() ? "text-red-400" : "text-gray-300"}`}>
-                Credits: {getRemainingCredits()}/{getMaxCredits()}
+              <Coins className={`h-4 w-4 ${isLow() ? "text-red-400" : "text-blue-400"}`} />
+              <span className={`text-sm ${isLow() ? "text-red-400" : "text-gray-300"}`}>
+                Credits: {getRemainingCredits()}
               </span>
-              {isLowCredits() && <AlertCircle className="h-4 w-4 text-red-400" />}
             </div>
           )}
         </div>

@@ -55,7 +55,6 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
 
   const refreshCredits = async () => {
     try {
-      setIsLoading(true);
       const { data, error } = await supabase.rpc('get_user_credits');
       
       if (error) {
@@ -64,7 +63,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       }
       
       if (data) {
-        // Cast data to UserCredits type
+        // Add proper type casting here to fix the error
         setCredits(data as unknown as UserCredits);
       }
     } catch (error) {
@@ -78,7 +77,6 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     // Only fetch credits if the user is authenticated
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event) => {
-        console.log('Auth state changed:', event);
         if (event === 'SIGNED_IN') {
           await refreshCredits();
         } else if (event === 'SIGNED_OUT') {
