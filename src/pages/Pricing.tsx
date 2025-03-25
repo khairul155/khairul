@@ -1,12 +1,15 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
-import { Check, Coins, ArrowRight, ChevronRight } from "lucide-react";
+import { Check, Coins, ArrowRight, ChevronRight, Shield, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { useCredits, SubscriptionPlan } from "@/hooks/use-credits";
+import { supabase } from "@/integrations/supabase/client";
+import CreditsDisplay from "@/components/CreditsDisplay";
 
 const pricingPlans = [
   {
@@ -26,7 +29,8 @@ const pricingPlans = [
     popular: false,
     tokens: 60,
     buttonText: "Your Current Plan",
-    buttonVariant: "outline" as const
+    buttonVariant: "outline" as const,
+    planId: "free" as SubscriptionPlan
   },
   {
     name: "Basic",
@@ -45,7 +49,8 @@ const pricingPlans = [
     popular: false,
     tokens: 3400,
     buttonText: "Get Basic",
-    buttonVariant: "default" as const
+    buttonVariant: "default" as const,
+    planId: "basic" as SubscriptionPlan
   },
   {
     name: "Advanced",
@@ -64,7 +69,8 @@ const pricingPlans = [
     popular: true,
     tokens: 8000,
     buttonText: "Get Advanced",
-    buttonVariant: "default" as const
+    buttonVariant: "default" as const,
+    planId: "advanced" as SubscriptionPlan
   },
   {
     name: "Pro",
@@ -83,7 +89,8 @@ const pricingPlans = [
     popular: false,
     tokens: 18000,
     buttonText: "Get Pro",
-    buttonVariant: "default" as const
+    buttonVariant: "default" as const,
+    planId: "pro" as SubscriptionPlan
   }
 ];
 
@@ -93,11 +100,13 @@ type PlanCategory = "personal" | "business";
 const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [planCategory, setPlanCategory] = useState<PlanCategory>("personal");
+  const [updating, setUpdating] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { credits, refreshCredits } = useCredits();
   
-  const handlePlanSelection = (planName: string) => {
+  const handlePlanSelection = async (planName: string, planId: SubscriptionPlan) => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -108,11 +117,81 @@ const Pricing = () => {
       return;
     }
     
-    // For now, just show a toast since we don't have payment integration
-    toast({
-      title: `${planName} plan selected`,
-      description: "Payment integration coming soon!",
-    });
+    // Check if this is already the user's plan
+    if (credits?.subscription_plan === planId) {
+      toast({
+        title: "Already subscribed",
+        description: `You are already on the ${planName} plan`,
+      });
+      return;
+    }
+    
+    setUpdating(planId);
+    
+    try {
+      // Call the edge function to update the subscription
+      const { data, error } = await supabase.functions.invoke('update-subscription', {
+        body: { 
+          userId: user.id,
+          plan: planId
+        }
+      });
+      
+      if (error) {
+        console.error('Error updating subscription:', error);
+        throw new Error('Failed to update subscription');
+      }
+      
+      // Refresh credits to update UI
+      await refreshCredits();
+      
+      toast({
+        title: "Subscription updated",
+        description: `Your plan has been updated to ${planName}`,
+      });
+    } catch (error) {
+      console.error('Error in plan selection:', error);
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your subscription. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  // Helper function to determine button state
+  const getButtonProps = (plan: typeof pricingPlans[0]) => {
+    // If we're currently updating this plan
+    if (updating === plan.planId) {
+      return {
+        disabled: true,
+        children: (
+          <>
+            <span className="animate-spin mr-2">⏳</span>
+            Updating...
+          </>
+        )
+      };
+    }
+    
+    // If this is the user's current plan
+    if (credits?.subscription_plan === plan.planId) {
+      return {
+        disabled: true,
+        variant: "outline" as const,
+        children: "Current Plan"
+      };
+    }
+    
+    // Default state
+    return {
+      disabled: false,
+      variant: plan.buttonVariant,
+      onClick: () => handlePlanSelection(plan.name, plan.planId),
+      children: plan.buttonText
+    };
   };
 
   return (
@@ -127,6 +206,12 @@ const Pricing = () => {
           <p className="text-lg text-gray-300 mb-8">
             Choose the perfect plan for your creative needs
           </p>
+          
+          {user && credits && (
+            <div className="mb-8 max-w-md mx-auto">
+              <CreditsDisplay showUpgradeButton={false} />
+            </div>
+          )}
           
           <div className="inline-flex p-1 rounded-full bg-gray-800 mb-10">
             <button
@@ -179,13 +264,21 @@ const Pricing = () => {
                 "relative rounded-xl overflow-hidden border transition-all",
                 plan.popular 
                   ? "border-purple-500 shadow-lg shadow-purple-500/20" 
-                  : "border-gray-800 hover:border-gray-700",
+                  : credits?.subscription_plan === plan.planId
+                    ? "border-blue-500"
+                    : "border-gray-800 hover:border-gray-700",
                 "bg-gray-900 backdrop-blur-sm"
               )}
             >
               {plan.popular && (
                 <div className="absolute top-0 right-0 bg-purple-600 text-white text-xs font-bold py-1 px-3 rounded-bl-lg">
                   Most popular
+                </div>
+              )}
+              
+              {credits?.subscription_plan === plan.planId && (
+                <div className="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold py-1 px-3 rounded-bl-lg">
+                  Current Plan
                 </div>
               )}
               
@@ -203,17 +296,19 @@ const Pricing = () => {
                 </div>
                 
                 <Button 
-                  variant={plan.buttonVariant} 
+                  variant={getButtonProps(plan).variant}
                   className={cn(
                     "w-full mb-6",
-                    plan.name === "Free" 
+                    plan.name === "Free" && credits?.subscription_plan !== "free"
                       ? "bg-gray-700 hover:bg-gray-600" 
-                      : "bg-purple-600 hover:bg-purple-700"
+                      : plan.popular
+                        ? "bg-purple-600 hover:bg-purple-700"
+                        : "bg-blue-600 hover:bg-blue-700"
                   )}
-                  onClick={() => handlePlanSelection(plan.name)}
-                  disabled={plan.name === "Free"}
+                  onClick={getButtonProps(plan).onClick}
+                  disabled={getButtonProps(plan).disabled}
                 >
-                  {plan.buttonText}
+                  {getButtonProps(plan).children}
                 </Button>
                 
                 <ul className="space-y-3 text-sm">
@@ -244,6 +339,20 @@ const Pricing = () => {
           <Button className="bg-white text-gray-900 hover:bg-gray-200">
             Contact Sales <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
+        </div>
+        
+        <div className="max-w-3xl mx-auto mt-12 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+          <div className="flex items-start">
+            <AlertTriangle className="h-6 w-6 text-yellow-500 mt-1 mr-3 flex-shrink-0" />
+            <div>
+              <h4 className="text-lg font-medium text-yellow-400 mb-2">Demo Mode Note</h4>
+              <p className="text-sm text-gray-300">
+                This is a demonstration of the credit system. In a production environment, 
+                plan selection would be connected to a payment processor. For now, you can 
+                freely switch between plans to test the credit system functionality.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
       
