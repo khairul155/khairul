@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "./AuthProvider";
 import { Link, useNavigate } from "react-router-dom";
 import { useCredits } from "@/hooks/use-credits";
-import { AlertCircle, Coins, Zap } from "lucide-react";
+import { AlertCircle, Coins, LogOut, Zap } from "lucide-react";
 
 const UserNav = () => {
   const { user, signOut } = useAuth();
@@ -20,8 +20,12 @@ const UserNav = () => {
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
+    try {
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   if (!user) {
@@ -123,7 +127,8 @@ const UserNav = () => {
             Pricing
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-500 focus:text-red-500">
+          <LogOut className="h-4 w-4 mr-2" />
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>

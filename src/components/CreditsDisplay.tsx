@@ -2,6 +2,7 @@
 import { useCredits } from "@/hooks/use-credits";
 import { Coins, Zap, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 interface CreditsDisplayProps {
   className?: string;
@@ -18,9 +19,35 @@ const CreditsDisplay = ({
   compact = false,
   showUpgradeButton = true
 }: CreditsDisplayProps) => {
-  const { credits, isLoading } = useCredits();
+  const { credits, isLoading, refreshCredits } = useCredits();
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
-  if (isLoading || !credits) {
+  // Initial loading of credits
+  useEffect(() => {
+    if (credits && !hasLoadedOnce) {
+      setHasLoadedOnce(true);
+    }
+  }, [credits, hasLoadedOnce]);
+
+  // Refresh credits periodically
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      refreshCredits();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [refreshCredits]);
+
+  // Force refresh when component mounts
+  useEffect(() => {
+    refreshCredits();
+  }, [refreshCredits]);
+
+  if (isLoading && !hasLoadedOnce) {
+    return null;
+  }
+
+  if (!credits) {
     return null;
   }
 

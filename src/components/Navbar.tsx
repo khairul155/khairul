@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Coins, Menu, X, Zap } from "lucide-react";
@@ -30,7 +30,20 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children, mobile }) => {
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
-  const { credits, isLoading } = useCredits();
+  const { credits, isLoading, refreshCredits } = useCredits();
+
+  // Refresh credits when the navbar loads and periodically
+  useEffect(() => {
+    if (user) {
+      refreshCredits();
+      
+      const interval = setInterval(() => {
+        refreshCredits();
+      }, 30000); // Refresh every 30 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [user, refreshCredits]);
 
   // Calculate remaining credits
   const getRemainingCredits = () => {
@@ -84,7 +97,7 @@ const Navbar = () => {
         {/* Right Side: Credits, Theme Toggle, Login/User Menu */}
         <div className="flex items-center space-x-4">
           {/* Credits Display for Logged-in Users */}
-          {user && !isLoading && credits && (
+          {user && credits && (
             <Link 
               to="/pricing" 
               className={`hidden sm:flex items-center space-x-1 px-3 py-1.5 rounded-lg transition-colors ${
@@ -131,7 +144,7 @@ const Navbar = () => {
           <NavLink href="/pricing" mobile>Pricing</NavLink>
           
           {/* Credits Display in Mobile Menu */}
-          {user && !isLoading && credits && (
+          {user && credits && (
             <div className="flex items-center space-x-2 py-2 px-1">
               {credits.slow_mode_enabled ? (
                 <Zap className={`h-4 w-4 ${isLowCredits() ? "text-red-400" : "text-amber-400"}`} />
