@@ -1,170 +1,67 @@
 
-import React from "react";
-import { useCredits, formatCreditsDisplay } from "@/hooks/use-credits";
-import { Coins, Hourglass, Zap, AlertTriangle } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { useCredits } from "@/hooks/use-credits";
+import { Coins, Zap, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
 
 interface CreditsDisplayProps {
-  compact?: boolean;
-  showUpgradeButton?: boolean;
+  className?: string;
+  showWarning?: boolean;
+  iconSize?: number;
 }
 
-const CreditsDisplay: React.FC<CreditsDisplayProps> = ({ 
-  compact = false,
-  showUpgradeButton = true
-}) => {
-  const { credits, isLoading, getRemainingCredits } = useCredits();
-  
-  if (isLoading) {
-    return (
-      <div className="flex items-center space-x-2">
-        <Skeleton className="h-4 w-4 rounded-full" />
-        <Skeleton className="h-4 w-24" />
-      </div>
-    );
-  }
-  
-  if (!credits) {
+const CreditsDisplay = ({ className = "", showWarning = true, iconSize = 4 }: CreditsDisplayProps) => {
+  const { credits, isLoading } = useCredits();
+
+  if (isLoading || !credits) {
     return null;
   }
-  
-  const remaining = getRemainingCredits();
-  const isPaid = credits.subscription_plan !== 'free';
-  
-  // Determine the total credits based on subscription plan
-  const totalCredits = isPaid ? credits.monthly_credits : credits.daily_credits;
-  const usedCredits = isPaid ? credits.credits_used_this_month : credits.credits_used_today;
-  
-  // Calculate percentage for progress bar
-  const percentage = totalCredits > 0 ? Math.min(100, (usedCredits / totalCredits) * 100) : 0;
-  
-  // Determine if credits are low (less than 10% remaining)
-  const isLow = remaining !== null && remaining < totalCredits * 0.1;
 
-  // Format the plan name with proper capitalization
-  const formatPlanName = (plan) => {
+  // Calculate remaining credits based on subscription plan
+  const remainingCredits = credits.subscription_plan === 'free'
+    ? credits.daily_credits - credits.credits_used_today
+    : credits.monthly_credits - credits.credits_used_this_month;
+
+  const totalCredits = credits.subscription_plan === 'free'
+    ? credits.daily_credits
+    : credits.monthly_credits;
+
+  // Determine if credits are low (less than 10% remaining)
+  const isLowCredits = remainingCredits < totalCredits * 0.1;
+
+  // Format plan name
+  const formatPlanName = (plan: string) => {
     return plan.charAt(0).toUpperCase() + plan.slice(1);
   };
-  
-  if (compact) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className={cn(
-              "flex items-center space-x-1 cursor-help px-3 py-1.5 rounded-lg",
-              credits.slow_mode_enabled 
-                ? "bg-amber-800/70 hover:bg-amber-700/70 text-amber-300"
-                : isLow
-                  ? "bg-red-800/70 hover:bg-red-700/70 text-red-300"
-                  : "bg-purple-800/70 hover:bg-purple-700/70 text-white"
-            )}>
-              {credits.slow_mode_enabled ? (
-                <Hourglass className="h-4 w-4" />
-              ) : (
-                <Coins className="h-4 w-4" />
-              )}
-              <span className="text-sm font-medium">
-                {remaining ?? 0}
-              </span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <div className="space-y-2 p-1">
-              <p className="text-sm font-medium">
-                {credits.slow_mode_enabled ? 'Slow Mode Active' : `${remaining ?? 0} credits remaining`}
-              </p>
-              <p className="text-xs text-gray-400">
-                Plan: {formatPlanName(credits.subscription_plan)}
-              </p>
-              <p className="text-xs text-gray-400">
-                {isPaid ? 'Monthly' : 'Daily'} limit: {formatCreditsDisplay(usedCredits, totalCredits)}
-              </p>
-              {credits.slow_mode_enabled && (
-                <p className="text-xs text-amber-400">
-                  All monthly credits used. Operations will be slower.
-                </p>
-              )}
-              {isLow && !credits.slow_mode_enabled && (
-                <p className="text-xs text-red-400">
-                  Credits running low! Consider upgrading.
-                </p>
-              )}
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-  
+
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 shadow-sm">
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex items-center space-x-2">
-          {credits.slow_mode_enabled ? (
-            <Hourglass className="h-5 w-5 text-amber-400" />
-          ) : (
-            <Coins className={`h-5 w-5 ${isLow ? 'text-red-400' : 'text-purple-400'}`} />
-          )}
-          <h3 className="font-medium text-white">Credits</h3>
-        </div>
-        <div className="text-sm bg-gray-800 px-2 py-0.5 rounded text-gray-300">
-          {formatPlanName(credits.subscription_plan)}
+    <Link
+      to="/pricing"
+      className={`flex flex-col items-center space-y-1 rounded-lg p-2.5 transition-colors hover:bg-gray-800 ${className}`}
+    >
+      <div className="flex items-center">
+        {credits.slow_mode_enabled ? (
+          <Zap className={`h-${iconSize} w-${iconSize} text-amber-500 mr-1.5`} />
+        ) : (
+          <Coins className={`h-${iconSize} w-${iconSize} text-yellow-500 mr-1.5`} />
+        )}
+        <div className="flex flex-col">
+          <span className="text-xs text-gray-400">
+            {formatPlanName(credits.subscription_plan)} Plan
+          </span>
+          <div className="flex items-center">
+            <span className={`font-medium ${isLowCredits ? 'text-red-400' : 'text-white'}`}>
+              {remainingCredits.toLocaleString()} / {totalCredits.toLocaleString()}
+            </span>
+            {showWarning && isLowCredits && (
+              <AlertCircle className="h-3 w-3 ml-1.5 text-red-400" />
+            )}
+          </div>
         </div>
       </div>
-      
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className={isLow ? 'text-red-400 font-medium' : 'text-gray-300'}>
-              {remaining} credits remaining
-            </span>
-            <span className="text-gray-400">
-              {formatCreditsDisplay(usedCredits, totalCredits)}
-            </span>
-          </div>
-          <Progress 
-            value={percentage} 
-            className={cn(
-              "h-2 bg-gray-800", 
-              isLow ? "text-red-500" : "text-purple-500"
-            )} 
-          />
-        </div>
-        
-        {credits.slow_mode_enabled && (
-          <div className="flex items-start space-x-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded px-3 py-2">
-            <Hourglass className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
-            <span className="text-amber-400">
-              You're in slow mode. Operations will take longer to complete.
-            </span>
-          </div>
-        )}
-        
-        {isLow && !credits.slow_mode_enabled && (
-          <div className="flex items-start space-x-2 text-xs bg-red-500/10 border border-red-500/20 rounded px-3 py-2">
-            <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
-            <span className="text-red-400">
-              You're running low on credits. Consider upgrading your plan for more.
-            </span>
-          </div>
-        )}
-        
-        {showUpgradeButton && (credits.subscription_plan === 'free' || isLow) && (
-          <Button size="sm" className="w-full bg-purple-800 hover:bg-purple-700" asChild>
-            <Link to="/pricing" className="flex items-center justify-center gap-1.5">
-              <Zap className="h-4 w-4" />
-              Upgrade Now
-            </Link>
-          </Button>
-        )}
-      </div>
-    </div>
+      {showWarning && isLowCredits && (
+        <span className="text-xs text-red-400">Running low! Upgrade?</span>
+      )}
+    </Link>
   );
 };
 
