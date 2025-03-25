@@ -1,5 +1,4 @@
-
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -51,10 +50,17 @@ export const formatCreditsDisplay = (used: number, total: number): string => {
 export const CreditsProvider = ({ children }: { children: React.ReactNode }) => {
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const { toast } = useToast();
 
-  const refreshCredits = async () => {
+  const refreshCredits = useCallback(async () => {
     try {
+      // Prevent excessive refreshes by adding a minimum time between refreshes
+      const now = Date.now();
+      if (now - lastRefreshTime < 5000) { // Don't refresh if less than 5 seconds have passed
+        return;
+      }
+      
       setIsLoading(true);
       const { data, error } = await supabase.rpc('get_user_credits');
       
@@ -66,20 +72,21 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       if (data) {
         // Cast data to UserCredits type
         setCredits(data as unknown as UserCredits);
+        setLastRefreshTime(now);
       }
     } catch (error) {
       console.error('Error in refreshCredits:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [lastRefreshTime]);
 
   useEffect(() => {
     // Only fetch credits if the user is authenticated
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event) => {
         console.log('Auth state changed:', event);
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
           await refreshCredits();
         } else if (event === 'SIGNED_OUT') {
           setCredits(null);
@@ -99,7 +106,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [refreshCredits]);
 
   const formatToolName = (toolType: string): string => {
     switch (toolType) {

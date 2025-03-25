@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,21 +17,28 @@ import { AlertCircle, Coins, Zap } from "lucide-react";
 
 const UserNav = () => {
   const { user, signOut } = useAuth();
-  const { credits, refreshCredits } = useCredits();
+  const { credits, isLoading, refreshCredits } = useCredits();
   const navigate = useNavigate();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Refresh credits when component mounts to ensure we have the latest data
+  // Only refresh credits once when the component mounts
   useEffect(() => {
-    if (user) {
-      refreshCredits();
+    if (user && !isRefreshing) {
+      setIsRefreshing(true);
+      refreshCredits().finally(() => {
+        setIsRefreshing(false);
+      });
     }
+  }, [user, refreshCredits]);
+  
+  // Set up periodic refresh with a longer interval to avoid frequent re-renders
+  useEffect(() => {
+    // Only set up the interval if the user is logged in
+    if (!user) return;
     
-    // Set up periodic refresh every 30 seconds to keep credits updated
     const intervalId = setInterval(() => {
-      if (user) {
-        refreshCredits();
-      }
-    }, 30000);
+      refreshCredits();
+    }, 60000); // Refresh every minute instead of every 30 seconds
     
     return () => clearInterval(intervalId);
   }, [user, refreshCredits]);
