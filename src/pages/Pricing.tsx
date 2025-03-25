@@ -131,19 +131,18 @@ const Pricing = () => {
         
         try {
           setIsVerifying(true);
-          const response = await fetch(`${supabase.functions.invoke.getBaseUrl()}/process-payment/verify`, {
+          // Fix: use the correct method to invoke edge function
+          const { data, error } = await supabase.functions.invoke('process-payment/verify', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabase.auth.getSession()}`
-            },
             body: JSON.stringify({
               transactionId: txnId,
               userId: user?.id
             })
           });
           
-          const data = await response.json();
+          if (error) {
+            throw error;
+          }
           
           if (data.success) {
             setPaymentStatus("success");
@@ -210,21 +209,20 @@ const Pricing = () => {
     setPaymentDialog(true);
     
     try {
-      const response = await fetch(`${supabase.functions.invoke.getBaseUrl()}/process-payment/initiate`, {
+      // Fix: use the correct method to invoke edge function
+      const { data, error } = await supabase.functions.invoke('process-payment/initiate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession()}`
-        },
         body: JSON.stringify({
           userId: user.id,
           userEmail: user.email,
           plan: selectedPlan,
           redirectUrl: window.location.href
-        })
+        }
       });
       
-      const data = await response.json();
+      if (error) {
+        throw error;
+      }
       
       if (data.url) {
         setTransactionRef(data.transactionRef || null);
@@ -449,7 +447,7 @@ const Pricing = () => {
                   {selectedPlan === 'free' && <Shield className="h-6 w-6 text-purple-600" />}
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-sm font-semibold">{formatPlanName(selectedPlan)} Plan</h4>
+                  <h4 className="text-sm font-semibold">{formatPlanName(selectedPlan)}</h4>
                   <p className="text-sm text-muted-foreground">
                     {selectedPlan === 'basic' && '$10/month · 3,400 tokens/month'}
                     {selectedPlan === 'advanced' && '$25/month · 8,000 tokens/month'}

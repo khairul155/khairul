@@ -33,4 +33,4 @@
     [headers.values]
       X-Frame-Options = "DENY"
       X-XSS-Protection = "1; mode=block"
-      Content-Security-Policy = "frame-ancestors 'none'; default-src 'self'; connect-src 'self' https://napbrxjntjvkjwlcpwql.supabase.co wss://*.supabase.co https://pay.drutopay.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; form-action 'self' https://pay.drutopay.com;"
+      Content-Security-Policy = "frame-ancestors 'none'; default-src 'self'; connect-src 'self' https://napbrxjntjvkjwlcpwql.supabase.co wss://*.supabase.co https://pay.drutopay.com https://*.functions.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; form-action 'self' https://pay.drutopay.com;"
