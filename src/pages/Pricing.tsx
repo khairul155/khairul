@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
-import { Check, Coins, ArrowRight, ChevronRight, Sparkles, Zap, Shield, Loader2 } from "lucide-react";
+import { Check, Coins, ArrowRight, ChevronRight, Sparkles, Zap, Shield, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
@@ -115,7 +114,6 @@ const Pricing = () => {
   const { toast } = useToast();
   const { credits, fetchCredits, loading: creditsLoading } = useCredits();
   
-  // Effect to check for transaction ID in URL (after payment redirect)
   useEffect(() => {
     const checkTransactionStatus = async () => {
       const url = new URL(window.location.href);
@@ -133,11 +131,11 @@ const Pricing = () => {
         
         try {
           setIsVerifying(true);
-          const response = await fetch(`${supabase.supabaseUrl}/functions/v1/process-payment/verify`, {
+          const response = await fetch(`${supabase.functions.invoke.getBaseUrl()}/process-payment/verify`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabase.supabaseKey}`
+              'Authorization': `Bearer ${supabase.auth.getSession()}`
             },
             body: JSON.stringify({
               transactionId: txnId,
@@ -180,7 +178,7 @@ const Pricing = () => {
     
     checkTransactionStatus();
   }, [user]);
-  
+
   const handlePlanSelection = (plan: SubscriptionPlan) => {
     if (!user) {
       toast({
@@ -192,7 +190,6 @@ const Pricing = () => {
       return;
     }
     
-    // Do not allow selecting the current plan
     if (credits.subscription_plan === plan) {
       toast({
         title: "Already subscribed",
@@ -201,7 +198,6 @@ const Pricing = () => {
       return;
     }
     
-    // Open confirmation dialog
     setSelectedPlan(plan);
     setConfirmDialog(true);
   };
@@ -214,11 +210,11 @@ const Pricing = () => {
     setPaymentDialog(true);
     
     try {
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/process-payment/initiate`, {
+      const response = await fetch(`${supabase.functions.invoke.getBaseUrl()}/process-payment/initiate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`
+          'Authorization': `Bearer ${supabase.auth.getSession()}`
         },
         body: JSON.stringify({
           userId: user.id,
@@ -232,7 +228,6 @@ const Pricing = () => {
       
       if (data.url) {
         setTransactionRef(data.transactionRef || null);
-        // Redirect to payment gateway
         window.location.href = data.url;
       } else {
         setPaymentStatus("error");
@@ -262,7 +257,6 @@ const Pricing = () => {
     setTransactionRef(null);
   };
 
-  // Format the plan name for display
   const formatPlanName = (plan: SubscriptionPlan): string => {
     return plan.charAt(0).toUpperCase() + plan.slice(1);
   };
@@ -435,7 +429,6 @@ const Pricing = () => {
         </div>
       </div>
       
-      {/* Plan Confirmation Dialog */}
       <Dialog open={confirmDialog} onOpenChange={setConfirmDialog}>
         <DialogContent>
           <DialogHeader>
@@ -487,7 +480,6 @@ const Pricing = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Payment Status Dialog */}
       <Dialog open={paymentDialog} onOpenChange={closePaymentDialog}>
         <DialogContent>
           <DialogHeader>
