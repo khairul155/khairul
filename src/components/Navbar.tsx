@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
+import { TokenBalance } from "@/components/TokenBalance";
 import { 
   Menu, 
   X, 
@@ -191,6 +192,8 @@ const Navbar = () => {
 
           {/* Right Side: Auth & Menu */}
           <div className="flex items-center space-x-4">
+            {user && <TokenBalance />}
+            
             <ThemeToggle />
 
             {user ? (

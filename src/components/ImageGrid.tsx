@@ -2,6 +2,8 @@
 import React from 'react';
 import { Download, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useCreditsContext } from '@/components/CreditsProvider';
 
 interface ImageGridProps {
   images: string[];
@@ -11,7 +13,10 @@ interface ImageGridProps {
 }
 
 const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate, generationTime }) => {
-  const downloadImage = (imageUrl: string, index: number) => {
+  const { toast } = useToast();
+  const { useTool } = useCreditsContext();
+  
+  const downloadImage = async (imageUrl: string, index: number) => {
     // Convert webp to jpg for download
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -31,11 +36,21 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate, gen
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      // Removed toast notification here
     };
     
     img.src = imageUrl;
+  };
+
+  const handleRegenerate = async () => {
+    // Use 1 credit for regeneration
+    const result = await useTool('image_generator', 1, 
+      // On success, call the onRegenerate callback
+      () => onRegenerate(),
+      // On error, show a toast (useTool already shows a toast, but this is a fallback)
+      (message) => {
+        // The useTool function already shows a toast, so this is just a fallback
+      }
+    );
   };
 
   return (
@@ -60,7 +75,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate, gen
             {/* Buttons without darkening overlay */}
             <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <Button 
-                onClick={onRegenerate} 
+                onClick={handleRegenerate} 
                 variant="outline" 
                 size="sm" 
                 className="rounded-full bg-black/70 backdrop-blur-sm hover:bg-[#3C3D37] hover:text-[#FFA725] border-white/20 text-white"
