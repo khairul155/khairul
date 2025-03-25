@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      payment_logs: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          id: string
+          payment_id: string | null
+          plan: string
+          prorated: boolean | null
+          prorated_credits: number | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          plan: string
+          prorated?: boolean | null
+          prorated_credits?: number | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          plan?: string
+          prorated?: boolean | null
+          prorated_credits?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -144,6 +177,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_user_subscription_with_payment: {
+        Args: {
+          _user_id: string
+          _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          _payment_id?: string
+          _prorated_credits?: number
+        }
+        Returns: undefined
+      }
       use_tool: {
         Args: {
           _user_id: string
@@ -154,7 +196,7 @@ export type Database = {
       }
     }
     Enums: {
-      subscription_plan: "free" | "pro"
+      subscription_plan: "free" | "pro" | "basic" | "advanced"
     }
     CompositeTypes: {
       [_ in never]: never
