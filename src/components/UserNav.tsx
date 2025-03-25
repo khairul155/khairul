@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "./AuthProvider";
 import { Link, useNavigate } from "react-router-dom";
 import { useCredits } from "@/hooks/use-credits";
-import { Coins } from "lucide-react";
+import { AlertCircle, Coins, Zap } from "lucide-react";
 
 const UserNav = () => {
   const { user, signOut } = useAuth();
@@ -60,9 +60,17 @@ const UserNav = () => {
   };
 
   // Format plan name to capitalize first letter
-  const formatPlanName = (plan) => {
+  const formatPlanName = (plan: string) => {
     if (!plan) return '';
     return plan.charAt(0).toUpperCase() + plan.slice(1);
+  };
+
+  // Check if credits are low (less than 10%)
+  const isLowCredits = () => {
+    const remaining = getRemainingCredits();
+    const max = getMaxCredits();
+    if (!remaining || !max) return false;
+    return remaining < (max * 0.1);
   };
 
   return (
@@ -84,14 +92,26 @@ const UserNav = () => {
             </p>
             {credits && (
               <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs font-medium">
-                  Plan: {formatPlanName(credits.subscription_plan)}
+                <p className="text-xs font-medium flex items-center justify-between">
+                  <span>Plan: {formatPlanName(credits.subscription_plan)}</span>
+                  {isLowCredits() && (
+                    <span className="text-red-500 flex items-center text-xs">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      Low
+                    </span>
+                  )}
                 </p>
-                <div className="flex items-center text-xs mt-1">
-                  <Coins className="h-3 w-3 mr-1 text-yellow-500" />
-                  <span className={getRemainingCredits() < getMaxCredits() * 0.1 ? "text-red-500" : ""}>
-                    Credits: {getRemainingCredits()}/{getMaxCredits()}
-                  </span>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <div className="flex items-center">
+                    {credits.slow_mode_enabled ? (
+                      <Zap className="h-3 w-3 mr-1 text-amber-500" />
+                    ) : (
+                      <Coins className="h-3 w-3 mr-1 text-yellow-500" />
+                    )}
+                    <span className={isLowCredits() ? "text-red-500" : ""}>
+                      Credits: {getRemainingCredits()}/{getMaxCredits()}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
