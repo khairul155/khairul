@@ -2,52 +2,17 @@
 import { useCredits } from "@/hooks/use-credits";
 import { Coins, Zap, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
 
 interface CreditsDisplayProps {
   className?: string;
   showWarning?: boolean;
   iconSize?: number;
-  compact?: boolean;
-  showUpgradeButton?: boolean;
 }
 
-const CreditsDisplay = ({ 
-  className = "", 
-  showWarning = true, 
-  iconSize = 4,
-  compact = false,
-  showUpgradeButton = true
-}: CreditsDisplayProps) => {
-  const { credits, isLoading, refreshCredits } = useCredits();
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+const CreditsDisplay = ({ className = "", showWarning = true, iconSize = 4 }: CreditsDisplayProps) => {
+  const { credits, isLoading } = useCredits();
 
-  // Initial loading of credits
-  useEffect(() => {
-    if (credits && !hasLoadedOnce) {
-      setHasLoadedOnce(true);
-    }
-  }, [credits, hasLoadedOnce]);
-
-  // Refresh credits periodically
-  useEffect(() => {
-    const refreshInterval = setInterval(() => {
-      refreshCredits();
-    }, 30000); // Refresh every 30 seconds
-    
-    return () => clearInterval(refreshInterval);
-  }, [refreshCredits]);
-
-  // Force refresh when component mounts
-  useEffect(() => {
-    refreshCredits();
-  }, [refreshCredits]);
-
-  if (isLoading && !hasLoadedOnce) {
-    return null;
-  }
-
-  if (!credits) {
+  if (isLoading || !credits) {
     return null;
   }
 
@@ -67,28 +32,6 @@ const CreditsDisplay = ({
   const formatPlanName = (plan: string) => {
     return plan.charAt(0).toUpperCase() + plan.slice(1);
   };
-
-  // If compact mode is enabled, show a simplified version
-  if (compact) {
-    return (
-      <Link
-        to="/pricing"
-        className={`flex items-center rounded-lg p-2 transition-colors hover:bg-gray-800 ${className}`}
-      >
-        {credits.slow_mode_enabled ? (
-          <Zap className={`h-4 w-4 text-amber-500 mr-1.5`} />
-        ) : (
-          <Coins className={`h-4 w-4 text-yellow-500 mr-1.5`} />
-        )}
-        <span className={`text-sm font-medium ${isLowCredits ? 'text-red-400' : 'text-white'}`}>
-          {remainingCredits.toLocaleString()}
-        </span>
-        {showWarning && isLowCredits && (
-          <AlertCircle className="h-3 w-3 ml-1 text-red-400" />
-        )}
-      </Link>
-    );
-  }
 
   return (
     <Link
@@ -115,7 +58,7 @@ const CreditsDisplay = ({
           </div>
         </div>
       </div>
-      {showWarning && isLowCredits && showUpgradeButton && (
+      {showWarning && isLowCredits && (
         <span className="text-xs text-red-400">Running low! Upgrade?</span>
       )}
     </Link>

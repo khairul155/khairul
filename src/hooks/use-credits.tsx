@@ -96,18 +96,8 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       }
     });
 
-    // Set up polling for credits refresh
-    const refreshInterval = setInterval(() => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          refreshCredits();
-        }
-      });
-    }, 60000); // Refresh every minute
-
     return () => {
       subscription.unsubscribe();
-      clearInterval(refreshInterval);
     };
   }, []);
 
