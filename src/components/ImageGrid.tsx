@@ -42,8 +42,8 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, prompt, onRegenerate, gen
   };
 
   const handleRegenerate = async () => {
-    // Use 1 credit for regeneration
-    const result = await useTool('image_generator', 1, 
+    // Use 4 tokens for regeneration
+    const result = await useTool('image_generator', 4, 
       // On success, call the onRegenerate callback
       () => onRegenerate(),
       // On error, show a toast (useTool already shows a toast, but this is a fallback)

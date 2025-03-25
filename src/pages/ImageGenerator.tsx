@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
 import { useAuth } from "@/components/AuthProvider";
 import TypingEffect from "@/components/TypingEffect";
+import { useCreditsContext } from "@/components/CreditsProvider";
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
@@ -22,6 +22,7 @@ const ImageGenerator = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { useTool } = useCreditsContext();
   const navigate = useNavigate();
   
   // Generation settings with updated default steps for fast mode
@@ -53,6 +54,18 @@ const ImageGenerator = () => {
         description: "Please sign in to generate images",
       });
       navigate("/auth");
+      return;
+    }
+
+    // Calculate number of tokens to use based on settings
+    // Higher step count = more tokens
+    const tokensToUse = Math.max(4, Math.ceil(generationSettings.steps / 2));
+    
+    // Use tokens for image generation
+    const result = await useTool('image_generator', tokensToUse);
+    
+    if (!result.success) {
+      // useTool already shows a toast for failure
       return;
     }
 
@@ -90,6 +103,12 @@ const ImageGenerator = () => {
       // Handle multiple images if the API supports it
       const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
       setGeneratedImages(images);
+      
+      toast({
+        title: "Image generated successfully",
+        description: `Used ${tokensToUse} tokens for this generation.`,
+        variant: "default",
+      });
       
     } catch (error) {
       console.error('Error generating image:', error);
@@ -135,6 +154,14 @@ const ImageGenerator = () => {
   const getInspiration = async () => {
     setIsLoadingPrompt(true);
     try {
+      // First check if we have tokens for this operation
+      const result = await useTool('prompt_suggestion', 1);
+      if (!result.success) {
+        // useTool already shows a toast for failure
+        setIsLoadingPrompt(false);
+        return;
+      }
+      
       const { data, error } = await supabase.functions.invoke('generate-prompt', {
         body: {}
       });

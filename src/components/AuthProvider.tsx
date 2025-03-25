@@ -50,18 +50,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Check for auth redirect errors on page load
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const error = hashParams.get("error");
-    const errorDescription = hashParams.get("error_description");
+    const checkForAuthRedirectErrors = () => {
+      // Parse URL for error parameters
+      const params = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      // Check both regular query params and hash params
+      const error = params.get("error") || hashParams.get("error");
+      const errorDescription = params.get("error_description") || hashParams.get("error_description");
+      
+      if (error) {
+        console.error("Auth redirect error:", error, errorDescription);
+        toast({
+          title: "Authentication Error",
+          description: errorDescription || "There was a problem with authentication.",
+          variant: "destructive",
+        });
+        
+        // Clean up the URL to remove error parameters
+        if (window.history && window.history.replaceState) {
+          const cleanUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      }
+    };
     
-    if (error) {
-      console.error("Auth redirect error:", error, errorDescription);
-      toast({
-        title: "Authentication Error",
-        description: errorDescription || "There was a problem with authentication.",
-        variant: "destructive",
-      });
-    }
+    // Check for errors
+    checkForAuthRedirectErrors();
 
     return () => {
       subscription.unsubscribe();
@@ -89,6 +104,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: { name: username }
         }
       });
+      
+      if (!error) {
+        toast({
+          title: "Account created successfully",
+          description: "Please check your email to confirm your account.",
+        });
+      }
+      
       return { error, success: !error };
     } catch (error) {
       return { error: error as Error, success: false };
