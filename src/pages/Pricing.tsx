@@ -217,7 +217,7 @@ const Pricing = () => {
           userEmail: user.email,
           plan: selectedPlan,
           redirectUrl: window.location.href
-        }
+        })
       });
       
       if (error) {
