@@ -1,4 +1,3 @@
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,8 +15,24 @@ import { AlertCircle, Coins, Zap } from "lucide-react";
 
 const UserNav = () => {
   const { user, signOut } = useAuth();
-  const { credits } = useCredits();
+  const { credits, refreshCredits } = useCredits();
   const navigate = useNavigate();
+
+  // Refresh credits when component mounts to ensure we have the latest data
+  React.useEffect(() => {
+    if (user) {
+      refreshCredits();
+    }
+    
+    // Set up periodic refresh every 30 seconds to keep credits updated
+    const intervalId = setInterval(() => {
+      if (user) {
+        refreshCredits();
+      }
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, [user, refreshCredits]);
 
   const handleSignOut = async () => {
     try {
@@ -113,7 +128,7 @@ const UserNav = () => {
                       <Coins className="h-3 w-3 mr-1 text-yellow-500" />
                     )}
                     <span className={isLowCredits() ? "text-red-500" : ""}>
-                      Credits: {getRemainingCredits()}/{getMaxCredits()}
+                      Credits: {getRemainingCredits()?.toLocaleString()}/{getMaxCredits()?.toLocaleString()}
                     </span>
                   </div>
                 </div>

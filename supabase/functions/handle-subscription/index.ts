@@ -19,7 +19,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get the request data
-    const { userId, plan, paymentId, mid_month = false } = await req.json();
+    const { userId, plan, paymentId, customerEmail, amount, mid_month = false } = await req.json();
 
     if (!userId || !plan) {
       return new Response(
@@ -85,13 +85,15 @@ serve(async (req) => {
       );
     }
 
-    // Log the transaction
+    // Log the transaction with more details
     await supabase.from('payment_logs').insert({
       user_id: userId,
       payment_id: paymentId,
       plan: plan,
+      amount: amount, 
       prorated: mid_month,
-      prorated_credits: proratedCredits
+      prorated_credits: proratedCredits,
+      customer_email: customerEmail
     });
 
     return new Response(
