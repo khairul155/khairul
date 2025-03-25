@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
-import { Check, Coins, ArrowRight, ChevronRight, Sparkles, Zap, Shield, Loader2, X } from "lucide-react";
+import { Check, Coins, ArrowRight, ChevronRight, Sparkles, Zap, Shield, Loader2, X, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
@@ -109,6 +109,8 @@ const Pricing = () => {
   const [transactionRef, setTransactionRef] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   
+  const [paymentAttempts, setPaymentAttempts] = useState(0);
+  
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -206,9 +208,11 @@ const Pricing = () => {
     setPaymentStatus("processing");
     setConfirmDialog(false);
     setPaymentDialog(true);
+    setPaymentAttempts(prev => prev + 1);
     
     try {
-      console.log("Initiating payment for plan:", selectedPlan);
+      console.log(`Initiating payment for plan: ${selectedPlan} (Attempt: ${paymentAttempts + 1})`);
+      
       const { data, error } = await supabase.functions.invoke('process-payment/initiate', {
         method: 'POST',
         body: {
@@ -241,7 +245,10 @@ const Pricing = () => {
     } catch (error) {
       console.error("Payment initiation error:", error);
       setPaymentStatus("error");
-      setPaymentError("Network error while setting up payment. Please try again.");
+      setPaymentError(
+        "Network error while connecting to the payment gateway. " + 
+        "Please check your internet connection and try again, or contact support."
+      );
       toast({
         title: "Payment Error",
         description: "Failed to connect to payment service. Please try again later.",
@@ -250,11 +257,25 @@ const Pricing = () => {
     }
   };
 
+  const retryPayment = () => {
+    if (paymentAttempts >= 3) {
+      toast({
+        title: "Maximum Attempts Reached",
+        description: "Please try again later or contact support for assistance.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    initiatePayment();
+  };
+
   const closePaymentDialog = () => {
     setPaymentDialog(false);
     setPaymentStatus("idle");
     setPaymentError(null);
     setTransactionRef(null);
+    setPaymentAttempts(0);
   };
 
   const formatPlanName = (plan: SubscriptionPlan): string => {
@@ -531,12 +552,22 @@ const Pricing = () => {
             )}
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             {paymentStatus === "success" && (
               <Button onClick={closePaymentDialog}>Continue</Button>
             )}
             {paymentStatus === "error" && (
-              <Button onClick={closePaymentDialog}>Close</Button>
+              <>
+                <Button variant="outline" onClick={closePaymentDialog}>Close</Button>
+                <Button 
+                  className="gap-2" 
+                  onClick={retryPayment} 
+                  disabled={paymentAttempts >= 3}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Retry Payment
+                </Button>
+              </>
             )}
             {paymentStatus === "processing" && (
               <Button variant="outline" onClick={closePaymentDialog}>Cancel</Button>

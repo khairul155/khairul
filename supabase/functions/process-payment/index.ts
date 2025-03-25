@@ -2,11 +2,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.48.1";
 
-// CORS headers for browser requests - updated to be more permissive
+// Enhanced CORS headers for browser requests - more permissive
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, API-KEY, SECRET-KEY, BRAND-KEY',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
   'Access-Control-Max-Age': '86400',
 };
 
@@ -15,10 +15,10 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Drutopay credentials
-const API_KEY = Deno.env.get('DRUTOPAY_API_KEY')!;
-const SECRET_KEY = Deno.env.get('DRUTOPAY_SECRET_KEY')!;
-const BRAND_KEY = Deno.env.get('DRUTOPAY_BRAND_KEY')!;
+// Drutopay credentials - using environment variables for security
+const API_KEY = Deno.env.get('DRUTOPAY_API_KEY') || 'B1Hb2zVC5g9fhANKHMeUKFuzzGuVeT';
+const SECRET_KEY = Deno.env.get('DRUTOPAY_SECRET_KEY') || '4596491293';
+const BRAND_KEY = Deno.env.get('DRUTOPAY_BRAND_KEY') || 'FVRnSu8z3NUWFmBUEXDl1xzhUZ7Ujk6wALaIa43wWByLLPqPCH';
 
 const PLAN_PRICING = {
   'basic': 10,
@@ -58,6 +58,41 @@ function generateTransactionRef(): string {
   return `PIXCRAFT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
+// Helper function for retrying network requests
+async function retryFetch(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt} to fetch ${url}`);
+      const response = await fetch(url, options);
+      
+      // Return successful responses
+      if (response.ok) {
+        console.log(`Fetch successful on attempt ${attempt}`);
+        return response;
+      }
+      
+      // For failed responses, throw error with status text
+      const errorBody = await response.text();
+      throw new Error(`HTTP Error ${response.status}: ${response.statusText}. Body: ${errorBody}`);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`Fetch attempt ${attempt} failed:`, lastError.message);
+      
+      // If we haven't reached max retries, wait before trying again
+      if (attempt < maxRetries) {
+        const delay = attempt * 2000; // Increasing backoff
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  // If we get here, all attempts failed
+  throw lastError || new Error('Failed to fetch after maximum retry attempts');
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -75,11 +110,26 @@ serve(async (req) => {
     // Endpoint to initiate payment
     if (path === 'initiate' && req.method === 'POST') {
       console.log("Initiating payment process");
-      const requestData = await req.json();
-      console.log("Request data:", requestData);
+      
+      // Parse request data
+      let requestData: InitiatePaymentRequest;
+      try {
+        requestData = await req.json();
+        console.log("Request data:", JSON.stringify(requestData));
+      } catch (parseError) {
+        console.error("Failed to parse request JSON:", parseError);
+        return new Response(JSON.stringify({ 
+          error: 'Invalid request format',
+          details: String(parseError)
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
       
       const { userId, userEmail, plan, redirectUrl } = requestData;
       
+      // Validate required fields
       if (!userId || !userEmail || !plan || !redirectUrl) {
         console.error("Missing required fields:", { userId, userEmail, plan, redirectUrl });
         return new Response(JSON.stringify({ 
@@ -140,21 +190,21 @@ serve(async (req) => {
         });
       }
       
-      // Generate Drutopay payment URL
+      // Generate Drutopay payment URL with pay endpoint
       const drutopayParams = new URLSearchParams({
         api_key: API_KEY,
         amount: PLAN_PRICING[plan].toString(),
         currency: 'USD',
         transaction_ref: transactionRef,
         customer_email: userEmail,
-        customer_name: userEmail.split('@')[0],
+        customer_name: userEmail.split('@')[0] || 'Customer',
         description: `Upgrade to ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`,
         callback_url: `${supabaseUrl}/functions/v1/process-payment/callback?userId=${userId}&plan=${plan}`,
         redirect_url: redirectUrl
       });
       
       const drutopayRedirectUrl = `https://pay.drutopay.com/pay?${drutopayParams.toString()}`;
-      console.log("Generated Drutopay URL (sanitized):", drutopayRedirectUrl.replace(API_KEY, '***'));
+      console.log("Generated Drutopay URL:", drutopayRedirectUrl.replace(API_KEY, '***'));
       
       return new Response(JSON.stringify({
         url: drutopayRedirectUrl,
@@ -167,7 +217,22 @@ serve(async (req) => {
     
     // Endpoint to verify payment
     else if (path === 'verify' && req.method === 'POST') {
-      const { transactionId, userId } = await req.json() as VerifyPaymentRequest;
+      let verifyData: VerifyPaymentRequest;
+      try {
+        verifyData = await req.json();
+        console.log("Verify payment request data:", JSON.stringify(verifyData));
+      } catch (parseError) {
+        console.error("Failed to parse verify request JSON:", parseError);
+        return new Response(JSON.stringify({ 
+          error: 'Invalid request format',
+          details: String(parseError)
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      const { transactionId, userId } = verifyData;
       
       if (!transactionId || !userId) {
         return new Response(JSON.stringify({ 
@@ -212,7 +277,10 @@ serve(async (req) => {
       
       // Verify with Drutopay API
       try {
-        const verifyResponse = await fetch('https://pay.drutopay.com/api/payment/verify', {
+        console.log("Making verification request to Drutopay API");
+        
+        // Using retry mechanism
+        const verifyResponse = await retryFetch('https://pay.drutopay.com/api/payment/verify', {
           method: 'POST',
           headers: {
             'API-KEY': API_KEY,
@@ -225,29 +293,46 @@ serve(async (req) => {
           })
         });
         
-        const verifyData = await verifyResponse.json();
+        // Parse the verification response
+        const verifyResultText = await verifyResponse.text();
+        console.log("Drutopay verification response text:", verifyResultText);
         
-        if (verifyData.status === 'success' || verifyData.status === 'completed') {
+        let verifyResult;
+        try {
+          verifyResult = JSON.parse(verifyResultText);
+        } catch (jsonError) {
+          console.error("Failed to parse Drutopay response:", jsonError);
+          throw new Error(`Invalid JSON response from Drutopay: ${verifyResultText}`);
+        }
+        
+        console.log("Parsed Drutopay verification response:", verifyResult);
+        
+        if (verifyResult.status === 'success' || verifyResult.status === 'completed') {
           // Update payment status
-          await supabase
+          const { error: updateError } = await supabase
             .from('payment_logs')
             .update({ status: 'completed' })
             .eq('payment_id', transactionId);
+            
+          if (updateError) {
+            console.error("Error updating payment status:", updateError);
+          }
           
           // Update user subscription with payment
           const planCredits = paymentData.prorated_credits || calculateProratedCredits(paymentData.plan);
           
-          const { error: updateError } = await supabase.rpc('update_user_subscription_with_payment', {
+          const { error: updateSubError } = await supabase.rpc('update_user_subscription_with_payment', {
             _user_id: userId,
             _subscription_plan: paymentData.plan,
             _payment_id: transactionId,
             _prorated_credits: planCredits
           });
           
-          if (updateError) {
-            console.error('Error upgrading plan:', updateError);
+          if (updateSubError) {
+            console.error('Error upgrading plan:', updateSubError);
             return new Response(JSON.stringify({ 
-              error: 'Failed to upgrade plan' 
+              error: 'Failed to upgrade plan',
+              details: updateSubError
             }), {
               status: 500,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -265,7 +350,7 @@ serve(async (req) => {
         } else {
           return new Response(JSON.stringify({ 
             error: 'Payment verification failed',
-            details: verifyData 
+            details: verifyResult 
           }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -274,7 +359,8 @@ serve(async (req) => {
       } catch (error) {
         console.error('Error verifying payment with Drutopay:', error);
         return new Response(JSON.stringify({ 
-          error: 'Failed to verify payment with gateway' 
+          error: 'Failed to verify payment with gateway',
+          details: String(error)
         }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -288,17 +374,36 @@ serve(async (req) => {
       const userId = params.get('userId');
       const plan = params.get('plan');
       
+      console.log("Received Drutopay callback with params:", { userId, plan });
+      
       if (!userId || !plan) {
+        console.error("Missing parameters in callback URL");
         return new Response('Missing parameters', { status: 400 });
       }
       
       // Parse callback data from Drutopay
-      const callbackData = await req.json();
-      console.log('Received callback from Drutopay:', callbackData);
+      let callbackData;
+      try {
+        const bodyText = await req.text();
+        console.log("Raw callback body:", bodyText);
+        
+        try {
+          callbackData = JSON.parse(bodyText);
+        } catch (jsonError) {
+          console.error("Failed to parse callback JSON:", jsonError);
+          return new Response('Invalid JSON format', { status: 400 });
+        }
+        
+        console.log('Received callback from Drutopay:', callbackData);
+      } catch (error) {
+        console.error("Error reading callback body:", error);
+        return new Response('Error reading request body', { status: 400 });
+      }
       
-      const transactionId = callbackData.transaction_id || callbackData.transaction_ref;
+      const transactionId = callbackData?.transaction_id || callbackData?.transaction_ref;
       
       if (!transactionId) {
+        console.error("Missing transaction ID in callback data");
         return new Response('Missing transaction ID', { status: 400 });
       }
       
@@ -313,15 +418,20 @@ serve(async (req) => {
         return new Response('Error updating payment', { status: 500 });
       }
       
-      // Update user subscription
-      const { data: paymentData } = await supabase
+      // Get payment data
+      const { data: paymentData, error: fetchError } = await supabase
         .from('payment_logs')
         .select('prorated_credits')
         .eq('payment_id', transactionId)
         .single();
       
+      if (fetchError) {
+        console.error("Error fetching payment data:", fetchError);
+      }
+      
       const planCredits = paymentData?.prorated_credits || calculateProratedCredits(plan);
       
+      // Update user subscription
       const { error: rpcError } = await supabase.rpc('update_user_subscription_with_payment', {
         _user_id: userId,
         _subscription_plan: plan,
@@ -334,7 +444,10 @@ serve(async (req) => {
         return new Response('Error upgrading plan', { status: 500 });
       }
       
-      return new Response('Success', { status: 200 });
+      return new Response('Success', { 
+        status: 200,
+        headers: corsHeaders
+      });
     }
     
     return new Response(JSON.stringify({ error: 'Endpoint not found' }), {
