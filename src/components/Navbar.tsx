@@ -1,11 +1,13 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Wand2, Menu, X } from "lucide-react";
+import { Wand2, Menu, X, Coins, Zap } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import UserNav from "./UserNav";
 import CreditsDisplay from "./CreditsDisplay";
 import { useAuth } from "./AuthProvider";
+import { useCredits } from "@/hooks/use-credits";
 
 interface NavLinkProps {
   href: string;
@@ -29,6 +31,28 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children, mobile }) => {
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
+  const { credits, isLoading } = useCredits();
+
+  // Calculate remaining credits
+  const getRemainingCredits = () => {
+    if (!credits) return null;
+    
+    if (credits.subscription_plan === 'free') {
+      return credits.daily_credits - credits.credits_used_today;
+    } else {
+      return credits.monthly_credits - credits.credits_used_this_month;
+    }
+  };
+
+  // Determine if credits are low (less than 10% remaining)
+  const isLow = () => {
+    if (!credits) return false;
+    
+    const remaining = getRemainingCredits();
+    const total = credits.subscription_plan === 'free' ? credits.daily_credits : credits.monthly_credits;
+    
+    return remaining !== null && remaining < total * 0.1;
+  };
 
   return (
     <nav className="border-b border-gray-800 bg-gray-900 py-3">
@@ -49,10 +73,28 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Right Side: Theme Toggle, Login/User Menu */}
+        {/* Right Side: Credits, Theme Toggle, Login/User Menu */}
         <div className="flex items-center space-x-4">
-          {/* Credits Display */}
-          {user && <CreditsDisplay compact />}
+          {/* Credits Display for Logged-in Users */}
+          {user && !isLoading && credits && (
+            <Link 
+              to="/pricing" 
+              className={`hidden sm:flex items-center space-x-1 px-3 py-1.5 rounded-lg transition-colors ${
+                isLow() 
+                  ? "bg-red-600/20 text-red-400 hover:bg-red-600/30" 
+                  : credits.slow_mode_enabled
+                    ? "bg-amber-600/20 text-amber-400 hover:bg-amber-600/30"
+                    : "bg-blue-600/20 text-blue-400 hover:bg-blue-600/30"
+              }`}
+            >
+              {credits.slow_mode_enabled ? (
+                <Zap className="h-4 w-4" />
+              ) : (
+                <Coins className="h-4 w-4" />
+              )}
+              <span className="text-sm font-medium">{getRemainingCredits()}</span>
+            </Link>
+          )}
 
           {/* Mobile Navigation Button */}
           <Button
@@ -78,6 +120,16 @@ const Navbar = () => {
           <NavLink href="/image-generator" mobile>AI Image Generator</NavLink>
           <NavLink href="/image-to-prompt" mobile>Image to Prompt</NavLink>
           <NavLink href="/pricing" mobile>Pricing</NavLink>
+          
+          {/* Credits Display in Mobile Menu */}
+          {user && !isLoading && credits && (
+            <div className="flex items-center space-x-2 py-2 px-1">
+              <Coins className={`h-4 w-4 ${isLow() ? "text-red-400" : "text-blue-400"}`} />
+              <span className={`text-sm ${isLow() ? "text-red-400" : "text-gray-300"}`}>
+                Credits: {getRemainingCredits()}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </nav>

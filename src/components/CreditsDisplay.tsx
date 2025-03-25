@@ -1,7 +1,7 @@
 
 import React from "react";
 import { useCredits, formatCreditsDisplay } from "@/hooks/use-credits";
-import { Coins, Hourglass, Zap } from "lucide-react";
+import { Coins, Hourglass, Zap, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,19 +45,31 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
   
   // Determine if credits are low (less than 10% remaining)
   const isLow = remaining !== null && remaining < totalCredits * 0.1;
+
+  // Format the plan name with proper capitalization
+  const formatPlanName = (plan) => {
+    return plan.charAt(0).toUpperCase() + plan.slice(1);
+  };
   
   if (compact) {
     return (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center space-x-1 cursor-help bg-purple-800 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg">
+            <div className={cn(
+              "flex items-center space-x-1 cursor-help px-3 py-1.5 rounded-lg",
+              credits.slow_mode_enabled 
+                ? "bg-amber-800/70 hover:bg-amber-700/70 text-amber-300"
+                : isLow
+                  ? "bg-red-800/70 hover:bg-red-700/70 text-red-300"
+                  : "bg-purple-800/70 hover:bg-purple-700/70 text-white"
+            )}>
               {credits.slow_mode_enabled ? (
-                <Hourglass className="h-4 w-4 text-amber-400" />
+                <Hourglass className="h-4 w-4" />
               ) : (
-                <Zap className="h-4 w-4 text-white" />
+                <Coins className="h-4 w-4" />
               )}
-              <span className="text-sm font-medium text-white">
+              <span className="text-sm font-medium">
                 {remaining ?? 0}
               </span>
             </div>
@@ -66,6 +78,9 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
             <div className="space-y-2 p-1">
               <p className="text-sm font-medium">
                 {credits.slow_mode_enabled ? 'Slow Mode Active' : `${remaining ?? 0} credits remaining`}
+              </p>
+              <p className="text-xs text-gray-400">
+                Plan: {formatPlanName(credits.subscription_plan)}
               </p>
               <p className="text-xs text-gray-400">
                 {isPaid ? 'Monthly' : 'Daily'} limit: {formatCreditsDisplay(usedCredits, totalCredits)}
@@ -77,7 +92,7 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
               )}
               {isLow && !credits.slow_mode_enabled && (
                 <p className="text-xs text-red-400">
-                  Credits running low!
+                  Credits running low! Consider upgrading.
                 </p>
               )}
             </div>
@@ -94,12 +109,12 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
           {credits.slow_mode_enabled ? (
             <Hourglass className="h-5 w-5 text-amber-400" />
           ) : (
-            <Zap className={`h-5 w-5 ${isLow ? 'text-red-400' : 'text-purple-400'}`} />
+            <Coins className={`h-5 w-5 ${isLow ? 'text-red-400' : 'text-purple-400'}`} />
           )}
           <h3 className="font-medium text-white">Credits</h3>
         </div>
-        <div className="text-sm text-gray-400">
-          {isPaid ? 'Monthly' : 'Daily'} Plan: {credits.subscription_plan.toUpperCase()}
+        <div className="text-sm bg-gray-800 px-2 py-0.5 rounded text-gray-300">
+          {formatPlanName(credits.subscription_plan)}
         </div>
       </div>
       
@@ -115,19 +130,28 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
           </div>
           <Progress 
             value={percentage} 
-            className={cn("h-2 bg-gray-800", isLow ? "text-red-500" : "text-purple-500")} 
+            className={cn(
+              "h-2 bg-gray-800", 
+              isLow ? "text-red-500" : "text-purple-500"
+            )} 
           />
         </div>
         
         {credits.slow_mode_enabled && (
-          <div className="text-xs bg-amber-500/10 border border-amber-500/20 rounded px-3 py-2 text-amber-400">
-            You're in slow mode. Operations will take longer to complete.
+          <div className="flex items-start space-x-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded px-3 py-2">
+            <Hourglass className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+            <span className="text-amber-400">
+              You're in slow mode. Operations will take longer to complete.
+            </span>
           </div>
         )}
         
         {isLow && !credits.slow_mode_enabled && (
-          <div className="text-xs bg-red-500/10 border border-red-500/20 rounded px-3 py-2 text-red-400">
-            You're running low on credits. Consider upgrading your plan for more.
+          <div className="flex items-start space-x-2 text-xs bg-red-500/10 border border-red-500/20 rounded px-3 py-2">
+            <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+            <span className="text-red-400">
+              You're running low on credits. Consider upgrading your plan for more.
+            </span>
           </div>
         )}
         
@@ -135,7 +159,7 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
           <Button size="sm" className="w-full bg-purple-800 hover:bg-purple-700" asChild>
             <Link to="/pricing" className="flex items-center justify-center gap-1.5">
               <Zap className="h-4 w-4" />
-              Upgrade
+              Upgrade Now
             </Link>
           </Button>
         )}

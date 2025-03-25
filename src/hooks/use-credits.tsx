@@ -45,7 +45,7 @@ interface CreditContextType {
 const CreditContext = createContext<CreditContextType | undefined>(undefined);
 
 export const formatCreditsDisplay = (used: number, total: number): string => {
-  return `${used}/${total}`;
+  return `${used.toLocaleString()}/${total.toLocaleString()}`;
 };
 
 export const CreditsProvider = ({ children }: { children: React.ReactNode }) => {
@@ -118,13 +118,13 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
 
   const useToolCredits = async (toolName: string, creditsAmount = 1) => {
     try {
-      // Get the current user ID
+      // Get the current user ID directly
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
 
       if (!userId) {
         toast({
-          title: 'Error',
+          title: 'Authentication Required',
           description: 'You must be logged in to use this feature.',
           variant: 'destructive',
         });
@@ -145,7 +145,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       if (error) {
         console.error('Error using tool credits:', error);
         toast({
-          title: 'Error',
+          title: 'Credit System Error',
           description: 'Failed to process credits. Please try again.',
           variant: 'destructive',
         });
@@ -167,6 +167,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
         can_use: boolean;
         remaining_credits?: number;
         slow_mode?: boolean;
+        subscription_plan?: string;
       };
 
       if (responseData.status === 'error') {

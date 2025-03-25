@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
-import { Check, Coins, ArrowRight, ChevronRight, Shield, AlertTriangle } from "lucide-react";
+import { Check, Coins, ArrowRight, ChevronRight, Shield, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
@@ -15,7 +15,7 @@ const pricingPlans = [
   {
     name: "Free",
     price: "0",
-    currency: "Tk",
+    currency: "$",
     description: "Basic access with daily limits",
     features: [
       "60 tokens/day",
@@ -34,8 +34,8 @@ const pricingPlans = [
   },
   {
     name: "Basic",
-    price: "400",
-    currency: "Tk",
+    price: "10",
+    currency: "$",
     description: "Good for occasional use",
     features: [
       "3,400 tokens/month (~113/day)",
@@ -54,8 +54,8 @@ const pricingPlans = [
   },
   {
     name: "Advanced",
-    price: "750",
-    currency: "Tk",
+    price: "25",
+    currency: "$",
     description: "Perfect for regular creators",
     features: [
       "8,000 tokens/month (~267/day)",
@@ -74,8 +74,8 @@ const pricingPlans = [
   },
   {
     name: "Pro",
-    price: "1400",
-    currency: "Tk",
+    price: "50",
+    currency: "$",
     description: "For power users and businesses",
     features: [
       "18,000 tokens/month (~600/day)",
@@ -101,6 +101,7 @@ const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [planCategory, setPlanCategory] = useState<PlanCategory>("personal");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -126,14 +127,30 @@ const Pricing = () => {
       return;
     }
     
+    // In a real implementation, this would trigger the Stripe payment flow
+    // Since this is a demo, we'll simulate the payment process
+    setProcessingPayment(true);
     setUpdating(planId);
     
     try {
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Generate a mock payment ID
+      const mockPaymentId = `pm_${Math.random().toString(36).substring(2, 15)}`;
+      
+      // Calculate if this is a mid-month upgrade
+      const today = new Date();
+      const dayOfMonth = today.getDate();
+      const isNotStartOfMonth = dayOfMonth > 5; // Consider it mid-month if not in first 5 days
+      
       // Call the edge function to update the subscription
-      const { data, error } = await supabase.functions.invoke('update-subscription', {
+      const { data, error } = await supabase.functions.invoke('handle-subscription', {
         body: { 
           userId: user.id,
-          plan: planId
+          plan: planId,
+          paymentId: mockPaymentId,
+          mid_month: isNotStartOfMonth
         }
       });
       
@@ -149,14 +166,23 @@ const Pricing = () => {
         title: "Subscription updated",
         description: `Your plan has been updated to ${planName}`,
       });
+
+      // If prorated, show additional information
+      if (data?.prorated) {
+        toast({
+          title: "Prorated Credits Applied",
+          description: `You received ${data.prorated_credits} credits for the remainder of this month.`,
+        });
+      }
     } catch (error) {
       console.error('Error in plan selection:', error);
       toast({
         title: "Update failed",
-        description: "There was a problem updating your subscription. Please try again.",
+        description: "There was a problem updating your subscription. Please try again or contact support.",
         variant: "destructive",
       });
     } finally {
+      setProcessingPayment(false);
       setUpdating(null);
     }
   };
@@ -164,13 +190,13 @@ const Pricing = () => {
   // Helper function to determine button state
   const getButtonProps = (plan: typeof pricingPlans[0]) => {
     // If we're currently updating this plan
-    if (updating === plan.planId) {
+    if (updating === plan.planId || processingPayment) {
       return {
         disabled: true,
         children: (
           <>
-            <span className="animate-spin mr-2">⏳</span>
-            Updating...
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            {updating === plan.planId ? 'Processing...' : 'Please wait...'}
           </>
         )
       };
@@ -239,7 +265,7 @@ const Pricing = () => {
           </div>
           
           <div className="flex justify-end items-center mb-2">
-            <span className="text-sm text-gray-400 mr-3">Billed yearly</span>
+            <span className="text-sm text-gray-400 mr-3">Monthly</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input 
                 type="checkbox" 
@@ -250,7 +276,7 @@ const Pricing = () => {
               <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
             </label>
             <span className="text-sm text-white ml-3 flex items-center">
-              Billed yearly
+              Yearly
               <span className="ml-2 text-xs bg-purple-600 py-0.5 px-2 rounded-full">Save 20%</span>
             </span>
           </div>
@@ -291,12 +317,12 @@ const Pricing = () => {
                 <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
                 
                 <div className="flex items-center gap-2 mb-6">
-                  <Coins className="h-5 w-5 text-purple-400" />
-                  <span className="text-purple-400 font-semibold">{plan.tokens} tokens</span>
+                  <Coins className="h-5 w-5 text-yellow-400" />
+                  <span className="text-yellow-400 font-semibold">{plan.tokens.toLocaleString()} tokens</span>
                 </div>
                 
                 <Button 
-                  variant={getButtonProps(plan).variant}
+                  variant={getButtonProps(plan).variant as any}
                   className={cn(
                     "w-full mb-6",
                     plan.name === "Free" && credits?.subscription_plan !== "free"
@@ -323,7 +349,9 @@ const Pricing = () => {
               
               {plan.name !== "Free" && (
                 <div className="border-t border-gray-800 py-3 px-6 flex justify-between items-center bg-gray-800/50">
-                  <span className="text-xs text-gray-400">Switch to monthly</span>
+                  <span className="text-xs text-gray-400">
+                    {billingCycle === "monthly" ? "Monthly billing" : "Yearly billing (20% off)"}
+                  </span>
                   <ChevronRight className="h-4 w-4 text-gray-400" />
                 </div>
               )}
