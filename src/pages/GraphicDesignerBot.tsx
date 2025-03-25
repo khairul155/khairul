@@ -11,18 +11,12 @@ import {
   ChevronRight,
   MoveUp,
   Trash2,
-  Bot,
-  Coins,
-  AlertTriangle
+  Bot
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import TypingEffect from "@/components/TypingEffect";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useCredits } from "@/hooks/use-credits";
-import CreditsDisplay from "@/components/CreditsDisplay";
-import { useAuth } from "@/components/AuthProvider";
-import { useNavigate } from "react-router-dom";
 
 interface Message {
   role: 'user' | 'bot';
@@ -40,14 +34,9 @@ const GraphicDesignerBot = () => {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSlowMode, setIsSlowMode] = useState(false);
-  const [waitTime, setWaitTime] = useState<number | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const { useToolCredits, credits } = useCredits();
-  const { user } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
     setIsMounted(true);
@@ -72,13 +61,6 @@ const GraphicDesignerBot = () => {
 
   const handleSend = async () => {
     if (!prompt.trim()) return;
-    
-    // Check if user is authenticated
-    if (!user) {
-      toast.error("Please sign in to use the Graphic Designer Bot");
-      navigate("/auth");
-      return;
-    }
       
     const userMessage = { 
       role: 'user' as const, 
@@ -91,42 +73,6 @@ const GraphicDesignerBot = () => {
     setShowSuggestions(false); // Hide suggestions when a prompt is sent
     
     try {
-      // Check credits before proceeding
-      const toolResult = await useToolCredits('graphic_designer_bot');
-      if (!toolResult.success && !toolResult.canUse) {
-        // If the user doesn't have enough credits and can't use the tool, return
-        setIsLoading(false);
-        return;
-      }
-
-      // Handle slow mode
-      if (toolResult.status === 'slow_mode') {
-        setIsSlowMode(true);
-        // Wait 5 seconds in slow mode before generating
-        setWaitTime(5);
-        const countdownInterval = setInterval(() => {
-          setWaitTime((prev) => {
-            if (prev === null || prev <= 1) {
-              clearInterval(countdownInterval);
-              return null;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-        
-        // Add a temporary message
-        setMessages(prev => [...prev, { 
-          role: 'bot', 
-          content: "Running in slow mode due to credit limits. Please wait...",
-          isTyping: false
-        }]);
-        
-        // Wait for the countdown to complete
-        await new Promise(resolve => setTimeout(resolve, 5000));
-      } else {
-        setIsSlowMode(false);
-      }
-      
       // First add a temporary "typing" message
       setMessages(prev => [...prev, { role: 'bot', content: "", isTyping: true }]);
 
@@ -156,7 +102,6 @@ const GraphicDesignerBot = () => {
       });
     } finally {
       setIsLoading(false);
-      setWaitTime(null);
     }
   };
 
@@ -167,63 +112,18 @@ const GraphicDesignerBot = () => {
     }
   };
 
-  const handleSuggestionClick = async (suggestionText: string) => {
-    // Check if user is authenticated
-    if (!user) {
-      toast.error("Please sign in to use the Graphic Designer Bot");
-      navigate("/auth");
-      return;
-    }
-    
+  const handleSuggestionClick = (suggestionText: string) => {
     setMessages(prev => [...prev, { role: 'user', content: suggestionText }]);
     
     setIsLoading(true);
     setShowSuggestions(false); // Hide suggestions
     
-    try {
-      // Check credits before proceeding
-      const toolResult = await useToolCredits('graphic_designer_bot');
-      if (!toolResult.success && !toolResult.canUse) {
-        // If the user doesn't have enough credits and can't use the tool, return
-        setIsLoading(false);
-        return;
-      }
+    // First add a temporary "typing" message
+    setMessages(prev => [...prev, { role: 'bot', content: "", isTyping: true }]);
 
-      // Handle slow mode
-      if (toolResult.status === 'slow_mode') {
-        setIsSlowMode(true);
-        // Wait 5 seconds in slow mode before generating
-        setWaitTime(5);
-        const countdownInterval = setInterval(() => {
-          setWaitTime((prev) => {
-            if (prev === null || prev <= 1) {
-              clearInterval(countdownInterval);
-              return null;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-        
-        // Add a temporary message
-        setMessages(prev => [...prev, { 
-          role: 'bot', 
-          content: "Running in slow mode due to credit limits. Please wait...",
-          isTyping: false
-        }]);
-        
-        // Wait for the countdown to complete
-        await new Promise(resolve => setTimeout(resolve, 5000));
-      } else {
-        setIsSlowMode(false);
-      }
-    
-      // First add a temporary "typing" message
-      setMessages(prev => [...prev, { role: 'bot', content: "", isTyping: true }]);
-
-      const { data, error } = await supabase.functions.invoke('graphic-designer-bot', {
-        body: { prompt: suggestionText }
-      });
-
+    supabase.functions.invoke('graphic-designer-bot', {
+      body: { prompt: suggestionText }
+    }).then(({ data, error }) => {
       if (error) throw error;
       
       // Remove the typing message and add the actual response
@@ -232,7 +132,7 @@ const GraphicDesignerBot = () => {
         newMessages.pop(); // Remove the typing indicator
         return [...newMessages, { role: 'bot', content: data.generatedText }];
       });
-    } catch (error) {
+    }).catch(error => {
       console.error('Error calling graphic-designer-bot function:', error);
       toast.error("Failed to get a response. Please try again.");
       
@@ -244,10 +144,9 @@ const GraphicDesignerBot = () => {
         }
         return [...newMessages, { role: 'bot', content: "Sorry, I encountered an error. Please try again later." }];
       });
-    } finally {
+    }).finally(() => {
       setIsLoading(false);
-      setWaitTime(null);
-    }
+    });
   };
 
   const handleClearChat = () => {
@@ -329,24 +228,13 @@ const GraphicDesignerBot = () => {
 
       <div className="flex flex-col w-full h-full relative z-10">
         {/* Header */}
-        <div className="flex justify-between items-center py-4 px-4 border-b border-[#FAF7F0]/10">
+        <div className="flex justify-center items-center py-4 px-4 border-b border-[#FAF7F0]/10">
           <h1 className="text-2xl font-bold text-[#FAF7F0]">Graphic Designer Bot</h1>
-          
-          {user && (
-            <div className="hidden md:block">
-              <CreditsDisplay compact />
-            </div>
-          )}
         </div>
 
         {/* Main chat area - with full-screen layout */}
         <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 py-6" id="chat-container">
           <div className="max-w-5xl mx-auto">
-            {user && (
-              <div className="mb-6 md:hidden">
-                <CreditsDisplay />
-              </div>
-            )}
             <div className="space-y-6">
               {messages.map((message, index) => (
                 <div
@@ -388,13 +276,6 @@ const GraphicDesignerBot = () => {
               <div ref={messagesEndRef} />
             </div>
             
-            {/* Credits display for desktop */}
-            {user && (
-              <div className="fixed top-20 right-6 z-10 w-64 hidden lg:block">
-                <CreditsDisplay />
-              </div>
-            )}
-            
             {/* Render suggestions after messages */}
             {renderSuggestions()}
           </div>
@@ -403,13 +284,6 @@ const GraphicDesignerBot = () => {
         {/* Input area - Fixed at the bottom */}
         <div className="border-t border-[#FAF7F0]/10 bg-[#0C0C0C] px-4 md:px-6 lg:px-8 py-4">
           <div className="max-w-5xl mx-auto">
-            {isSlowMode && waitTime !== null && (
-              <div className="mb-3 text-amber-400 flex items-center justify-center">
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                Slow mode active - Waiting {waitTime}s before processing
-              </div>
-            )}
-          
             <div className="flex gap-2 items-end">
               <div className="flex-1 relative">
                 <Textarea
@@ -427,8 +301,6 @@ const GraphicDesignerBot = () => {
                 >
                   {isLoading ? (
                     <div className="animate-spin h-5 w-5 border-2 border-[#0C0C0C] border-t-transparent rounded-full"></div>
-                  ) : isSlowMode ? (
-                    <Coins className="h-5 w-5" />
                   ) : (
                     <SendHorizontal className="h-5 w-5" />
                   )}

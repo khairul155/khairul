@@ -4,15 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon, Sparkles, Coins, AlertTriangle } from "lucide-react";
+import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ImageGrid from "@/components/ImageGrid";
 import { Link, useNavigate } from "react-router-dom";
 import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
 import { useAuth } from "@/components/AuthProvider";
 import TypingEffect from "@/components/TypingEffect";
-import { useCredits } from "@/hooks/use-credits";
-import CreditsDisplay from "@/components/CreditsDisplay";
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
@@ -21,12 +19,9 @@ const ImageGenerator = () => {
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generationTime, setGenerationTime] = useState<string>("");
-  const [isSlowMode, setIsSlowMode] = useState(false);
-  const [waitTime, setWaitTime] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { useToolCredits, credits } = useCredits();
   const navigate = useNavigate();
   
   // Generation settings with updated default steps for fast mode
@@ -59,34 +54,6 @@ const ImageGenerator = () => {
       });
       navigate("/auth");
       return;
-    }
-
-    // Check credits before generating
-    const toolResult = await useToolCredits('image_generator');
-    if (!toolResult.success && !toolResult.canUse) {
-      // If the user doesn't have enough credits and can't use the tool, return
-      return;
-    }
-
-    // Handle slow mode
-    if (toolResult.status === 'slow_mode') {
-      setIsSlowMode(true);
-      // Wait 5 seconds in slow mode before generating
-      setWaitTime(5);
-      const countdownInterval = setInterval(() => {
-        setWaitTime((prev) => {
-          if (prev === null || prev <= 1) {
-            clearInterval(countdownInterval);
-            return null;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      
-      // Wait for the countdown to complete
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    } else {
-      setIsSlowMode(false);
     }
 
     setIsLoading(true);
@@ -166,7 +133,6 @@ const ImageGenerator = () => {
 
   // Get inspiration prompt
   const getInspiration = async () => {
-    // Don't check credits for inspiration - it's free
     setIsLoadingPrompt(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-prompt', {
@@ -203,13 +169,13 @@ const ImageGenerator = () => {
         
         <div className="flex items-center">
           <h1 className="text-xl font-bold text-[#FFA725] flex items-center">
-            <Sparkles className="w-5 h-5 mr-1.5 text-[#FFA725]" />
+            <Sparkles className="w-5 h-5 mr-1.5 text-[#FFA725]" /> {/* Changed icon to Sparkles */}
             PixcraftAI
           </h1>
         </div>
         
         <div className="flex items-center gap-2">
-          {user && <CreditsDisplay compact />}
+          {/* Space for balance */}
         </div>
       </div>
       
@@ -224,12 +190,6 @@ const ImageGenerator = () => {
         <div className="flex-1 flex flex-col h-[calc(100vh-73px)]">
           {/* Main Content Area (expanded to take most space) */}
           <div className="flex-1 p-6 flex items-center justify-center overflow-hidden">
-            {user && (
-              <div className="fixed top-20 right-6 z-10 w-64 hidden md:block">
-                <CreditsDisplay />
-              </div>
-            )}
-            
             {generatedImages.length > 0 && !isLoading ? (
               <div className="w-full max-w-5xl mx-auto animate-fade-in">
                 <ImageGrid 
@@ -247,13 +207,6 @@ const ImageGenerator = () => {
                   </div>
                   <h2 className="text-2xl font-bold">Creating your masterpiece...</h2>
                   <Progress value={progress} className="h-1 w-64 bg-gray-700" />
-                  
-                  {isSlowMode && (
-                    <div className="mt-4 text-amber-400 flex items-center">
-                      <AlertTriangle className="h-5 w-5 mr-2" />
-                      Slow mode active {waitTime !== null && `(${waitTime}s)`}
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (
@@ -266,16 +219,6 @@ const ImageGenerator = () => {
                   <p className="text-gray-400">
                     Try Now!
                   </p>
-                  
-                  {credits?.slow_mode_enabled && (
-                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-md flex items-center text-amber-400">
-                      <AlertTriangle className="h-5 w-5 mr-2" />
-                      <div>
-                        <p className="font-medium">Slow Mode Active</p>
-                        <p className="text-sm">You've used all your credits. Operations will be slower.</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -322,16 +265,7 @@ const ImageGenerator = () => {
                       Generating...
                     </>
                   ) : (
-                    <>
-                      {credits?.slow_mode_enabled ? (
-                        <>
-                          <Coins className="h-5 w-5 mr-2" />
-                          Slow Generate
-                        </>
-                      ) : (
-                        "Generate"
-                      )}
-                    </>
+                    "Generate"
                   )}
                 </Button>
               </div>

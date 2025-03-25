@@ -1,32 +1,26 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, Copy, Download, ArrowLeft, Image as ImageIcon, Coins, AlertTriangle } from "lucide-react";
+import { Loader2, Upload, Copy, Download, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCredits } from "@/hooks/use-credits";
-import CreditsDisplay from "@/components/CreditsDisplay";
-import { useAuth } from "@/components/AuthProvider";
 
 const ImageToPrompt = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [isSlowMode, setIsSlowMode] = useState(false);
-  const [waitTime, setWaitTime] = useState<number | null>(null);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem("geminiApiKey") || "");
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { useToolCredits, credits } = useCredits();
-  const { user } = useAuth();
 
   const saveApiKey = (key: string) => {
     setApiKey(key);
@@ -87,50 +81,6 @@ const ImageToPrompt = () => {
         variant: "destructive",
       });
       return;
-    }
-
-    // Check if user is authenticated
-    if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to use this feature.",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    // Check credits before proceeding
-    const toolResult = await useToolCredits('image_to_prompt');
-    if (!toolResult.success && !toolResult.canUse) {
-      // If the user doesn't have enough credits and can't use the tool, return
-      return;
-    }
-
-    // Handle slow mode
-    if (toolResult.status === 'slow_mode') {
-      setIsSlowMode(true);
-      // Wait 5 seconds in slow mode before generating
-      setWaitTime(5);
-      toast({
-        title: "Slow Mode Active",
-        description: "You've used all your monthly credits. Continuing in slow mode.",
-      });
-      
-      const countdownInterval = setInterval(() => {
-        setWaitTime((prev) => {
-          if (prev === null || prev <= 1) {
-            clearInterval(countdownInterval);
-            return null;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      
-      // Wait for the countdown to complete
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    } else {
-      setIsSlowMode(false);
     }
 
     setIsLoading(true);
@@ -216,7 +166,6 @@ const ImageToPrompt = () => {
       setTimeout(() => {
         setProgress(0);
         setIsLoading(false);
-        setWaitTime(null);
       }, 500);
     }
   };
@@ -266,11 +215,7 @@ const ImageToPrompt = () => {
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Button>
-          
-          <div className="flex items-center space-x-4">
-            {user && <CreditsDisplay compact />}
-            <ThemeToggle />
-          </div>
+          <ThemeToggle />
         </div>
 
         <div className="text-center space-y-6 py-8 relative">
@@ -281,12 +226,6 @@ const ImageToPrompt = () => {
             Upload any image and our AI will generate a detailed description prompt that captures its essence.
           </p>
         </div>
-
-        {user && (
-          <div className="fixed top-20 right-6 z-10 w-64 hidden lg:block">
-            <CreditsDisplay />
-          </div>
-        )}
 
         <div className="space-y-8 backdrop-blur-lg bg-[#0C0C0C]/90 p-8 rounded-2xl border border-[#E9762B]/30 shadow-xl">
           {error && (
@@ -351,13 +290,6 @@ const ImageToPrompt = () => {
                 </Button>
               </div>
 
-              {isSlowMode && waitTime !== null && (
-                <div className="mb-3 text-amber-400 flex items-center justify-center p-2 bg-amber-500/10 rounded-md">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Slow mode active - Waiting {waitTime}s before processing
-                </div>
-              )}
-
               <Button 
                 onClick={generatePrompt} 
                 disabled={isLoading || !selectedFile}
@@ -367,11 +299,6 @@ const ImageToPrompt = () => {
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Generating...
-                  </>
-                ) : isSlowMode ? (
-                  <>
-                    <Coins className="mr-2 h-5 w-5" />
-                    Generate in Slow Mode
                   </>
                 ) : (
                   <>

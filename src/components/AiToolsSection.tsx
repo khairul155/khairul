@@ -35,7 +35,6 @@ const AiToolsSection = () => {
             color="blue"
             isActive={isActive("/image-generator")}
             onClick={() => handleToolClick("Image Generator", "/image-generator")}
-            tokens={5}
           />
           
           <AiToolIcon 
@@ -44,7 +43,6 @@ const AiToolsSection = () => {
             color="gray"
             isActive={isActive("/metadata-generator")}
             onClick={() => handleToolClick("Meta Data Generator", "/metadata-generator")}
-            tokens={2}
           />
           
           <AiToolIcon 
@@ -53,7 +51,6 @@ const AiToolsSection = () => {
             color="purple"
             isActive={isActive("/graphic-designer-bot")}
             onClick={() => handleToolClick("Graphic Designer Bot", "/graphic-designer-bot")}
-            tokens={10}
           />
           
           <AiToolIcon 
@@ -62,7 +59,6 @@ const AiToolsSection = () => {
             color="orange"
             isActive={isActive("/image-to-prompt")}
             onClick={() => handleToolClick("Image to Prompt", "/image-to-prompt")}
-            tokens={3}
           />
           
           <AiToolIcon 
@@ -71,7 +67,6 @@ const AiToolsSection = () => {
             color="pink"
             isUpcoming={true} 
             onClick={() => handleToolClick("Image Upscaler", "/image-upscaler")}
-            tokens={8}
           />
           
           <AiToolIcon 
@@ -80,7 +75,6 @@ const AiToolsSection = () => {
             color="yellow"
             isUpcoming={true}
             onClick={() => handleToolClick("Bulk Image Size Increaser", "/bulk-image-size-increaser")}
-            tokens={15}
           />
         </div>
       </div>
