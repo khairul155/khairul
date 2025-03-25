@@ -1,7 +1,7 @@
 
 import React from "react";
 import { useCredits, formatCreditsDisplay } from "@/hooks/use-credits";
-import { Coins, Hourglass } from "lucide-react";
+import { Coins, Hourglass, Zap } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,13 +51,13 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center space-x-1 cursor-help">
+            <div className="flex items-center space-x-1 cursor-help bg-purple-800 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg">
               {credits.slow_mode_enabled ? (
                 <Hourglass className="h-4 w-4 text-amber-400" />
               ) : (
-                <Coins className={`h-4 w-4 ${isLow ? 'text-red-400' : 'text-blue-400'}`} />
+                <Zap className="h-4 w-4 text-white" />
               )}
-              <span className={`text-sm font-medium ${isLow ? 'text-red-400' : 'text-gray-200'}`}>
+              <span className="text-sm font-medium text-white">
                 {remaining ?? 0}
               </span>
             </div>
@@ -94,7 +94,7 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
           {credits.slow_mode_enabled ? (
             <Hourglass className="h-5 w-5 text-amber-400" />
           ) : (
-            <Coins className={`h-5 w-5 ${isLow ? 'text-red-400' : 'text-blue-400'}`} />
+            <Zap className={`h-5 w-5 ${isLow ? 'text-red-400' : 'text-purple-400'}`} />
           )}
           <h3 className="font-medium text-white">Credits</h3>
         </div>
@@ -115,7 +115,7 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
           </div>
           <Progress 
             value={percentage} 
-            className={cn("h-2 bg-gray-800", isLow ? "text-red-500" : "")} 
+            className={cn("h-2 bg-gray-800", isLow ? "text-red-500" : "text-purple-500")} 
           />
         </div>
         
@@ -132,9 +132,10 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
         )}
         
         {showUpgradeButton && (credits.subscription_plan === 'free' || isLow) && (
-          <Button size="sm" className="w-full" asChild>
-            <Link to="/pricing">
-              Upgrade Plan
+          <Button size="sm" className="w-full bg-purple-800 hover:bg-purple-700" asChild>
+            <Link to="/pricing" className="flex items-center justify-center gap-1.5">
+              <Zap className="h-4 w-4" />
+              Upgrade
             </Link>
           </Button>
         )}

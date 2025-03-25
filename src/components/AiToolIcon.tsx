@@ -1,7 +1,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Coins } from "lucide-react";
+import { Coins, Zap } from "lucide-react";
 
 interface AiToolIconProps {
   icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI"; // Icon names
@@ -60,9 +60,9 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
           </div>
         )}
         
-        {tokens && (
-          <div className="absolute -top-2 -right-2 bg-blue-600 text-[10px] font-bold text-white rounded-full px-1.5 py-1 z-10 flex items-center gap-0.5">
-            <Coins className="w-3 h-3" />
+        {tokens !== undefined && (
+          <div className="absolute -top-2 -right-2 bg-purple-800 text-[10px] font-bold text-white rounded-full px-1.5 py-1 z-10 flex items-center gap-0.5">
+            <Zap className="w-3 h-3" />
             <span>{tokens}</span>
           </div>
         )}

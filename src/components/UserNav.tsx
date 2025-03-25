@@ -1,5 +1,4 @@
 
-import React from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,80 +7,64 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "./AuthProvider";
-import { Link } from "react-router-dom";
-import { LogIn, UserIcon, CreditCard, LogOut, Settings } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 const UserNav = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
-  // User is signed in, display user menu
-  if (user) {
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  if (!user) {
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <Avatar className="h-9 w-9">
-              <AvatarImage
-                src={user.user_metadata?.avatar_url}
-                alt={user.user_metadata?.name || "User avatar"}
-              />
-              <AvatarFallback>
-                {user.user_metadata?.name?.slice(0, 2)?.toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">
-                {user.user_metadata?.name || "User"}
-              </p>
-              <p className="text-xs leading-none text-muted-foreground">
-                {user.email}
-              </p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link to="/profile" className="flex cursor-pointer items-center">
-              <UserIcon className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link to="/pricing" className="flex cursor-pointer items-center">
-              <CreditCard className="mr-2 h-4 w-4" />
-              <span>Billing</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link to="/settings" className="flex cursor-pointer items-center">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={signOut} className="cursor-pointer">
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Button variant="outline" asChild>
+        <Link to="/auth">Sign In</Link>
+      </Button>
     );
   }
 
-  // User is not signed in, display login button
+  // Extract user initials for the avatar fallback
+  const getInitials = () => {
+    if (!user.email) return "U";
+    return user.email.substring(0, 2).toUpperCase();
+  };
+
   return (
-    <Button asChild variant="outline" size="sm">
-      <Link to="/auth" className="flex items-center gap-1">
-        <LogIn className="h-4 w-4" />
-        <span>Sign in</span>
-      </Link>
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user.user_metadata?.avatar_url || ""} alt="User" />
+            <AvatarFallback>{getInitials()}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{user.email}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/pricing" className="cursor-pointer">
+            Pricing
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
