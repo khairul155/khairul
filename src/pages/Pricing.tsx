@@ -119,15 +119,33 @@ const Pricing = () => {
   useEffect(() => {
     const checkTransactionStatus = async () => {
       const url = new URL(window.location.href);
+      const status = url.searchParams.get('payment_status');
       const txnId = url.searchParams.get('transaction_id');
-      const status = url.searchParams.get('status');
       
       // Clear URL parameters without reloading the page
-      if (txnId) {
+      if (status) {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
       
-      if (txnId && status) {
+      if (status === 'success') {
+        setPaymentStatus("success");
+        setPaymentDialog(true);
+        await fetchCredits();
+        toast({
+          title: "Payment Successful",
+          description: `Your plan has been upgraded successfully.`,
+        });
+      } else if (status === 'failed' && txnId) {
+        setPaymentStatus("error");
+        setPaymentDialog(true);
+        setPaymentError("Payment failed. Please try again or contact support.");
+        toast({
+          title: "Payment Failed",
+          description: "There was an issue processing your payment. Please try again.",
+          variant: "destructive",
+        });
+      } else if (txnId) {
+        // Verify transaction status
         setPaymentStatus("verifying");
         setPaymentDialog(true);
         
@@ -482,7 +500,7 @@ const Pricing = () => {
               
               <div className="border rounded-md p-4 bg-amber-950/10">
                 <p className="text-sm text-center text-amber-400">
-                  You'll be redirected to Drutopay to complete your payment securely. 
+                  You'll be redirected to NagorikPay to complete your payment securely. 
                   Your plan will be updated immediately after successful payment.
                 </p>
               </div>

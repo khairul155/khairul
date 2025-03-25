@@ -225,7 +225,7 @@ export function useCredits() {
     }
   };
 
-  // Upgrade user plan with better error handling
+  // Upgrade user plan with NagorikPay redirection
   const upgradePlan = async (plan: SubscriptionPlan) => {
     if (!user) {
       toast({
@@ -237,29 +237,32 @@ export function useCredits() {
     }
 
     try {
-      // Use the update_user_subscription_with_payment function
-      const { error } = await supabase.rpc('update_user_subscription_with_payment', {
-        _user_id: user.id,
-        _subscription_plan: plan,
-        _payment_id: `demo-upgrade-${Date.now()}`,
-        _prorated_credits: null // No proration for demo
+      const { data, error } = await supabase.functions.invoke('process-payment/initiate', {
+        method: 'POST',
+        body: {
+          userId: user.id,
+          userEmail: user.email,
+          plan: plan,
+          redirectUrl: window.location.href
+        }
       });
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
-      toast({
-        title: 'Plan Upgraded',
-        description: `Your account is now on the ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan.`,
-        variant: 'default',
-      });
-      
-      await fetchCredits();
-      return true;
+      if (data && data.url) {
+        // Redirect to NagorikPay
+        window.location.href = data.url;
+        return true;
+      } else {
+        throw new Error('Invalid response from payment service');
+      }
     } catch (err) {
       console.error('Error upgrading plan:', err);
       toast({
         title: 'Error',
-        description: 'Failed to upgrade plan',
+        description: 'Failed to initiate payment. Please try again.',
         variant: 'destructive',
       });
       return false;
