@@ -2,19 +2,21 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
-import { Check, Coins, ArrowRight, ChevronRight, Sparkles, Zap, Shield } from "lucide-react";
+import { Check, Coins, ArrowRight, ChevronRight, Sparkles, Zap, Shield, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { useCredits, SubscriptionPlan } from "@/hooks/use-credits";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const pricingPlans = [
   {
     name: "Free",
     price: "0",
-    currency: "Tk",
+    currency: "$",
     description: "Basic access with daily limits",
     features: [
       "60 tokens/day",
@@ -33,8 +35,8 @@ const pricingPlans = [
   },
   {
     name: "Basic",
-    price: "400",
-    currency: "Tk",
+    price: "10",
+    currency: "$",
     description: "Good for occasional use",
     features: [
       "3,400 tokens/month (~113/day)",
@@ -53,8 +55,8 @@ const pricingPlans = [
   },
   {
     name: "Advanced",
-    price: "750",
-    currency: "Tk",
+    price: "25",
+    currency: "$",
     description: "Perfect for regular creators",
     features: [
       "8,000 tokens/month (~267/day)",
@@ -73,8 +75,8 @@ const pricingPlans = [
   },
   {
     name: "Pro",
-    price: "1400",
-    currency: "Tk",
+    price: "50",
+    currency: "$",
     description: "For power users and businesses",
     features: [
       "18,000 tokens/month (~600/day)",
@@ -95,18 +97,89 @@ const pricingPlans = [
 
 type BillingCycle = "monthly" | "yearly";
 type PlanCategory = "personal" | "business";
+type PaymentStatus = "idle" | "processing" | "success" | "error" | "verifying";
 
 const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [planCategory, setPlanCategory] = useState<PlanCategory>("personal");
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [confirmDialog, setConfirmDialog] = useState(false);
-  const [upgrading, setUpgrading] = useState(false);
+  const [paymentDialog, setPaymentDialog] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("idle");
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [transactionRef, setTransactionRef] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
   
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { credits, upgradePlan, loading: creditsLoading } = useCredits();
+  const { credits, fetchCredits, loading: creditsLoading } = useCredits();
+  
+  // Effect to check for transaction ID in URL (after payment redirect)
+  useEffect(() => {
+    const checkTransactionStatus = async () => {
+      const url = new URL(window.location.href);
+      const txnId = url.searchParams.get('transaction_id');
+      const status = url.searchParams.get('status');
+      
+      // Clear URL parameters without reloading the page
+      if (txnId) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
+      if (txnId && status) {
+        setPaymentStatus("verifying");
+        setPaymentDialog(true);
+        
+        try {
+          setIsVerifying(true);
+          const response = await fetch(`${supabase.supabaseUrl}/functions/v1/process-payment/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabase.supabaseKey}`
+            },
+            body: JSON.stringify({
+              transactionId: txnId,
+              userId: user?.id
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            setPaymentStatus("success");
+            await fetchCredits();
+            toast({
+              title: "Payment Successful",
+              description: `Your plan has been upgraded to ${data.plan.charAt(0).toUpperCase() + data.plan.slice(1)}.`,
+            });
+          } else {
+            setPaymentStatus("error");
+            setPaymentError(data.error || "Payment verification failed. Please contact support.");
+            toast({
+              title: "Payment Error",
+              description: "There was an issue verifying your payment. Please try again.",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error("Payment verification error:", error);
+          setPaymentStatus("error");
+          setPaymentError("Network error while verifying payment. Please check your connection.");
+          toast({
+            title: "Verification Error",
+            description: "Failed to verify payment status. Please contact support.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsVerifying(false);
+        }
+      }
+    };
+    
+    checkTransactionStatus();
+  }, [user]);
   
   const handlePlanSelection = (plan: SubscriptionPlan) => {
     if (!user) {
@@ -133,22 +206,60 @@ const Pricing = () => {
     setConfirmDialog(true);
   };
 
-  const handleUpgrade = async () => {
-    if (!selectedPlan) return;
+  const initiatePayment = async () => {
+    if (!selectedPlan || !user) return;
     
-    setUpgrading(true);
-    
-    const success = await upgradePlan(selectedPlan);
-    
-    setUpgrading(false);
+    setPaymentStatus("processing");
     setConfirmDialog(false);
+    setPaymentDialog(true);
     
-    if (success) {
+    try {
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/process-payment/initiate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          userEmail: user.email,
+          plan: selectedPlan,
+          redirectUrl: window.location.href
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.url) {
+        setTransactionRef(data.transactionRef || null);
+        // Redirect to payment gateway
+        window.location.href = data.url;
+      } else {
+        setPaymentStatus("error");
+        setPaymentError(data.error || "Failed to initialize payment. Please try again.");
+        toast({
+          title: "Payment Error",
+          description: "There was an issue setting up the payment. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Payment initiation error:", error);
+      setPaymentStatus("error");
+      setPaymentError("Network error while setting up payment. Please try again.");
       toast({
-        title: "Plan Upgraded",
-        description: `You are now on the ${selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)} plan.`,
+        title: "Payment Error",
+        description: "Failed to connect to payment service. Please try again later.",
+        variant: "destructive",
       });
     }
+  };
+
+  const closePaymentDialog = () => {
+    setPaymentDialog(false);
+    setPaymentStatus("idle");
+    setPaymentError(null);
+    setTransactionRef(null);
   };
 
   // Format the plan name for display
@@ -274,7 +385,7 @@ const Pricing = () => {
                         )}
                         onClick={() => handlePlanSelection(plan.plan)}
                       >
-                        Try {plan.name} (Demo)
+                        Upgrade to {plan.name}
                       </Button>
                     )
                   ) : (
@@ -324,12 +435,14 @@ const Pricing = () => {
         </div>
       </div>
       
+      {/* Plan Confirmation Dialog */}
       <Dialog open={confirmDialog} onOpenChange={setConfirmDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upgrade to {selectedPlan ? formatPlanName(selectedPlan) : ''} Plan</DialogTitle>
             <DialogDescription>
-              Are you sure you want to upgrade to the {selectedPlan ? formatPlanName(selectedPlan) : ''} plan? This is a demo upgrade that will immediately give you access to increased token limits.
+              Are you sure you want to upgrade to the {selectedPlan ? formatPlanName(selectedPlan) : ''} plan? 
+              You will be redirected to a secure payment page to complete your purchase.
             </DialogDescription>
           </DialogHeader>
           
@@ -343,20 +456,20 @@ const Pricing = () => {
                   {selectedPlan === 'free' && <Shield className="h-6 w-6 text-purple-600" />}
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-sm font-semibold">{formatPlanName(selectedPlan)} Plan Benefits</h4>
+                  <h4 className="text-sm font-semibold">{formatPlanName(selectedPlan)} Plan</h4>
                   <p className="text-sm text-muted-foreground">
-                    {selectedPlan === 'basic' && '3,400 tokens/month (~113/day)'}
-                    {selectedPlan === 'advanced' && '8,000 tokens/month (~267/day)'}
-                    {selectedPlan === 'pro' && '18,000 tokens/month (~600/day)'}
-                    {selectedPlan === 'free' && '60 tokens/day'}
+                    {selectedPlan === 'basic' && '$10/month · 3,400 tokens/month'}
+                    {selectedPlan === 'advanced' && '$25/month · 8,000 tokens/month'}
+                    {selectedPlan === 'pro' && '$50/month · 18,000 tokens/month'}
+                    {selectedPlan === 'free' && 'Free · 60 tokens/day'}
                   </p>
                 </div>
               </div>
               
-              <div className="border rounded-md p-4 bg-purple-950/10">
-                <p className="text-sm text-center text-purple-400">
-                  In a real production environment, this would connect to a payment system.
-                  For this demo, you'll be upgraded immediately without any charge.
+              <div className="border rounded-md p-4 bg-amber-950/10">
+                <p className="text-sm text-center text-amber-400">
+                  You'll be redirected to Drutopay to complete your payment securely. 
+                  Your plan will be updated immediately after successful payment.
                 </p>
               </div>
             </div>
@@ -365,12 +478,82 @@ const Pricing = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDialog(false)}>Cancel</Button>
             <Button 
-              onClick={handleUpgrade} 
-              disabled={upgrading}
+              onClick={initiatePayment}
               className="bg-purple-600 hover:bg-purple-700"
             >
-              {upgrading ? "Upgrading..." : "Confirm Upgrade"}
+              Proceed to Payment
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Payment Status Dialog */}
+      <Dialog open={paymentDialog} onOpenChange={closePaymentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {paymentStatus === "processing" && "Processing Payment"}
+              {paymentStatus === "verifying" && "Verifying Payment"}
+              {paymentStatus === "success" && "Payment Successful"}
+              {paymentStatus === "error" && "Payment Failed"}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-6 flex flex-col items-center justify-center space-y-4">
+            {(paymentStatus === "processing" || paymentStatus === "verifying") && (
+              <>
+                <div className="flex flex-col items-center space-y-4">
+                  <Loader2 className="h-16 w-16 animate-spin text-purple-600" />
+                  <p className="text-center text-lg">
+                    {paymentStatus === "processing" ? "Redirecting to payment gateway..." : "Verifying your payment..."}
+                  </p>
+                  {transactionRef && (
+                    <p className="text-sm text-gray-500">Reference: {transactionRef}</p>
+                  )}
+                </div>
+              </>
+            )}
+            
+            {paymentStatus === "success" && (
+              <>
+                <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                  <Check className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold">Payment Successful!</h3>
+                <p className="text-center text-gray-500 max-w-md">
+                  Your plan has been upgraded successfully. You now have access to additional features and credits.
+                </p>
+              </>
+            )}
+            
+            {paymentStatus === "error" && (
+              <>
+                <div className="h-16 w-16 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                  <X className="h-8 w-8 text-red-600" />
+                </div>
+                <h3 className="text-xl font-semibold">Payment Failed</h3>
+                <Alert variant="destructive" className="mt-2">
+                  <AlertDescription>{paymentError || "There was an error processing your payment. Please try again or contact support."}</AlertDescription>
+                </Alert>
+              </>
+            )}
+          </div>
+          
+          <DialogFooter>
+            {paymentStatus === "success" && (
+              <Button onClick={closePaymentDialog}>Continue</Button>
+            )}
+            {paymentStatus === "error" && (
+              <Button onClick={closePaymentDialog}>Close</Button>
+            )}
+            {paymentStatus === "processing" && (
+              <Button variant="outline" onClick={closePaymentDialog}>Cancel</Button>
+            )}
+            {paymentStatus === "verifying" && (
+              <Button disabled={isVerifying} variant="outline" onClick={closePaymentDialog}>
+                {isVerifying ? "Verifying..." : "Close"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
