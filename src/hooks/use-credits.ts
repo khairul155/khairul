@@ -62,45 +62,67 @@ export function useCredits() {
 
   // Calculate remaining credits based on subscription plan
   const calculateRemainingCredits = (data: any): number => {
+    if (!data) return 0;
+    
     if (data.subscription_plan === 'free') {
-      return data.daily_credits - data.credits_used_today;
+      return Math.max(0, data.daily_credits - data.credits_used_today);
     } else {
-      return data.monthly_credits - data.credits_used_this_month;
+      return Math.max(0, data.monthly_credits - data.credits_used_this_month);
     }
   };
 
   // Calculate total credits based on subscription plan
   const calculateTotalCredits = (data: any): number => {
+    if (!data) return 0;
+    
     if (data.subscription_plan === 'free') {
-      return data.daily_credits;
+      return data.daily_credits || 0;
     } else {
-      return data.monthly_credits;
+      return data.monthly_credits || 0;
     }
   };
 
   // Fetch user credits from Supabase
   const fetchCredits = async () => {
     if (!user) {
+      console.log("No user logged in, using default credits");
       setCredits(defaultCredits);
       setLoading(false);
       return;
     }
 
     try {
+      console.log("Fetching credits for user:", user.id);
       setLoading(true);
       
       const { data, error } = await supabase.rpc('get_user_credits');
       
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase RPC error:", error);
+        throw error;
+      }
       
       if (data) {
+        console.log("Raw credits data:", data);
         const jsonData = data as Record<string, any>;
+        
+        // Ensure we have valid data before proceeding
+        if (!jsonData || typeof jsonData !== 'object') {
+          console.error("Invalid credits data format:", jsonData);
+          throw new Error("Invalid credits data format received");
+        }
+        
         const processedData = {
           ...jsonData,
           remaining_credits: calculateRemainingCredits(jsonData),
           total_credits: calculateTotalCredits(jsonData)
         };
+        
+        console.log("Processed credits data:", processedData);
         setCredits(processedData as UserCredits);
+      } else {
+        console.log("No credits data returned, using defaults");
+        setCredits(defaultCredits);
       }
     } catch (err) {
       console.error('Error fetching credits:', err);
@@ -114,6 +136,9 @@ export function useCredits() {
           variant: 'destructive',
         });
       }
+      
+      // Set default credits to avoid null reference errors
+      setCredits(defaultCredits);
     } finally {
       setLoading(false);
     }
@@ -136,16 +161,22 @@ export function useCredits() {
     }
 
     try {
+      console.log(`Using tool ${toolName} with ${creditsToUse} credits`);
       const { data, error } = await supabase.rpc('use_tool', {
         _user_id: user.id, 
         _tool_name: toolName,
         _credits: creditsToUse
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase RPC error when using tool:", error);
+        throw error;
+      }
       
       if (data) {
         const responseData = data as Record<string, any>;
+        console.log("Tool usage response:", responseData);
+        
         if (responseData.status === 'success' || responseData.status === 'slow_mode') {
           // Update local credits state
           await fetchCredits();
@@ -178,7 +209,7 @@ export function useCredits() {
         }
       }
       
-      return { success: false };
+      return { success: false, message: "No response from server" };
     } catch (err) {
       console.error('Error using tool:', err);
       const errorMsg = err instanceof Error ? err.message : 'An error occurred';
@@ -242,8 +273,10 @@ export function useCredits() {
     const loadCredits = async () => {
       try {
         if (user && mounted) {
+          console.log("User authenticated, loading credits");
           await fetchCredits();
         } else if (!user && mounted) {
+          console.log("No user, using default credits");
           setCredits(defaultCredits);
           setLoading(false);
         }

@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +12,7 @@ import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSi
 import { useAuth } from "@/components/AuthProvider";
 import TypingEffect from "@/components/TypingEffect";
 import { useCreditsContext } from "@/components/CreditsProvider";
+import { TokenBalance } from "@/components/TokenBalance";
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
@@ -22,7 +24,7 @@ const ImageGenerator = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { useTool } = useCreditsContext();
+  const { useTool, credits, loading: creditsLoading } = useCreditsContext();
   const navigate = useNavigate();
   
   // Generation settings with updated default steps for fast mode
@@ -54,6 +56,15 @@ const ImageGenerator = () => {
         description: "Please sign in to generate images",
       });
       navigate("/auth");
+      return;
+    }
+
+    // Check if credits are still loading
+    if (creditsLoading) {
+      toast({
+        title: "Loading",
+        description: "Please wait while we load your account information",
+      });
       return;
     }
 
@@ -202,7 +213,7 @@ const ImageGenerator = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Space for balance */}
+          {!creditsLoading && <TokenBalance />}
         </div>
       </div>
       
@@ -217,7 +228,12 @@ const ImageGenerator = () => {
         <div className="flex-1 flex flex-col h-[calc(100vh-73px)]">
           {/* Main Content Area (expanded to take most space) */}
           <div className="flex-1 p-6 flex items-center justify-center overflow-hidden">
-            {generatedImages.length > 0 && !isLoading ? (
+            {creditsLoading ? (
+              <div className="text-center">
+                <Loader2 className="h-12 w-12 text-[#FFA725] animate-spin mx-auto mb-4" />
+                <p className="text-lg">Loading your account information...</p>
+              </div>
+            ) : generatedImages.length > 0 && !isLoading ? (
               <div className="w-full max-w-5xl mx-auto animate-fade-in">
                 <ImageGrid 
                   images={generatedImages} 
@@ -261,7 +277,7 @@ const ImageGenerator = () => {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  disabled={isLoading}
+                  disabled={isLoading || creditsLoading}
                   className="min-h-[35px] max-h-[35px] px-4 py-1.5 bg-[#171717] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
                 />
               </div>
@@ -269,7 +285,7 @@ const ImageGenerator = () => {
               <div className="flex justify-end gap-3">
                 <Button
                   onClick={getInspiration}
-                  disabled={isLoadingPrompt}
+                  disabled={isLoadingPrompt || creditsLoading}
                   variant="outline"
                   className="bg-[#171717] hover:bg-[#2a2a2a] text-white border-gray-700 rounded-md px-4"
                 >
@@ -283,13 +299,18 @@ const ImageGenerator = () => {
               
                 <Button
                   onClick={generateImage}
-                  disabled={isLoading || !prompt.trim()}
+                  disabled={isLoading || !prompt.trim() || creditsLoading}
                   className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-md px-6"
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
                       Generating...
+                    </>
+                  ) : creditsLoading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      Loading...
                     </>
                   ) : (
                     "Generate"

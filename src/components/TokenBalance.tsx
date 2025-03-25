@@ -14,6 +14,7 @@ export function TokenBalance() {
   const { credits, loading, error } = useCreditsContext();
   
   const formatNumber = (num: number) => {
+    if (num === undefined || num === null) return '0';
     return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : num.toString();
   };
 
@@ -30,9 +31,10 @@ export function TokenBalance() {
     return <Skeleton className="h-9 w-20 rounded-md" />;
   }
 
-  const remaining = credits.remaining_credits;
-  const total = credits.total_credits;
-  const usagePercentage = Math.floor((remaining / total) * 100);
+  // Safely access credits properties with null checks
+  const remaining = credits?.remaining_credits ?? 0;
+  const total = credits?.total_credits ?? 0;
+  const usagePercentage = total > 0 ? Math.floor((remaining / total) * 100) : 0;
   
   // Determine color based on remaining credits percentage
   const getColorClass = () => {
@@ -56,7 +58,7 @@ export function TokenBalance() {
           <div className="space-y-2">
             <div className="font-semibold">Token Balance</div>
             <p className="text-sm text-muted-foreground">
-              {credits.subscription_plan === 'free' 
+              {credits?.subscription_plan === 'free' 
                 ? `You have ${remaining} out of ${total} daily tokens remaining.` 
                 : `You have ${remaining} out of ${total} monthly tokens remaining.`}
             </p>
@@ -67,7 +69,7 @@ export function TokenBalance() {
               />
             </div>
             <p className="text-xs text-muted-foreground pt-1">
-              {credits.subscription_plan === 'free' 
+              {credits?.subscription_plan === 'free' 
                 ? "Tokens reset daily at UTC+0" 
                 : "Tokens reset monthly on the 1st at UTC+0"}
             </p>

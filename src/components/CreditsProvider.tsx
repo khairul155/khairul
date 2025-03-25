@@ -44,6 +44,13 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
   // Initialize with default credits when not logged in
   const creditsData = useCredits();
   
+  // Log any changes to credits data for debugging
+  useEffect(() => {
+    if (creditsData.credits && Object.keys(creditsData.credits).length > 0) {
+      console.log("Credits data updated:", creditsData.credits);
+    }
+  }, [creditsData.credits]);
+  
   // Ensure the provider doesn't crash the app
   useEffect(() => {
     try {
