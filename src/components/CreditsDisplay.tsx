@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 interface CreditsDisplayProps {
   compact?: boolean;
@@ -114,8 +115,7 @@ const CreditsDisplay: React.FC<CreditsDisplayProps> = ({
           </div>
           <Progress 
             value={percentage} 
-            className="h-2 bg-gray-800" 
-            indicatorClassName={isLow ? "bg-red-500" : undefined}
+            className={cn("h-2 bg-gray-800", isLow ? "text-red-500" : "")} 
           />
         </div>
         

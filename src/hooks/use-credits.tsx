@@ -62,7 +62,9 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
         return;
       }
       
-      setCredits(data);
+      if (data) {
+        setCredits(data as UserCredits);
+      }
     } catch (error) {
       console.error('Error in refreshCredits:', error);
     } finally {
@@ -115,8 +117,26 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
 
   const useToolCredits = async (toolName: string, creditsAmount = 1) => {
     try {
+      // Get the current user ID
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+
+      if (!userId) {
+        toast({
+          title: 'Error',
+          description: 'You must be logged in to use this feature.',
+          variant: 'destructive',
+        });
+        return {
+          success: false,
+          message: 'Not authenticated',
+          status: 'error',
+          canUse: false
+        };
+      }
+
       const { data, error } = await supabase.rpc('use_tool', {
-        _user_id: supabase.auth.getUser().then(({ data }) => data.user?.id),
+        _user_id: userId,
         _tool_name: toolName,
         _credits: creditsAmount
       });
@@ -139,36 +159,45 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       // Refresh credits after using the tool
       await refreshCredits();
 
-      if (data.status === 'error') {
+      // Need to type cast data as it comes from a custom RPC
+      const responseData = data as {
+        status: string;
+        message: string;
+        can_use: boolean;
+        remaining_credits?: number;
+        slow_mode?: boolean;
+      };
+
+      if (responseData.status === 'error') {
         toast({
           title: 'Credit Limit Reached',
-          description: data.message,
+          description: responseData.message,
           variant: 'destructive',
         });
         return {
           success: false,
-          message: data.message,
-          status: data.status,
-          canUse: data.can_use || false,
-          remainingCredits: data.remaining_credits,
-          slowMode: data.slow_mode
+          message: responseData.message,
+          status: responseData.status,
+          canUse: responseData.can_use || false,
+          remainingCredits: responseData.remaining_credits,
+          slowMode: responseData.slow_mode
         };
       }
 
-      if (data.status === 'slow_mode') {
+      if (responseData.status === 'slow_mode') {
         toast({
           title: 'Slow Mode Activated',
-          description: data.message,
+          description: responseData.message,
         });
       }
 
       return {
         success: true,
-        message: data.message,
-        status: data.status,
-        canUse: data.can_use,
-        remainingCredits: data.remaining_credits,
-        slowMode: data.slow_mode
+        message: responseData.message,
+        status: responseData.status,
+        canUse: responseData.can_use,
+        remainingCredits: responseData.remaining_credits,
+        slowMode: responseData.slow_mode
       };
     } catch (error) {
       console.error('Error in useToolCredits:', error);

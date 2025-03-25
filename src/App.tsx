@@ -18,12 +18,13 @@ import BulkImageSizeIncreaser from "./pages/BulkImageSizeIncreaser";
 import ImageGenerator from "./pages/ImageGenerator";
 import Pricing from "./pages/Pricing";
 
+// Create a new QueryClient instance
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <TooltipProvider>
+  <ThemeProvider>
+    <TooltipProvider>
+      <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <CreditsProvider>
             <Toaster />
@@ -47,9 +48,9 @@ const App = () => (
             </BrowserRouter>
           </CreditsProvider>
         </AuthProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+      </QueryClientProvider>
+    </TooltipProvider>
+  </ThemeProvider>
 );
 
 export default App;
