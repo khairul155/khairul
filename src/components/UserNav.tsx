@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +21,7 @@ const UserNav = () => {
   const navigate = useNavigate();
 
   // Refresh credits when component mounts to ensure we have the latest data
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       refreshCredits();
     }
