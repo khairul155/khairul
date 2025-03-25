@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
@@ -82,7 +81,7 @@ export function useCredits() {
     }
   };
 
-  // Fetch user credits from Supabase
+  // Fetch user credits from Supabase with improved error handling
   const fetchCredits = async () => {
     if (!user) {
       console.log("No user logged in, using default credits");
@@ -225,7 +224,7 @@ export function useCredits() {
     }
   };
 
-  // Upgrade user plan with NagorikPay redirection
+  // Upgrade user plan with improved NagorikPay integration
   const upgradePlan = async (plan: SubscriptionPlan) => {
     if (!user) {
       toast({
@@ -233,11 +232,19 @@ export function useCredits() {
         description: 'Please sign in to upgrade your plan.',
         variant: 'destructive',
       });
-      return false;
+      return { success: false, error: 'Authentication required' };
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('process-payment/initiate', {
+      // Set a timeout to detect if the request takes too long
+      const timeoutPromise = new Promise<{ success: false; error: string }>((resolve) => {
+        setTimeout(() => {
+          resolve({ success: false, error: 'Request timed out. Please try again.' });
+        }, 15000); // 15 second timeout
+      });
+
+      // Actual request to initiate payment
+      const requestPromise = supabase.functions.invoke('process-payment/initiate', {
         method: 'POST',
         body: {
           userId: user.id,
@@ -246,15 +253,21 @@ export function useCredits() {
           redirectUrl: window.location.href
         }
       });
+
+      // Race between the timeout and the actual request
+      const result = await Promise.race([requestPromise, timeoutPromise]);
       
-      if (error) {
-        throw error;
+      if ('error' in result && result.error) {
+        throw new Error(result.error);
       }
       
+      const data = 'data' in result ? result.data : null;
+      
       if (data && data.url) {
-        // Redirect to NagorikPay
+        // Redirect to NagorikPay - with client-side navigation for SPA
+        console.log("Redirecting to NagorikPay:", data.url);
         window.location.href = data.url;
-        return true;
+        return { success: true, transactionRef: data.transactionRef };
       } else {
         throw new Error('Invalid response from payment service');
       }
@@ -265,11 +278,11 @@ export function useCredits() {
         description: 'Failed to initiate payment. Please try again.',
         variant: 'destructive',
       });
-      return false;
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
     }
   };
 
-  // Initial load and refresh on user change with better error handling
+  // Initial load and refresh on user change
   useEffect(() => {
     let mounted = true;
     

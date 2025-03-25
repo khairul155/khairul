@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.48.1";
 
@@ -21,7 +20,7 @@ const PLAN_PRICING = {
   'pro': 50
 };
 
-// NagorikPay base URL
+// NagorikPay base URL - ensure this is the correct endpoint
 const NAGORIKPAY_API_URL = "https://secure-pay.nagorikpay.com/api/execute/a6535064f4f097f1391db5d3ab9815b5";
 
 interface InitiatePaymentRequest {
@@ -56,14 +55,25 @@ function generateTransactionRef(): string {
   return `PIXCRAFT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
-// Helper function for retrying network requests
+// Helper function for retrying network requests with exponential backoff
 async function retryFetch(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
   let lastError: Error | null = null;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`Attempt ${attempt} to fetch ${url}`);
-      const response = await fetch(url, options);
+      
+      // Set a reasonable timeout for the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const fetchOptions = {
+        ...options,
+        signal: controller.signal
+      };
+      
+      const response = await fetch(url, fetchOptions);
+      clearTimeout(timeoutId); // Clear the timeout if fetch succeeds
       
       // Return successful responses
       if (response.ok) {
@@ -78,9 +88,9 @@ async function retryFetch(url: string, options: RequestInit, maxRetries = 3): Pr
       lastError = error instanceof Error ? error : new Error(String(error));
       console.error(`Fetch attempt ${attempt} failed:`, lastError.message);
       
-      // If we haven't reached max retries, wait before trying again
+      // If we haven't reached max retries, wait before trying again with exponential backoff
       if (attempt < maxRetries) {
-        const delay = attempt * 2000; // Increasing backoff
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000); // Exponential backoff, max 8 seconds
         console.log(`Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -188,20 +198,21 @@ serve(async (req) => {
         });
       }
       
-      // Generate NagorikPay payment URL
-      const nagorikPayParams = new URLSearchParams({
-        amount: PLAN_PRICING[plan].toString(),
-        currency: 'USD',
-        transaction_id: transactionRef,
-        customer_email: userEmail,
-        customer_name: userEmail.split('@')[0] || 'Customer',
-        description: `Upgrade to ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`,
-        callback_url: `${supabaseUrl}/functions/v1/process-payment/callback?userId=${userId}&plan=${plan}`,
-        success_url: redirectUrl,
-        fail_url: `${redirectUrl}?payment_status=failed&transaction_id=${transactionRef}`
-      });
+      // Generate NagorikPay payment URL with proper URL encoding of all parameters
+      const nagorikPayParams = new URLSearchParams();
+      nagorikPayParams.append('amount', PLAN_PRICING[plan].toString());
+      nagorikPayParams.append('currency', 'USD');
+      nagorikPayParams.append('transaction_id', transactionRef);
+      nagorikPayParams.append('customer_email', userEmail);
+      nagorikPayParams.append('customer_name', userEmail.split('@')[0] || 'Customer');
+      nagorikPayParams.append('description', `Upgrade to ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`);
+      nagorikPayParams.append('callback_url', `${supabaseUrl}/functions/v1/process-payment/callback?userId=${encodeURIComponent(userId)}&plan=${encodeURIComponent(plan)}`);
+      nagorikPayParams.append('success_url', `${redirectUrl}?payment_status=success`);
+      nagorikPayParams.append('fail_url', `${redirectUrl}?payment_status=failed&transaction_id=${encodeURIComponent(transactionRef)}`);
       
+      // Build final URL ensuring it's properly formatted
       const nagorikPayRedirectUrl = `${NAGORIKPAY_API_URL}?${nagorikPayParams.toString()}`;
+      
       console.log("Generated NagorikPay URL:", nagorikPayRedirectUrl);
       
       return new Response(JSON.stringify({

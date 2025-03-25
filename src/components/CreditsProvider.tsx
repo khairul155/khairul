@@ -30,7 +30,7 @@ interface CreditsContextValue {
     onSuccess?: () => void,
     onError?: (message: string) => void
   ) => Promise<{ success: boolean; message?: string; slowMode?: boolean }>;
-  upgradePlan: (plan: SubscriptionPlan) => Promise<boolean>;
+  upgradePlan: (plan: SubscriptionPlan) => Promise<{ success: boolean; error?: string; transactionRef?: string }>;
   fetchCredits: () => Promise<void>;
 }
 
@@ -98,7 +98,7 @@ export function useCreditsContext() {
       loading: false,
       error: new Error("Credits context not available"),
       useTool: async () => ({ success: false, message: "Credits service unavailable" }),
-      upgradePlan: async () => false,
+      upgradePlan: async () => ({ success: false, error: "Credits service unavailable" }),
       fetchCredits: async () => {},
     };
   }

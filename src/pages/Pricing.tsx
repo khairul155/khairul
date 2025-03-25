@@ -114,7 +114,7 @@ const Pricing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { credits, fetchCredits, loading: creditsLoading } = useCredits();
+  const { credits, fetchCredits, loading: creditsLoading, upgradePlan } = useCredits();
   
   useEffect(() => {
     const checkTransactionStatus = async () => {
@@ -138,7 +138,7 @@ const Pricing = () => {
       } else if (status === 'failed' && txnId) {
         setPaymentStatus("error");
         setPaymentDialog(true);
-        setPaymentError("Payment failed. Please try again or contact support.");
+        setPaymentError("Your payment could not be processed. Please try again or contact support if the issue persists.");
         toast({
           title: "Payment Failed",
           description: "There was an issue processing your payment. Please try again.",
@@ -182,7 +182,7 @@ const Pricing = () => {
         } catch (error) {
           console.error("Payment verification error:", error);
           setPaymentStatus("error");
-          setPaymentError("Network error while verifying payment. Please check your connection.");
+          setPaymentError("Network error while verifying payment. Please check your connection and try again.");
           toast({
             title: "Verification Error",
             description: "Failed to verify payment status. Please contact support.",
@@ -231,35 +231,21 @@ const Pricing = () => {
     try {
       console.log(`Initiating payment for plan: ${selectedPlan} (Attempt: ${paymentAttempts + 1})`);
       
-      const { data, error } = await supabase.functions.invoke('process-payment/initiate', {
-        method: 'POST',
-        body: {
-          userId: user.id,
-          userEmail: user.email,
-          plan: selectedPlan,
-          redirectUrl: window.location.href
-        }
-      });
+      const result = await upgradePlan(selectedPlan);
       
-      if (error) {
-        console.error("Payment function error:", error);
-        throw error;
-      }
-      
-      if (data && data.url) {
-        setTransactionRef(data.transactionRef || null);
-        console.log("Redirecting to payment URL:", data.url);
-        window.location.href = data.url;
-      } else {
-        console.error("Invalid response data:", data);
+      if (!result.success) {
+        console.error("Payment initiation failed:", result.error);
         setPaymentStatus("error");
-        setPaymentError(data?.error || "Failed to initialize payment. Please try again.");
+        setPaymentError(
+          result.error || "Failed to connect to payment service. Please check your internet connection and try again."
+        );
         toast({
           title: "Payment Error",
-          description: "There was an issue setting up the payment. Please try again.",
+          description: "Failed to connect to payment service. Please try again later.",
           variant: "destructive",
         });
       }
+      // If successful, the page will be redirected to NagorikPay by the upgradePlan function
     } catch (error) {
       console.error("Payment initiation error:", error);
       setPaymentStatus("error");
