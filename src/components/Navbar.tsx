@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,7 @@ import {
   Briefcase,
   CreditCard,
   HelpCircle,
-  Coins,
-  PanelLeft  // New icon for P-shaped logo
+  Coins
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -118,8 +118,8 @@ const Navbar = () => {
           {/* Left Side: Logo & Site Name */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-md flex items-center justify-center border border-white/20">
-                <PanelLeft className="h-5 w-5 text-white stroke-[1.5]" />
+              <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center border border-white/20">
+                <Wand2 className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold text-white">
                 PixcraftAI

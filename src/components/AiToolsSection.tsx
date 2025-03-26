@@ -1,6 +1,6 @@
+
 import { useNavigate, useLocation } from "react-router-dom";
 import AiToolIcon from "./AiToolIcon";
-import { PanelLeft } from "lucide-react";  // Using PanelLeft as a demo/panel icon
 
 const AiToolsSection = () => {
   const navigate = useNavigate();
@@ -11,6 +11,9 @@ const AiToolsSection = () => {
     
     if (route) {
       navigate(route);
+    } else {
+      // This is a placeholder for actual tool functionality
+      // You can implement specific actions for each tool here
     }
   };
 
@@ -26,7 +29,6 @@ const AiToolsSection = () => {
         </h2>
         
         <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-8 justify-items-center">
-          
           <AiToolIcon 
             icon="IG"
             label="Image Generator"
@@ -73,14 +75,6 @@ const AiToolsSection = () => {
             color="yellow"
             isUpcoming={true}
             onClick={() => handleToolClick("Bulk Image Size Increaser", "/bulk-image-size-increaser")}
-          />
-          
-          <AiToolIcon 
-            icon="DM"  // Demo/Panel icon
-            label="Demo Tool"
-            color="green"
-            isUpcoming={true}
-            onClick={() => handleToolClick("Demo Tool", "/demo")}
           />
         </div>
       </div>
