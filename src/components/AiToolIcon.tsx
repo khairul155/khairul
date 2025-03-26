@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Coins } from "lucide-react";
 
 interface AiToolIconProps {
-  icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI"; // Icon names
+  icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI" | "DM"; // Added DM for Demo
   label: string;
   color: string;
   onClick?: () => void;
@@ -24,14 +24,14 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
   isUpcoming = false,
   tokens
 }) => {
-  // Map of background colors for each icon type
   const colorMap = {
-    IG: "bg-blue-500", // Image Generator
-    MD: "bg-gray-800", // Meta Data Generator
-    GD: "bg-purple-600", // Graphic Designer Bot
-    IP: "bg-orange-500", // Image to Prompt
-    IU: "bg-pink-500", // Image Upscaler
-    BI: "bg-yellow-500", // Bulk Image Size Increaser
+    IG: "bg-blue-500",
+    MD: "bg-gray-800",
+    GD: "bg-purple-600",
+    IP: "bg-orange-500",
+    IU: "bg-pink-500",
+    BI: "bg-yellow-500",
+    DM: "bg-green-500", // New Demo icon color
   };
 
   return (

@@ -3,7 +3,25 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
-import { Wand2, ArrowRight, Sparkles, Image, Zap, Shield, Download, Trophy, Check, ChevronRight, Star, Palette, MessageSquareText, Layers, Clock, Coins } from "lucide-react";
+import { 
+  Wand2, 
+  ArrowRight, 
+  Sparkles, 
+  Image, 
+  Zap, 
+  Shield, 
+  Download, 
+  Trophy, 
+  Check, 
+  ChevronRight, 
+  Star, 
+  Palette, 
+  MessageSquareText, 
+  Layers, 
+  Clock, 
+  Coins,
+  PanelLeft  // New icon for P-shaped logo
+} from "lucide-react";
 import TypingEffect from "@/components/TypingEffect";
 import AiToolsSection from "@/components/AiToolsSection";
 const LandingPage = () => {
@@ -65,6 +83,13 @@ const LandingPage = () => {
             </div>
           </div>
           
+          {/* Logo design update */}
+          <div className="flex justify-center mb-8">
+            <div className="h-24 w-24 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center border-4 border-white/20 shadow-lg">
+              <PanelLeft className="h-12 w-12 text-white stroke-[1.5]" />
+            </div>
+          </div>
+
           <div className="flex justify-center mb-8">
             <div className="grid grid-cols-2 gap-4 max-w-lg">
               <Link to="/image-generator" className="group relative overflow-hidden rounded-xl bg-gray-900 border border-gray-800 hover:border-blue-500 transition-all duration-300 p-8 flex flex-col items-center justify-center text-center">
