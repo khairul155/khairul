@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/AuthProvider';
+import type { User } from '@supabase/supabase-js';
 
 export type UserCreditsData = {
   subscription_plan: string;
@@ -13,8 +13,8 @@ export type UserCreditsData = {
   slow_mode_enabled: boolean;
 };
 
-export function useCredits() {
-  const { user } = useAuth();
+// Modified to accept user directly rather than using useAuth
+export function useCredits(user: User | null) {
   const [creditsData, setCreditsData] = useState<UserCreditsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,9 +74,14 @@ export function useCredits() {
               : data.monthly_credits - data.credits_used_this_month;
             
             setCreditsData({
-              ...data,
-              remaining_credits: remaining
-            } as UserCreditsData);
+              subscription_plan: data.subscription_plan,
+              daily_credits: data.daily_credits,
+              monthly_credits: data.monthly_credits,
+              credits_used_today: data.credits_used_today,
+              credits_used_this_month: data.credits_used_this_month,
+              remaining_credits: remaining,
+              slow_mode_enabled: data.slow_mode_enabled || false
+            });
           } else {
             // Set default values for free plan if no data
             setCreditsData({
@@ -90,15 +95,20 @@ export function useCredits() {
             });
           }
         } else if (functionData) {
-          // Process function data
-          const remaining = functionData.subscription_plan === 'free'
-            ? functionData.daily_credits - functionData.credits_used_today
-            : functionData.monthly_credits - functionData.credits_used_this_month;
+          // Process function data - ensure we're getting proper types
+          const remaining = typeof functionData.subscription_plan === 'string' && functionData.subscription_plan === 'free'
+            ? Number(functionData.daily_credits || 60) - Number(functionData.credits_used_today || 0)
+            : Number(functionData.monthly_credits || 0) - Number(functionData.credits_used_this_month || 0);
             
           setCreditsData({
-            ...functionData,
-            remaining_credits: remaining
-          } as UserCreditsData);
+            subscription_plan: String(functionData.subscription_plan || 'free'),
+            daily_credits: Number(functionData.daily_credits || 60),
+            monthly_credits: Number(functionData.monthly_credits || 0),
+            credits_used_today: Number(functionData.credits_used_today || 0),
+            credits_used_this_month: Number(functionData.credits_used_this_month || 0),
+            remaining_credits: remaining,
+            slow_mode_enabled: Boolean(functionData.slow_mode_enabled || false)
+          });
         }
       } catch (err) {
         console.error('Error in useCredits hook:', err);

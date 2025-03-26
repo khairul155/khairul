@@ -34,8 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
-  // Load credits for the authenticated user
-  const { creditsData, isLoading: isCreditsLoading } = useCredits();
+  // Pass user directly to useCredits to avoid circular dependency
+  const { creditsData, isLoading: isCreditsLoading } = useCredits(user);
 
   useEffect(() => {
     // First set up the auth state listener

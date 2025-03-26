@@ -26,15 +26,22 @@ export function UserCredits() {
         const { data: userData, error: functionError } = await supabase.rpc('get_user_credits');
         
         if (!functionError && userData) {
+          // Parse data safely with type checking
+          const planType = typeof userData.subscription_plan === 'string' ? userData.subscription_plan : 'free';
+          
           // Set credits based on subscription plan
-          if (userData.subscription_plan === 'free') {
+          if (planType === 'free') {
             // For free plan, show daily credits
-            setCredits(userData.daily_credits - userData.credits_used_today);
+            const dailyCredits = typeof userData.daily_credits === 'number' ? userData.daily_credits : 60;
+            const usedToday = typeof userData.credits_used_today === 'number' ? userData.credits_used_today : 0;
+            setCredits(dailyCredits - usedToday);
             setPlan('free');
           } else {
             // For paid plans, show monthly credits
-            setCredits(userData.monthly_credits - userData.credits_used_this_month);
-            setPlan(userData.subscription_plan);
+            const monthlyCredits = typeof userData.monthly_credits === 'number' ? userData.monthly_credits : 0;
+            const usedThisMonth = typeof userData.credits_used_this_month === 'number' ? userData.credits_used_this_month : 0;
+            setCredits(monthlyCredits - usedThisMonth);
+            setPlan(planType);
           }
           setLoading(false);
           return;
