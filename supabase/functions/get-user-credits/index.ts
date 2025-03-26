@@ -37,33 +37,117 @@ serve(async (req) => {
     
     // If action is "deduct", deduct 4 credits for image generation
     if (action === "deduct") {
-      // Get current user credits
+      console.log(`Attempting to deduct credits for user: ${userId}`);
+      
+      // First check if user exists in user_credits table
+      const { data: userExists, error: checkError } = await supabaseClient
+        .from('user_credits')
+        .select('user_id')
+        .eq('user_id', userId);
+      
+      if (checkError) {
+        console.error("Error checking if user exists:", checkError.message);
+        return new Response(
+          JSON.stringify({ error: 'Failed to check user credits', details: checkError.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+      
+      // If user doesn't exist in user_credits table, create entry
+      if (!userExists || userExists.length === 0) {
+        console.log(`User ${userId} not found in user_credits, creating new entry`);
+        const { error: insertError } = await supabaseClient
+          .from('user_credits')
+          .insert([{ 
+            user_id: userId, 
+            subscription_plan: 'free',
+            daily_credits: 60,
+            credits_used_today: 0,
+            last_reset_date: today
+          }]);
+        
+        if (insertError) {
+          console.error("Error creating user credits:", insertError.message);
+          return new Response(
+            JSON.stringify({ error: 'Failed to create user credits', details: insertError.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+      }
+      
+      // Now get current user credits
       const { data: userData, error: userError } = await supabaseClient
         .from('user_credits')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       
       if (userError) {
+        console.error("Error retrieving user credits:", userError.message);
         return new Response(
           JSON.stringify({ error: 'Failed to retrieve user credits', details: userError.message }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
       
+      if (!userData) {
+        console.error("User credits not found even after insert attempt");
+        return new Response(
+          JSON.stringify({ 
+            error: 'User credits not found', 
+            details: 'Could not find or create user credits'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+      
+      console.log(`Current credits for user ${userId}: ${userData.daily_credits - userData.credits_used_today}`);
+      
       // Check if user has enough credits
-      if (!userData || userData.credits_used_today + 4 > userData.daily_credits) {
+      if (userData.credits_used_today + 4 > userData.daily_credits) {
         return new Response(
           JSON.stringify({ 
             error: 'Not enough credits', 
             details: 'You do not have enough credits to generate an image',
-            remaining: userData ? userData.daily_credits - userData.credits_used_today : 0
+            remaining: userData.daily_credits - userData.credits_used_today
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
       
+      // Reset credits if it's a new day
+      if (userData.last_reset_date && userData.last_reset_date < today) {
+        console.log(`Resetting credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
+        const { error: resetError } = await supabaseClient
+          .from('user_credits')
+          .update({ 
+            credits_used_today: 0,
+            last_reset_date: today,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+        
+        if (resetError) {
+          console.error("Error resetting credits:", resetError.message);
+          return new Response(
+            JSON.stringify({ error: 'Failed to reset credits', details: resetError.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+        
+        // Return fresh credits after reset
+        return new Response(
+          JSON.stringify({ 
+            credits: userData.daily_credits,
+            deducted: 4,
+            status: 'success'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       // Update user credits (deduct 4)
+      console.log(`Deducting 4 credits for user ${userId}`);
       const { error: updateError } = await supabaseClient
         .from('user_credits')
         .update({ 
@@ -73,6 +157,7 @@ serve(async (req) => {
         .eq('user_id', userId);
       
       if (updateError) {
+        console.error("Error updating credits:", updateError.message);
         return new Response(
           JSON.stringify({ error: 'Failed to update credits', details: updateError.message }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -91,15 +176,73 @@ serve(async (req) => {
     }
     
     // If no action or action is "get", just return the current credits
-    // Check if user has credits in the database
+    console.log(`Getting credits for user ${userId}`);
+    
+    // First check if user exists in user_credits table
+    const { data: userExists, error: checkError } = await supabaseClient
+      .from('user_credits')
+      .select('user_id')
+      .eq('user_id', userId);
+    
+    if (checkError) {
+      console.error("Error checking if user exists:", checkError.message);
+      return new Response(
+        JSON.stringify({ 
+          credits: 60,
+          resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
+          plan: 'free'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // If user doesn't exist in user_credits table, create entry
+    if (!userExists || userExists.length === 0) {
+      console.log(`User ${userId} not found in user_credits, creating new entry`);
+      const { error: insertError } = await supabaseClient
+        .from('user_credits')
+        .insert([{ 
+          user_id: userId, 
+          subscription_plan: 'free',
+          daily_credits: 60,
+          credits_used_today: 0,
+          last_reset_date: today
+        }]);
+      
+      if (insertError) {
+        console.error("Error creating user credits:", insertError.message);
+        return new Response(
+          JSON.stringify({ 
+            credits: 60,
+            resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
+            plan: 'free'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Return default credits for new user
+      return new Response(
+        JSON.stringify({ 
+          credits: 60,
+          resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
+          plan: 'free',
+          totalCredits: 60,
+          used: 0
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Get user credits
     const { data: userData, error: userError } = await supabaseClient
       .from('user_credits')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     
-    if (userError) {
-      console.error('Error fetching user credits:', userError.message);
+    if (userError || !userData) {
+      console.error('Error fetching user credits:', userError?.message || 'No data returned');
       // If not found, assume they are on the free plan with 60 tokens that reset daily
       return new Response(
         JSON.stringify({ 
@@ -109,6 +252,25 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+    
+    // Reset credits if it's a new day
+    if (userData.last_reset_date && userData.last_reset_date < today) {
+      console.log(`Resetting credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
+      const { error: resetError } = await supabaseClient
+        .from('user_credits')
+        .update({ 
+          credits_used_today: 0,
+          last_reset_date: today,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+      
+      if (resetError) {
+        console.error("Error resetting credits:", resetError.message);
+      } else {
+        userData.credits_used_today = 0;
+      }
     }
     
     // Return the user's actual credits

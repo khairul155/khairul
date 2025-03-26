@@ -57,6 +57,8 @@ const ImageGenerator = () => {
 
     // Deduct credits before generating image
     const deductResult = await deductCredits(4);
+    console.log("Deduct result:", deductResult);
+    
     if (!deductResult.success) {
       toast({
         title: "Credit Deduction Failed",

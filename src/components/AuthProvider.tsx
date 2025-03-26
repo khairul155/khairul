@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Function to fetch user credits
   const fetchUserCredits = async (userId: string) => {
     try {
+      console.log("Fetching credits for user:", userId);
       const { data, error } = await supabase.functions.invoke('get-user-credits', {
         body: { userId }
       });
@@ -50,10 +51,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
+      console.log("Credits data received:", data);
+      
       if (data && typeof data.credits === 'number') {
         setCredits(data.credits);
       } else {
         // Default to 60 tokens for free tier if no specific credits found
+        console.log("Setting default credits (60)");
         setCredits(60);
       }
     } catch (error) {
@@ -69,9 +73,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
+      console.log("Deducting credits for user:", user.id);
       const { data, error } = await supabase.functions.invoke('get-user-credits', {
         body: { userId: user.id, action: "deduct" }
       });
+
+      console.log("Deduct response:", data, error);
 
       if (error) {
         console.error("Error deducting credits:", error);
@@ -87,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.error) {
+        console.error("API error deducting credits:", data.error);
         toast({
           title: "Not enough credits",
           description: "You don't have enough credits to generate an image.",
@@ -99,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Update local state with new credit amount
+      console.log("Credits updated to:", data.credits);
       setCredits(data.credits);
       
       return { 
@@ -106,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         remaining: data.credits
       };
     } catch (error) {
-      console.error("Error invoking deduct-credits function:", error);
+      console.error("Exception deducting credits:", error);
       toast({
         title: "Error",
         description: "Failed to deduct credits. Please try again.",
