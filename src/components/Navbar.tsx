@@ -17,8 +17,7 @@ import {
   Zap,
   Briefcase,
   CreditCard,
-  HelpCircle,
-  Download
+  HelpCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -102,11 +101,13 @@ const Navbar = () => {
   };
 
   const isLandingPage = location.pathname === "/";
+  const isGeneratorPage = location.pathname === "/image-generator";
+
   const navbarClasses = cn(
     "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
     isScrolled || !isLandingPage
-      ? "bg-white border-b border-gray-200 shadow-sm"
-      : "bg-[#FFF960]"
+      ? "bg-black/80 backdrop-blur-md shadow-md"
+      : "bg-transparent"
   );
 
   return (
@@ -116,27 +117,27 @@ const Navbar = () => {
           {/* Left Side: Logo & Site Name */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center">
+              <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center border border-white/20">
                 <Wand2 className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-black">
+              <span className="text-xl font-bold text-white">
                 PixcraftAI
               </span>
             </Link>
           </div>
 
           {/* Center: Navigation Links (desktop only) */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-1">
             <NavigationMenu className="hidden md:block">
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Button variant="link" asChild className="text-black font-medium">
-                    <Link to="/">Home</Link>
-                  </Button>
+                  <Link to="/" className="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                    Home
+                  </Link>
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-black font-medium bg-transparent hover:bg-transparent focus:bg-transparent">
+                  <NavigationMenuTrigger className="text-gray-300 hover:text-white bg-transparent hover:bg-transparent focus:bg-transparent">
                     Products
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
@@ -172,30 +173,24 @@ const Navbar = () => {
                     </ul>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
-
+                
                 <NavigationMenuItem>
-                  <Button variant="link" asChild className="text-black font-medium">
-                    <Link to="/pricing">Pricing</Link>
-                  </Button>
+                  <Link to="/pricing" className="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                    Pricing
+                  </Link>
                 </NavigationMenuItem>
                 
                 <NavigationMenuItem>
-                  <Button variant="link" asChild className="text-black font-medium">
-                    <Link to="/about">About</Link>
-                  </Button>
-                </NavigationMenuItem>
-
-                <NavigationMenuItem>
-                  <Button variant="link" asChild className="text-black font-medium">
-                    <a href="#" onClick={(e) => e.preventDefault()}>Book Demo</a>
-                  </Button>
+                  <Link to="/about" className="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                    About
+                  </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
           </div>
 
           {/* Right Side: Auth & Menu */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4">
             <ThemeToggle />
 
             {user ? (
@@ -203,22 +198,22 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className="border-gray-300 text-black bg-transparent hover:bg-gray-100"
+                    className="border-gray-700 text-white bg-transparent hover:bg-white/10"
                   >
                     My Account
                     <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-white border-gray-200" align="end">
+                <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem asChild className="hover:bg-gray-100 cursor-pointer">
+                    <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
                       <Link to="/profile" className="flex">
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-gray-200" />
-                    <DropdownMenuItem onClick={handleSignOut} className="hover:bg-gray-100 cursor-pointer text-red-500 hover:text-red-600">
+                    <DropdownMenuSeparator className="bg-gray-800" />
+                    <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white/10 cursor-pointer text-red-400 hover:text-red-300">
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log out</span>
                     </DropdownMenuItem>
@@ -226,29 +221,20 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <>
-                <Button 
-                  variant="outline" 
-                  className="border-gray-300 text-black hidden sm:inline-flex"
-                  asChild
-                >
-                  <Link to="/auth">Sign in</Link>
-                </Button>
-                <Button 
-                  variant="default" 
-                  className="bg-black text-white hover:bg-gray-800"
-                  asChild
-                >
-                  <Link to="/auth">Sign up for free</Link>
-                </Button>
-              </>
+              <Button 
+                variant="default" 
+                className="bg-white text-black hover:bg-gray-300"
+                asChild
+              >
+                <Link to="/auth">Sign In</Link>
+              </Button>
             )}
 
             {/* Mobile menu button */}
             <Button 
               variant="ghost" 
               size="icon" 
-              className="md:hidden text-black"
+              className="md:hidden text-white"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? (
@@ -263,56 +249,56 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white shadow-lg">
+        <div className="md:hidden bg-black/95 shadow-lg">
           <div className="px-4 pt-2 pb-5 space-y-3">
             <Link 
               to="/" 
-              className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               <Home className="mr-2 h-4 w-4" />
               Home
             </Link>
             
-            <div className="border-t border-gray-200 py-2">
+            <div className="border-t border-gray-800 py-2">
               <p className="px-3 py-1 text-xs text-gray-500 uppercase">Products</p>
             </div>
             
             <Link 
               to="/image-generator" 
-              className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               <Image className="mr-2 h-4 w-4" />
               Image Generator
             </Link>
             <Link 
               to="/image-to-prompt" 
-              className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               <MessageSquare className="mr-2 h-4 w-4" />
               Image to Prompt
             </Link>
             <Link 
               to="/image-upscaler" 
-              className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               <Zap className="mr-2 h-4 w-4" />
               Image Upscaler
             </Link>
             <Link 
               to="/metadata-generator" 
-              className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               <Briefcase className="mr-2 h-4 w-4" />
               Metadata Generator
             </Link>
             
-            <div className="border-t border-gray-200 py-2">
+            <div className="border-t border-gray-800 py-2">
               <p className="px-3 py-1 text-xs text-gray-500 uppercase">Company</p>
             </div>
             
             <Link 
               to="/pricing" 
-              className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               <CreditCard className="mr-2 h-4 w-4" />
               Pricing
@@ -320,29 +306,21 @@ const Navbar = () => {
             
             <Link 
               to="/about" 
-              className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+              className="flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
             >
               <HelpCircle className="mr-2 h-4 w-4" />
               About
             </Link>
-
-            <Link 
-              to="#" 
-              className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Book Demo
-            </Link>
             
             {user ? (
               <>
-                <div className="border-t border-gray-200 py-2">
+                <div className="border-t border-gray-800 py-2">
                   <p className="px-3 py-1 text-xs text-gray-500 uppercase">Account</p>
                 </div>
                 
                 <Link 
                   to="/profile" 
-                  className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+                  className="flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
                 >
                   <User className="mr-2 h-4 w-4" />
                   Profile
@@ -350,7 +328,7 @@ const Navbar = () => {
                 
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-gray-100"
+                  className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-gray-900"
                   onClick={handleSignOut}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -358,21 +336,12 @@ const Navbar = () => {
                 </Button>
               </>
             ) : (
-              <div className="flex flex-col gap-2 mt-4">
-                <Button 
-                  variant="outline"
-                  className="w-full border-gray-300 text-gray-700"
-                  asChild
-                >
-                  <Link to="/auth">Sign in</Link>
-                </Button>
-                <Button 
-                  className="w-full bg-black text-white hover:bg-gray-800"
-                  asChild
-                >
-                  <Link to="/auth">Sign up for free</Link>
-                </Button>
-              </div>
+              <Button 
+                className="w-full mt-4 bg-white text-black hover:bg-gray-300"
+                asChild
+              >
+                <Link to="/auth">Sign In</Link>
+              </Button>
             )}
           </div>
         </div>

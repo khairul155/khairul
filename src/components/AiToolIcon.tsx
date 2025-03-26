@@ -1,83 +1,79 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
+import { Coins } from "lucide-react";
 
 interface AiToolIconProps {
   icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI"; // Icon names
   label: string;
-  description: string;
   color: string;
   onClick?: () => void;
   className?: string;
   isActive?: boolean;
   isUpcoming?: boolean;
+  tokens?: number;
 }
 
 const AiToolIcon: React.FC<AiToolIconProps> = ({ 
   icon, 
   label, 
-  description, 
   color, 
   onClick,
   className,
   isActive = false,
-  isUpcoming = false
+  isUpcoming = false,
+  tokens
 }) => {
-  // Map of background colors for each icon type - using vibrant gradient colors
+  // Map of background colors for each icon type
   const colorMap = {
-    IG: "bg-gradient-to-br from-purple-500 to-blue-500", // Image Generator
-    MD: "bg-gradient-to-br from-blue-500 to-teal-400", // Meta Data Generator
-    GD: "bg-gradient-to-br from-pink-500 to-orange-400", // Graphic Designer Bot
-    IP: "bg-gradient-to-br from-yellow-400 to-amber-500", // Image to Prompt
-    IU: "bg-gradient-to-br from-red-500 to-pink-500", // Image Upscaler
-    BI: "bg-gradient-to-br from-green-500 to-emerald-400", // Bulk Image Size Increaser
-  };
-
-  // Map of complementary text colors
-  const textColorMap = {
-    IG: "text-white",
-    MD: "text-white",
-    GD: "text-white",
-    IP: "text-black",
-    IU: "text-white",
-    BI: "text-white",
+    IG: "bg-blue-500", // Image Generator
+    MD: "bg-gray-800", // Meta Data Generator
+    GD: "bg-purple-600", // Graphic Designer Bot
+    IP: "bg-orange-500", // Image to Prompt
+    IU: "bg-pink-500", // Image Upscaler
+    BI: "bg-yellow-500", // Bulk Image Size Increaser
   };
 
   return (
     <div 
       className={cn(
-        "flex flex-col items-center text-center cursor-pointer transition-all duration-300 hover:scale-110",
-        isActive && "scale-105",
+        "flex flex-col items-center text-center transition-all duration-300",
+        isUpcoming ? "opacity-70 pointer-events-none" : "hover:scale-110 cursor-pointer",
+        isActive && "scale-110",
         className
       )}
-      onClick={onClick}
+      onClick={!isUpcoming ? onClick : undefined}
     >
-      <div className="relative">
+      <div className={cn(
+        "w-16 h-16 rounded-full shadow-lg flex items-center justify-center mb-3 relative transform transition-transform duration-300",
+        colorMap[icon],
+        "hover:shadow-xl",
+        isActive && "ring-2 ring-white ring-opacity-70"
+      )}>
+        {isActive && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full"></div>
+        )}
+        
         {isUpcoming && (
-          <div className="absolute -top-2 -right-2 z-10 bg-amber-500 text-xs font-bold text-white rounded-full px-2 py-0.5">
+          <div className="absolute -top-2 -right-2 bg-amber-500 text-[10px] font-bold text-white rounded-full px-2 py-1 z-10">
             SOON
           </div>
         )}
-        <div className={cn(
-          "w-16 h-16 rounded-full shadow-lg flex items-center justify-center mb-2 transition-transform duration-300 hover:shadow-xl",
-          colorMap[icon],
-          isActive && "ring-2 ring-white"
-        )}>
-          {isActive && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-          )}
-          <span className={cn(
-            "text-xl font-bold",
-            textColorMap[icon]
-          )}>
-            {icon}
-          </span>
-        </div>
+        
+        {tokens && (
+          <div className="absolute -top-2 -right-2 bg-blue-600 text-[10px] font-bold text-white rounded-full px-1.5 py-1 z-10 flex items-center gap-0.5">
+            <Coins className="w-3 h-3" />
+            <span>{tokens}</span>
+          </div>
+        )}
+        
+        <span className="text-white text-lg font-bold">
+          {icon}
+        </span>
       </div>
       <h3 className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">
         {label}
       </h3>
-      <p className="text-xs text-gray-600 dark:text-gray-300 max-w-[120px] mt-1">{description}</p>
     </div>
   );
 };

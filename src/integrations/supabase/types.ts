@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      payment_logs: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          id: string
+          payment_id: string | null
+          plan: string
+          prorated: boolean | null
+          prorated_credits: number | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          plan: string
+          prorated?: boolean | null
+          prorated_credits?: number | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          plan?: string
+          prorated?: boolean | null
+          prorated_credits?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -36,15 +69,134 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_usage: {
+        Row: {
+          created_at: string
+          daily_limit: number
+          id: string
+          last_reset_date: string
+          monthly_limit: number | null
+          tool_name: string
+          updated_at: string
+          usage_this_month: number
+          usage_today: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_limit: number
+          id?: string
+          last_reset_date?: string
+          monthly_limit?: number | null
+          tool_name: string
+          updated_at?: string
+          usage_this_month?: number
+          usage_today?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_limit?: number
+          id?: string
+          last_reset_date?: string
+          monthly_limit?: number | null
+          tool_name?: string
+          updated_at?: string
+          usage_this_month?: number
+          usage_today?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_credits: {
+        Row: {
+          created_at: string
+          credits_used_this_month: number
+          credits_used_today: number
+          daily_credits: number
+          id: string
+          last_reset_date: string
+          monthly_credits: number
+          next_reset_date: string | null
+          slow_mode_enabled: boolean
+          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_used_this_month?: number
+          credits_used_today?: number
+          daily_credits?: number
+          id?: string
+          last_reset_date?: string
+          monthly_credits?: number
+          next_reset_date?: string | null
+          slow_mode_enabled?: boolean
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_used_this_month?: number
+          credits_used_today?: number
+          daily_credits?: number
+          id?: string
+          last_reset_date?: string
+          monthly_credits?: number
+          next_reset_date?: string | null
+          slow_mode_enabled?: boolean
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_credits: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      reset_daily_credits: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      reset_monthly_credits: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_user_subscription: {
+        Args: {
+          _user_id: string
+          _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+        }
+        Returns: undefined
+      }
+      update_user_subscription_with_payment: {
+        Args: {
+          _user_id: string
+          _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          _payment_id?: string
+          _prorated_credits?: number
+        }
+        Returns: undefined
+      }
+      use_tool: {
+        Args: {
+          _user_id: string
+          _tool_name: string
+          _credits?: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
-      subscription_plan: "free" | "pro"
+      subscription_plan: "free" | "pro" | "basic" | "advanced"
     }
     CompositeTypes: {
       [_ in never]: never
