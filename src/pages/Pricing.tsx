@@ -119,6 +119,11 @@ const Pricing = () => {
     
     // Call the Supabase function to initiate payment
     try {
+      toast({
+        title: "Processing payment request",
+        description: "Please wait while we prepare your payment...",
+      });
+      
       const { data, error } = await supabase.functions.invoke('payment-gateway', {
         body: { 
           planName,
@@ -130,12 +135,13 @@ const Pricing = () => {
       if (error) throw error;
       
       if (data && data.paymentUrl) {
+        console.log("Opening payment URL:", data.paymentUrl);
         // Open payment URL in a new tab
         window.open(data.paymentUrl, '_blank');
         
         toast({
           title: "Payment initiated",
-          description: "Please complete your payment in the new tab",
+          description: "Please complete your payment in the new tab. Return to this page after payment.",
         });
       }
     } catch (error) {
