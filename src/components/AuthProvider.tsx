@@ -9,6 +9,11 @@ type AuthContextType = {
   session: Session | null;
   isLoading: boolean;
   credits: number;
+  deductCredits: (amount?: number) => Promise<{
+    success: boolean;
+    message?: string;
+    remaining?: number;
+  }>;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     success: boolean;
@@ -54,6 +59,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error invoking get-user-credits function:", error);
       setCredits(60); // Default fallback
+    }
+  };
+
+  // Function to deduct credits
+  const deductCredits = async (amount = 4) => {
+    if (!user) {
+      return { success: false, message: "User not authenticated" };
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-user-credits', {
+        body: { userId: user.id, action: "deduct" }
+      });
+
+      if (error) {
+        console.error("Error deducting credits:", error);
+        toast({
+          title: "Error",
+          description: "Failed to deduct credits. Please try again.",
+          variant: "destructive",
+        });
+        return { 
+          success: false, 
+          message: "Failed to deduct credits" 
+        };
+      }
+
+      if (data.error) {
+        toast({
+          title: "Not enough credits",
+          description: "You don't have enough credits to generate an image.",
+          variant: "destructive",
+        });
+        return { 
+          success: false, 
+          message: data.error 
+        };
+      }
+
+      // Update local state with new credit amount
+      setCredits(data.credits);
+      
+      return { 
+        success: true,
+        remaining: data.credits
+      };
+    } catch (error) {
+      console.error("Error invoking deduct-credits function:", error);
+      toast({
+        title: "Error",
+        description: "Failed to deduct credits. Please try again.",
+        variant: "destructive",
+      });
+      return { 
+        success: false, 
+        message: "Error processing request" 
+      };
     }
   };
 
@@ -187,6 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         isLoading,
         credits,
+        deductCredits,
         signIn,
         signUp,
         signInWithGoogle,

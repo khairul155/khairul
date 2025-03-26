@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json();
+    const { userId, action } = await req.json();
     
     if (!userId) {
       return new Response(
@@ -35,9 +35,64 @@ serve(async (req) => {
     const bstTime = new Date(utcTime + (6 * 60 * 60 * 1000));
     const today = bstTime.toISOString().split('T')[0]; // Format as YYYY-MM-DD
     
+    // If action is "deduct", deduct 4 credits for image generation
+    if (action === "deduct") {
+      // Get current user credits
+      const { data: userData, error: userError } = await supabaseClient
+        .from('user_credits')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (userError) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to retrieve user credits', details: userError.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+      
+      // Check if user has enough credits
+      if (userData.credits_used_today + 4 > userData.daily_credits) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Not enough credits', 
+            details: 'You do not have enough credits to generate an image',
+            remaining: userData.daily_credits - userData.credits_used_today
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      
+      // Update user credits (deduct 4)
+      const { error: updateError } = await supabaseClient
+        .from('user_credits')
+        .update({ 
+          credits_used_today: userData.credits_used_today + 4,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+      
+      if (updateError) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to update credits', details: updateError.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+      
+      // Return updated credits
+      return new Response(
+        JSON.stringify({ 
+          credits: userData.daily_credits - (userData.credits_used_today + 4),
+          deducted: 4,
+          status: 'success'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // If no action or action is "get", just return the current credits
     // Check if user has credits in the database
     // If not found, assume they are on the free plan with 60 tokens that reset daily
-    // In a real app, you would look up the user's subscription plan
     
     // For this example, we're just returning the default free plan tokens
     // In a production app, you would implement proper token tracking and deduction
