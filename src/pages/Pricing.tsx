@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const pricingPlans = [
   {
@@ -97,7 +98,7 @@ const Pricing = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const handlePlanSelection = (planName: string) => {
+  const handlePlanSelection = async (planName: string) => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -108,11 +109,43 @@ const Pricing = () => {
       return;
     }
     
-    // For now, just show a toast since we don't have payment integration
-    toast({
-      title: `${planName} plan selected`,
-      description: "Payment integration coming soon!",
-    });
+    if (planName === "Free") {
+      toast({
+        title: "You are already on the Free plan",
+        description: "Enjoy your 60 tokens per day!",
+      });
+      return;
+    }
+    
+    // Call the Supabase function to initiate payment
+    try {
+      const { data, error } = await supabase.functions.invoke('payment-gateway', {
+        body: { 
+          planName,
+          userId: user.id,
+          billingCycle
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data && data.paymentUrl) {
+        // Open payment URL in a new tab
+        window.open(data.paymentUrl, '_blank');
+        
+        toast({
+          title: "Payment initiated",
+          description: "Please complete your payment in the new tab",
+        });
+      }
+    } catch (error) {
+      console.error("Payment initiation error:", error);
+      toast({
+        title: "Payment error",
+        description: "There was a problem initiating payment. Please try again later.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
