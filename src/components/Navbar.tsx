@@ -118,8 +118,11 @@ const Navbar = () => {
           {/* Left Side: Logo & Site Name */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center border border-white/20">
-                <Wand2 className="h-5 w-5 text-white" />
+              <div className="h-8 w-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md flex items-center justify-center border border-white/20">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h4V7h2v4h4v2h-4v4h-2v-4H7v-2z" 
+                  fill="white"/>
+                </svg>
               </div>
               <span className="text-xl font-bold text-white">
                 PixcraftAI
