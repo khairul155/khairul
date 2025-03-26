@@ -52,12 +52,12 @@ serve(async (req) => {
       }
       
       // Check if user has enough credits
-      if (userData.credits_used_today + 4 > userData.daily_credits) {
+      if (!userData || userData.credits_used_today + 4 > userData.daily_credits) {
         return new Response(
           JSON.stringify({ 
             error: 'Not enough credits', 
             details: 'You do not have enough credits to generate an image',
-            remaining: userData.daily_credits - userData.credits_used_today
+            remaining: userData ? userData.daily_credits - userData.credits_used_today : 0
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
@@ -92,16 +92,33 @@ serve(async (req) => {
     
     // If no action or action is "get", just return the current credits
     // Check if user has credits in the database
-    // If not found, assume they are on the free plan with 60 tokens that reset daily
+    const { data: userData, error: userError } = await supabaseClient
+      .from('user_credits')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
     
-    // For this example, we're just returning the default free plan tokens
-    // In a production app, you would implement proper token tracking and deduction
+    if (userError) {
+      console.error('Error fetching user credits:', userError.message);
+      // If not found, assume they are on the free plan with 60 tokens that reset daily
+      return new Response(
+        JSON.stringify({ 
+          credits: 60,
+          resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
+          plan: 'free'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
+    // Return the user's actual credits
     return new Response(
       JSON.stringify({ 
-        credits: 60,
+        credits: userData.daily_credits - userData.credits_used_today,
         resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
-        plan: 'free'
+        plan: userData.subscription_plan,
+        totalCredits: userData.daily_credits,
+        used: userData.credits_used_today
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
