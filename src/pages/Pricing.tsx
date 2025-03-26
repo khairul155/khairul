@@ -2,13 +2,11 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
-import { Check, Coins, ArrowRight, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { Check, Coins, ArrowRight, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const pricingPlans = [
   {
@@ -95,13 +93,11 @@ type PlanCategory = "personal" | "business";
 const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [planCategory, setPlanCategory] = useState<PlanCategory>("personal");
-  const [isLoading, setIsLoading] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const handlePlanSelection = async (planName: string, price: string) => {
+  const handlePlanSelection = (planName: string) => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -112,58 +108,11 @@ const Pricing = () => {
       return;
     }
     
-    try {
-      setIsLoading(planName);
-      setError(null);
-      
-      // Get the user's email
-      const { data: userData } = await supabase.auth.getUser();
-      const userEmail = userData?.user?.email;
-      
-      if (!userEmail) {
-        throw new Error("User email not found");
-      }
-      
-      // Call our payment gateway function to initiate payment
-      const { data, error } = await supabase.functions.invoke('payment-gateway', {
-        body: {
-          action: 'initiate',
-          planName,
-          price,
-          userId: user.id,
-          userEmail,
-          currency: 'Tk' // Bangladesh Taka
-        }
-      });
-      
-      if (error || !data?.success) {
-        throw new Error(error?.message || data?.error || "Failed to initiate payment");
-      }
-      
-      // Redirect the user to the NagorikPay payment page in a new tab
-      window.open(data.paymentUrl, '_blank');
-      
-      toast({
-        title: "Payment initiated",
-        description: "You've been redirected to the payment gateway. Complete the payment to upgrade your plan.",
-      });
-      
-    } catch (error) {
-      console.error("Payment initiation error:", error);
-      setError(`Failed to initiate payment: ${error.message || "Unknown error"}`);
-      toast({
-        title: "Payment Error",
-        description: `Failed to initiate payment: ${error.message || "Unknown error"}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(null);
-    }
-  };
-
-  const retryPayment = (planName: string, price: string) => {
-    setError(null);
-    handlePlanSelection(planName, price);
+    // For now, just show a toast since we don't have payment integration
+    toast({
+      title: `${planName} plan selected`,
+      description: "Payment integration coming soon!",
+    });
   };
 
   return (
@@ -178,14 +127,6 @@ const Pricing = () => {
           <p className="text-lg text-gray-300 mb-8">
             Choose the perfect plan for your creative needs
           </p>
-          
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Payment Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
           
           <div className="inline-flex p-1 rounded-full bg-gray-800 mb-10">
             <button
@@ -261,50 +202,19 @@ const Pricing = () => {
                   <span className="text-purple-400 font-semibold">{plan.tokens} tokens</span>
                 </div>
                 
-                {plan.name === "Free" ? (
-                  <Button 
-                    variant={plan.buttonVariant} 
-                    className="w-full mb-6 bg-gray-700 hover:bg-gray-600"
-                    disabled
-                  >
-                    {plan.buttonText}
-                  </Button>
-                ) : error ? (
-                  <Button 
-                    variant="destructive" 
-                    className="w-full mb-6"
-                    onClick={() => retryPayment(plan.name, plan.price)}
-                    disabled={isLoading === plan.name}
-                  >
-                    {isLoading === plan.name ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      "Retry Payment"
-                    )}
-                  </Button>
-                ) : (
-                  <Button 
-                    variant={plan.buttonVariant} 
-                    className={cn(
-                      "w-full mb-6",
-                      "bg-purple-600 hover:bg-purple-700"
-                    )}
-                    onClick={() => handlePlanSelection(plan.name, plan.price)}
-                    disabled={isLoading === plan.name}
-                  >
-                    {isLoading === plan.name ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      plan.buttonText
-                    )}
-                  </Button>
-                )}
+                <Button 
+                  variant={plan.buttonVariant} 
+                  className={cn(
+                    "w-full mb-6",
+                    plan.name === "Free" 
+                      ? "bg-gray-700 hover:bg-gray-600" 
+                      : "bg-purple-600 hover:bg-purple-700"
+                  )}
+                  onClick={() => handlePlanSelection(plan.name)}
+                  disabled={plan.name === "Free"}
+                >
+                  {plan.buttonText}
+                </Button>
                 
                 <ul className="space-y-3 text-sm">
                   {plan.features.map((feature, idx) => (
