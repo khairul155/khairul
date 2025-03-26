@@ -212,6 +212,16 @@ const Navbar = () => {
                         <span>Profile</span>
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
+                      <Link to="/pricing" className="flex">
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        <span>Subscription</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="hover:bg-white/10 cursor-pointer">
+                      <Coins className="mr-2 h-4 w-4" />
+                      <span>Tokens: {60}</span>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-gray-800" />
                     <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white/10 cursor-pointer text-red-400 hover:text-red-300">
                       <LogOut className="mr-2 h-4 w-4" />

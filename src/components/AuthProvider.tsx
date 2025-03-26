@@ -8,6 +8,7 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
+  credits: number;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     success: boolean;
@@ -29,7 +30,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [credits, setCredits] = useState<number>(60); // Default to 60 for free plan
   const { toast } = useToast();
+
+  // Function to fetch user credits
+  const fetchUserCredits = async (userId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-user-credits', {
+        body: { userId }
+      });
+      
+      if (error) {
+        console.error("Error fetching user credits:", error);
+        return;
+      }
+      
+      if (data && typeof data.credits === 'number') {
+        setCredits(data.credits);
+      } else {
+        // Default to 60 tokens for free tier if no specific credits found
+        setCredits(60);
+      }
+    } catch (error) {
+      console.error("Error invoking get-user-credits function:", error);
+      setCredits(60); // Default fallback
+    }
+  };
 
   useEffect(() => {
     // First set up the auth state listener
@@ -37,7 +63,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (event, newSession) => {
         console.log("Auth state changed:", event);
         setSession(newSession);
-        setUser(newSession?.user ?? null);
+        const newUser = newSession?.user ?? null;
+        setUser(newUser);
+        
+        // Fetch user credits when user is authenticated
+        if (newUser) {
+          fetchUserCredits(newUser.id);
+        }
+        
         setIsLoading(false);
       }
     );
@@ -45,7 +78,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Then check for an existing session
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      setUser(data.session?.user ?? null);
+      const currentUser = data.session?.user ?? null;
+      setUser(currentUser);
+      
+      // Fetch user credits when user is authenticated
+      if (currentUser) {
+        fetchUserCredits(currentUser.id);
+      }
+      
       setIsLoading(false);
     });
 
@@ -146,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         isLoading,
+        credits,
         signIn,
         signUp,
         signInWithGoogle,
