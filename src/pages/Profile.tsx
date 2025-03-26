@@ -4,7 +4,7 @@ import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
 import UserCredits from "@/components/UserCredits";
 import { Button } from "@/components/ui/button";
-import { User, Settings, History, CreditCard } from "lucide-react";
+import { User, Settings, History, CreditCard, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Profile = () => {

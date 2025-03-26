@@ -17,7 +17,8 @@ import {
   Zap,
   Briefcase,
   CreditCard,
-  HelpCircle
+  HelpCircle,
+  Coins
 } from "lucide-react";
 import {
   DropdownMenu,
