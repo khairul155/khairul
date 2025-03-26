@@ -57,7 +57,7 @@ serve(async (req) => {
       }
 
       // Return the payment URL for the frontend to redirect to
-      const paymentUrl = `${NAGORIKPAY_PAYMENT_URL}${NAGORIKPAY_BRAND_KEY}?amount=${price}&currency=${currency}&transaction_id=${transactionId}&description=Subscription to ${planName} plan`
+      const paymentUrl = `${NAGORIKPAY_PAYMENT_URL}${NAGORIKPAY_BRAND_KEY}?amount=${price}&currency=${currency}&transaction_id=${transactionId}&description=${encodeURIComponent(`Subscription to ${planName} plan`)}`
       
       return new Response(
         JSON.stringify({ 
