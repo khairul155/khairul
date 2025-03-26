@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
+import { useCredits, UserCreditsData } from "@/hooks/use-credits";
 
 type AuthContextType = {
   user: User | null;
@@ -21,6 +22,8 @@ type AuthContextType = {
     success: boolean;
   }>;
   signOut: () => Promise<void>;
+  credits: UserCreditsData | null;
+  isCreditsLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  
+  // Load credits for the authenticated user
+  const { creditsData, isLoading: isCreditsLoading } = useCredits();
 
   useEffect(() => {
     // First set up the auth state listener
@@ -150,6 +156,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signInWithGoogle,
         signOut,
+        credits: creditsData,
+        isCreditsLoading,
       }}
     >
       {children}

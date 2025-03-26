@@ -69,7 +69,8 @@ serve(async (req) => {
       )
     } 
     else if (action === 'verify') {
-      const txnId = await req.json().transaction_id || transactionId
+      const { transaction_id } = await req.json()
+      const txnId = transaction_id || transactionId
 
       // Verify the payment with NagorikPay
       const response = await fetch(NAGORIKPAY_API_URL, {
@@ -143,10 +144,13 @@ serve(async (req) => {
           .from('user_credits')
           .upsert({
             user_id: transaction.user_id,
-            plan: transaction.plan_name,
-            tokens: tokenAmount,
+            plan: transaction.plan_name.toLowerCase(),
+            subscription_plan: transaction.plan_name.toLowerCase(),
+            monthly_credits: tokenAmount,
+            next_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            credits_used_this_month: 0,
             last_updated: new Date().toISOString()
-          })
+          }, { onConflict: 'user_id' })
 
         if (updateUserError) {
           console.error('Error updating user credits:', updateUserError)
@@ -158,6 +162,14 @@ serve(async (req) => {
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
+
+        // Also update profile table
+        await supabaseAdmin
+          .from('profiles')
+          .update({
+            subscription_plan: transaction.plan_name.toLowerCase()
+          })
+          .eq('id', transaction.user_id)
       }
 
       return new Response(

@@ -16,6 +16,7 @@ import GraphicDesignerBot from "./pages/GraphicDesignerBot";
 import BulkImageSizeIncreaser from "./pages/BulkImageSizeIncreaser";
 import ImageGenerator from "./pages/ImageGenerator";
 import Pricing from "./pages/Pricing";
+import UserProfile from "./pages/UserProfile"; // Add this line
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/graphic-designer-bot" element={<GraphicDesignerBot />} />
               <Route path="/bulk-image-size-increaser" element={<BulkImageSizeIncreaser />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/profile" element={<UserProfile />} /> {/* Add this line */}
               <Route path="/generator" element={<Navigate to="/" replace />} />
               {/* Redirect any unknown routes to the 404 component */}
               <Route path="/404" element={<NotFound />} />
