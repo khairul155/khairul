@@ -2,11 +2,12 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
-import { Check, Coins, ArrowRight, ChevronRight } from "lucide-react";
+import { Check, Coins, ArrowRight, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const pricingPlans = [
   {
@@ -93,11 +94,12 @@ type PlanCategory = "personal" | "business";
 const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [planCategory, setPlanCategory] = useState<PlanCategory>("personal");
+  const [isLoading, setIsLoading] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const handlePlanSelection = (planName: string) => {
+  const handlePlanSelection = async (planName: string, price: string) => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -108,11 +110,54 @@ const Pricing = () => {
       return;
     }
     
-    // For now, just show a toast since we don't have payment integration
-    toast({
-      title: `${planName} plan selected`,
-      description: "Payment integration coming soon!",
-    });
+    try {
+      setIsLoading(planName);
+      
+      // Get the user's email
+      const { data: userData } = await supabase.auth.getUser();
+      const userEmail = userData?.user?.email;
+      
+      if (!userEmail) {
+        throw new Error("User email not found");
+      }
+      
+      // Call our payment gateway function to initiate payment
+      const { data, error } = await supabase.functions.invoke('payment-gateway', {
+        body: {
+          action: 'initiate',
+          planName,
+          price,
+          userId: user.id,
+          userEmail,
+          currency: 'Tk' // Bangladesh Taka
+        }
+      });
+      
+      if (error || !data.success) {
+        throw new Error(error?.message || data?.error || "Failed to initiate payment");
+      }
+      
+      // Redirect the user to the NagorikPay payment page in a new tab
+      window.open(data.paymentUrl, '_blank');
+      
+      toast({
+        title: "Payment initiated",
+        description: "You've been redirected to the payment gateway. Complete the payment to upgrade your plan.",
+      });
+      
+      // We could implement a webhook or polling mechanism to check payment status
+      // For now, we'll rely on the user returning to the site after payment
+      
+    } catch (error) {
+      console.error("Payment initiation error:", error);
+      toast({
+        title: "Payment Error",
+        description: `Failed to initiate payment: ${error.message || "Unknown error"}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(null);
+    }
   };
 
   return (
@@ -210,10 +255,17 @@ const Pricing = () => {
                       ? "bg-gray-700 hover:bg-gray-600" 
                       : "bg-purple-600 hover:bg-purple-700"
                   )}
-                  onClick={() => handlePlanSelection(plan.name)}
-                  disabled={plan.name === "Free"}
+                  onClick={() => plan.name !== "Free" && handlePlanSelection(plan.name, plan.price)}
+                  disabled={plan.name === "Free" || isLoading === plan.name}
                 >
-                  {plan.buttonText}
+                  {isLoading === plan.name ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    plan.buttonText
+                  )}
                 </Button>
                 
                 <ul className="space-y-3 text-sm">
