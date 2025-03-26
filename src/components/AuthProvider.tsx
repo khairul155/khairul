@@ -4,25 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 
-type SubscriptionPlan = 'free' | 'basic' | 'advanced' | 'pro';
-
-type UserCredits = {
-  subscription_plan: SubscriptionPlan;
-  daily_credits: number;
-  monthly_credits: number;
-  credits_used_today: number;
-  credits_used_this_month: number;
-  slow_mode_enabled: boolean;
-  tools?: any[];
-  isLoading: boolean;
-  error?: Error | null;
-};
-
 type AuthContextType = {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  userCredits: UserCredits;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     success: boolean;
@@ -36,18 +21,6 @@ type AuthContextType = {
     success: boolean;
   }>;
   signOut: () => Promise<void>;
-  refreshCredits: () => Promise<void>;
-};
-
-const initialCredits: UserCredits = {
-  subscription_plan: 'free',
-  daily_credits: 60,
-  monthly_credits: 0,
-  credits_used_today: 0,
-  credits_used_this_month: 0,
-  slow_mode_enabled: false,
-  tools: [],
-  isLoading: true
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,94 +29,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userCredits, setUserCredits] = useState<UserCredits>(initialCredits);
   const { toast } = useToast();
-
-  // Function to fetch user credits
-  const fetchUserCredits = async (userId: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('get-user-credits');
-      
-      if (error) {
-        console.error("Error fetching user credits:", error);
-        setUserCredits({
-          ...initialCredits,
-          error: new Error(error.message),
-          isLoading: false
-        });
-        return;
-      }
-      
-      if (data) {
-        setUserCredits({
-          subscription_plan: data.subscription_plan || 'free',
-          daily_credits: data.daily_credits || 60,
-          monthly_credits: data.monthly_credits || 0,
-          credits_used_today: data.credits_used_today || 0,
-          credits_used_this_month: data.credits_used_this_month || 0,
-          slow_mode_enabled: data.slow_mode_enabled || false,
-          tools: data.tools || [],
-          isLoading: false
-        });
-      } else {
-        // Fallback to defaults if no data
-        setUserCredits({
-          ...initialCredits,
-          isLoading: false
-        });
-      }
-    } catch (err) {
-      console.error("Exception fetching user credits:", err);
-      setUserCredits({
-        ...initialCredits,
-        error: err as Error,
-        isLoading: false
-      });
-    }
-  };
-
-  // Function to refresh credits (can be called after operations)
-  const refreshCredits = async () => {
-    if (user) {
-      await fetchUserCredits(user.id);
-    }
-  };
 
   useEffect(() => {
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         console.log("Auth state changed:", event);
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        
-        if (newSession?.user) {
-          await fetchUserCredits(newSession.user.id);
-        } else {
-          setUserCredits({
-            ...initialCredits,
-            isLoading: false
-          });
-        }
-        
         setIsLoading(false);
       }
     );
 
     // Then check for an existing session
-    supabase.auth.getSession().then(async ({ data }) => {
+    supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      
-      if (data.session?.user) {
-        await fetchUserCredits(data.session.user.id);
-      } else {
-        setUserCredits({
-          ...initialCredits,
-          isLoading: false
-        });
-      }
-      
       setIsLoading(false);
     });
 
@@ -244,12 +146,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         isLoading,
-        userCredits,
         signIn,
         signUp,
         signInWithGoogle,
         signOut,
-        refreshCredits,
       }}
     >
       {children}
