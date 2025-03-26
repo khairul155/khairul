@@ -108,10 +108,22 @@ const Pricing = () => {
       return;
     }
     
-    // For now, just show a toast since we don't have payment integration
+    // If it's the free plan, just show a toast
+    if (planName === "Free") {
+      toast({
+        title: "Free plan selected",
+        description: "You are already on the free plan",
+      });
+      return;
+    }
+    
+    // For paid plans, redirect to NagorikPay
+    const paymentUrl = `https://secure-pay.nagorikpay.com/api/execute/02dc3553affdd9bdf91d0225d4e91aa0`;
+    window.open(paymentUrl, '_blank');
+    
     toast({
-      title: `${planName} plan selected`,
-      description: "Payment integration coming soon!",
+      title: "Payment Page Opened",
+      description: "Complete your payment in the new tab",
     });
   };
 
