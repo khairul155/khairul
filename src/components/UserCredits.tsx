@@ -11,6 +11,8 @@ interface UserCreditsData {
   subscription_plan: string;
   daily_credits: number;
   monthly_credits: number;
+  credits_used_today: number;
+  credits_used_this_month: number;
 }
 
 const UserCredits = () => {
@@ -80,8 +82,9 @@ const UserCredits = () => {
           (payload) => {
             console.log('Subscription changed in UserCredits:', payload);
             // Properly type the payload.new to avoid TypeScript errors
-            if (payload.new) {
-              const newData = payload.new as UserCreditsData;
+            const newData = payload.new as UserCreditsData;
+            
+            if (newData) {
               setSubscription(newData.subscription_plan);
               
               // Update displayed credits based on new subscription plan
@@ -90,11 +93,11 @@ const UserCredits = () => {
                   title: "Subscription Updated",
                   description: `Your plan has been updated to ${newData.subscription_plan.charAt(0).toUpperCase() + newData.subscription_plan.slice(1)}`,
                 });
-                // For paid plans, use monthly_credits
-                setDisplayCredits(newData.monthly_credits);
+                // For paid plans, calculate available monthly credits
+                setDisplayCredits(newData.monthly_credits - newData.credits_used_this_month);
               } else {
-                // For free plan, use daily_credits
-                setDisplayCredits(newData.daily_credits);
+                // For free plan, calculate available daily credits
+                setDisplayCredits(newData.daily_credits - newData.credits_used_today);
               }
             }
           }

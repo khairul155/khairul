@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, action } = await req.json();
+    const { userId, action, amount = 4 } = await req.json();
     
     if (!userId) {
       return new Response(
@@ -47,9 +47,9 @@ serve(async (req) => {
     const bstTime = new Date(utcTime + (6 * 60 * 60 * 1000));
     const today = bstTime.toISOString().split('T')[0]; // Format as YYYY-MM-DD
     
-    // If action is "deduct", deduct 4 credits for image generation
+    // If action is "deduct", deduct credits for image generation
     if (action === "deduct") {
-      console.log(`Attempting to deduct credits for user: ${userId}`);
+      console.log(`Attempting to deduct ${amount} credits for user: ${userId}`);
       
       // First check if user exists in user_credits table
       const { data: userExists, error: checkError } = await supabaseClient
@@ -142,7 +142,7 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({ 
               credits: userData.daily_credits,
-              deducted: 4,
+              deducted: amount,
               status: 'success'
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -150,7 +150,7 @@ serve(async (req) => {
         }
         
         // Check if user has enough daily credits
-        if (userData.credits_used_today + 4 > userData.daily_credits) {
+        if (userData.credits_used_today + amount > userData.daily_credits) {
           return new Response(
             JSON.stringify({ 
               error: 'Not enough credits', 
@@ -161,12 +161,12 @@ serve(async (req) => {
           );
         }
         
-        // Update user credits (deduct 4)
-        console.log(`Deducting 4 daily credits for free user ${userId}`);
+        // Update user credits
+        console.log(`Deducting ${amount} daily credits for free user ${userId}`);
         const { error: updateError } = await supabaseClient
           .from('user_credits')
           .update({ 
-            credits_used_today: userData.credits_used_today + 4,
+            credits_used_today: userData.credits_used_today + amount,
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId);
@@ -182,8 +182,8 @@ serve(async (req) => {
         // Return updated credits
         return new Response(
           JSON.stringify({ 
-            credits: userData.daily_credits - (userData.credits_used_today + 4),
-            deducted: 4,
+            credits: userData.daily_credits - (userData.credits_used_today + amount),
+            deducted: amount,
             status: 'success'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -193,7 +193,7 @@ serve(async (req) => {
         console.log(`Current monthly credits for user ${userId}: ${userData.monthly_credits - userData.credits_used_this_month}`);
         
         // Check if user has enough monthly credits
-        if (userData.credits_used_this_month + 4 > userData.monthly_credits) {
+        if (userData.credits_used_this_month + amount > userData.monthly_credits) {
           return new Response(
             JSON.stringify({ 
               error: 'Not enough credits', 
@@ -204,12 +204,12 @@ serve(async (req) => {
           );
         }
         
-        // Update user credits (deduct 4 from monthly credits)
-        console.log(`Deducting 4 monthly credits for paid user ${userId}`);
+        // Update user credits (deduct from monthly credits)
+        console.log(`Deducting ${amount} monthly credits for paid user ${userId}`);
         const { error: updateError } = await supabaseClient
           .from('user_credits')
           .update({ 
-            credits_used_this_month: userData.credits_used_this_month + 4,
+            credits_used_this_month: userData.credits_used_this_month + amount,
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId);
@@ -225,8 +225,8 @@ serve(async (req) => {
         // Return updated credits
         return new Response(
           JSON.stringify({ 
-            credits: userData.monthly_credits - (userData.credits_used_this_month + 4),
-            deducted: 4,
+            credits: userData.monthly_credits - (userData.credits_used_this_month + amount),
+            deducted: amount,
             status: 'success'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

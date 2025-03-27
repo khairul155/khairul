@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log("Deducting credits for user:", user.id);
       const { data, error } = await supabase.functions.invoke('get-user-credits', {
-        body: { userId: user.id, action: "deduct" }
+        body: { userId: user.id, action: "deduct", amount: amount }
       });
 
       console.log("Deduct response:", data, error);
@@ -93,11 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      if (data.error) {
+      if (data && data.error) {
         console.error("API error deducting credits:", data.error);
         toast({
           title: "Not enough credits",
-          description: "You don't have enough credits to generate an image.",
+          description: data.error || "You don't have enough credits to generate an image.",
           variant: "destructive",
         });
         return { 
@@ -107,13 +107,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Update local state with new credit amount
-      console.log("Credits updated to:", data.credits);
-      setCredits(data.credits);
-      
-      return { 
-        success: true,
-        remaining: data.credits
-      };
+      if (data && typeof data.credits === 'number') {
+        console.log("Credits updated to:", data.credits);
+        setCredits(data.credits);
+        
+        return { 
+          success: true,
+          remaining: data.credits
+        };
+      } else {
+        // Handle unexpected API response format
+        console.error("Unexpected response format:", data);
+        toast({
+          title: "Error",
+          description: "Unexpected response from the server.",
+          variant: "destructive",
+        });
+        return {
+          success: false,
+          message: "Unexpected response format"
+        };
+      }
     } catch (error) {
       console.error("Exception deducting credits:", error);
       toast({

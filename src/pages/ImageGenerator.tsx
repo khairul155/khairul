@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +21,7 @@ const ImageGenerator = () => {
   const [generationTime, setGenerationTime] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const { user, deductCredits } = useAuth();
+  const { user, deductCredits, credits } = useAuth();
   const navigate = useNavigate();
   
   // Generation settings with updated default steps for fast mode
@@ -55,14 +56,10 @@ const ImageGenerator = () => {
       return;
     }
 
-    // Deduct credits before generating image
-    const deductResult = await deductCredits(4);
-    console.log("Deduct result:", deductResult);
-    
-    if (!deductResult.success) {
+    if (credits <= 0) {
       toast({
-        title: "Credit Deduction Failed",
-        description: deductResult.message || "Could not deduct credits. Please try again.",
+        title: "No credits available",
+        description: "You don't have enough credits to generate an image.",
         variant: "destructive",
       });
       return;
@@ -78,6 +75,21 @@ const ImageGenerator = () => {
     const startTime = new Date();
 
     try {
+      // Deduct credits before generating image
+      const deductResult = await deductCredits(4);
+      console.log("Deduct result:", deductResult);
+      
+      if (!deductResult.success) {
+        clearInterval(progressInterval);
+        setIsLoading(false);
+        toast({
+          title: "Credit Deduction Failed",
+          description: deductResult.message || "Could not deduct credits. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const seedToUse = generationSettings.useSeed ? generationSettings.seed : -1;
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
