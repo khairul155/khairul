@@ -7,5 +7,5 @@ project_id = "napbrxjntjvkjwlcpwql"
 [functions]
 port = 9999
 
-[[functions.import_map]]
-map = "import_map.json"
+[functions.import_map]
+path = "import_map.json"
