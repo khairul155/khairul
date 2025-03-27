@@ -29,6 +29,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Enable realtime for user_credits table
+    const { error: realtimeError } = await supabaseClient.rpc(
+      'supabase_realtime.enable_subscription',
+      { table: 'user_credits', publication: 'postgres_changes', claims: { client_id: 'all' } }
+    );
+
+    if (realtimeError) {
+      console.error("Error enabling realtime:", realtimeError.message);
+    } else {
+      console.log("Realtime enabled for user_credits table");
+    }
+
     // Get the current date in UTC+6 (Bangladesh Standard Time)
     const now = new Date();
     const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);

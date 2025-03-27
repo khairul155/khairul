@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import { Check, Coins, ArrowRight, ChevronRight } from "lucide-react";
@@ -6,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
 const pricingPlans = [{
   name: "Free",
   price: "0",
@@ -15,7 +18,8 @@ const pricingPlans = [{
   popular: false,
   tokens: 60,
   buttonText: "Your Current Plan",
-  buttonVariant: "outline" as const
+  buttonVariant: "outline" as const,
+  planId: "free"
 }, {
   name: "Basic",
   price: "400",
@@ -25,7 +29,8 @@ const pricingPlans = [{
   popular: false,
   tokens: 3400,
   buttonText: "Get Basic",
-  buttonVariant: "default" as const
+  buttonVariant: "default" as const,
+  planId: "basic"
 }, {
   name: "Advanced",
   price: "750",
@@ -35,7 +40,8 @@ const pricingPlans = [{
   popular: true,
   tokens: 8000,
   buttonText: "Get Advanced",
-  buttonVariant: "default" as const
+  buttonVariant: "default" as const,
+  planId: "advanced"
 }, {
   name: "Pro",
   price: "1400",
@@ -45,21 +51,87 @@ const pricingPlans = [{
   popular: false,
   tokens: 18000,
   buttonText: "Get Pro",
-  buttonVariant: "default" as const
+  buttonVariant: "default" as const,
+  planId: "pro"
 }];
+
 type BillingCycle = "monthly" | "yearly";
 type PlanCategory = "personal" | "business";
+
 const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [planCategory, setPlanCategory] = useState<PlanCategory>("personal");
+  const [currentPlan, setCurrentPlan] = useState("free");
+  const [isLoading, setIsLoading] = useState(true);
+  
   const navigate = useNavigate();
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
-  const handlePlanSelection = (planName: string) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchUserSubscription = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('user_credits')
+          .select('subscription_plan')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching user subscription:", error);
+          return;
+        }
+        
+        if (data) {
+          setCurrentPlan(data.subscription_plan);
+        }
+      } catch (error) {
+        console.error("Error in fetchUserSubscription:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserSubscription();
+    
+    // Set up real-time subscription for plan changes
+    if (user) {
+      const channel = supabase
+        .channel('subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'user_credits',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Subscription updated:', payload);
+            if (payload.new && payload.new.subscription_plan) {
+              setCurrentPlan(payload.new.subscription_plan);
+              toast({
+                title: "Subscription Updated",
+                description: `Your plan has been updated to ${payload.new.subscription_plan.charAt(0).toUpperCase() + payload.new.subscription_plan.slice(1)}`,
+              });
+            }
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user, toast]);
+
+  const handlePlanSelection = (planName: string, planId: string) => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -70,11 +142,11 @@ const Pricing = () => {
       return;
     }
 
-    // If it's the free plan, just show a toast
-    if (planName === "Free") {
+    // If it's the current plan, just show a toast
+    if (planId === currentPlan) {
       toast({
-        title: "Free plan selected",
-        description: "You are already on the free plan"
+        title: `${planName} plan selected`,
+        description: `You are already on the ${planName.toLowerCase()} plan`
       });
       return;
     }
@@ -87,7 +159,9 @@ const Pricing = () => {
       description: "Complete your payment in the new tab"
     });
   };
-  return <div className="min-h-screen bg-gray-950 text-white">
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white">
       <Navbar />
       
       <div className="container mx-auto px-4 py-20">
@@ -96,55 +170,91 @@ const Pricing = () => {
             Upgrade your plan
           </h1>
           
-          
-          
-          
           <div className="flex justify-end items-center mb-2">
-            
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked={billingCycle === "yearly"} onChange={() => setBillingCycle(billingCycle === "monthly" ? "yearly" : "monthly")} />
-              
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={billingCycle === "yearly"} 
+                onChange={() => setBillingCycle(billingCycle === "monthly" ? "yearly" : "monthly")} 
+              />
             </label>
-            
           </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {pricingPlans.map((plan, index) => <div key={index} className={cn("relative rounded-xl overflow-hidden border transition-all", plan.popular ? "border-purple-500 shadow-lg shadow-purple-500/20" : "border-gray-800 hover:border-gray-700", "bg-gray-900 backdrop-blur-sm")}>
-              {plan.popular && <div className="absolute top-0 right-0 bg-purple-600 text-white text-xs font-bold py-1 px-3 rounded-bl-lg">
-                  Most popular
-                </div>}
-              
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                <div className="flex items-baseline mb-4">
-                  <span className="text-4xl font-extrabold text-white">{plan.currency}{plan.price}</span>
-                  <span className="text-gray-400 ml-2">/month</span>
+          {pricingPlans.map((plan, index) => {
+            const isCurrentPlan = plan.planId === currentPlan;
+            return (
+              <div 
+                key={index} 
+                className={cn(
+                  "relative rounded-xl overflow-hidden border transition-all", 
+                  plan.popular ? "border-purple-500 shadow-lg shadow-purple-500/20" : "border-gray-800 hover:border-gray-700",
+                  isCurrentPlan ? "border-green-500 shadow-lg shadow-green-500/20" : "",
+                  "bg-gray-900 backdrop-blur-sm"
+                )}
+              >
+                {plan.popular && !isCurrentPlan && (
+                  <div className="absolute top-0 right-0 bg-purple-600 text-white text-xs font-bold py-1 px-3 rounded-bl-lg">
+                    Most popular
+                  </div>
+                )}
+                
+                {isCurrentPlan && (
+                  <div className="absolute top-0 right-0 bg-green-600 text-white text-xs font-bold py-1 px-3 rounded-bl-lg">
+                    Current Plan
+                  </div>
+                )}
+                
+                <div className="p-6">
+                  <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                  <div className="flex items-baseline mb-4">
+                    <span className="text-4xl font-extrabold text-white">{plan.currency}{plan.price}</span>
+                    <span className="text-gray-400 ml-2">/month</span>
+                  </div>
+                  <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
+                  
+                  <div className="flex items-center gap-2 mb-6">
+                    <Coins className="h-5 w-5 text-purple-400" />
+                    <span className="text-purple-400 font-semibold">{plan.tokens} tokens</span>
+                  </div>
+                  
+                  <Button 
+                    variant={isCurrentPlan ? "outline" : plan.buttonVariant} 
+                    className={cn(
+                      "w-full mb-6", 
+                      isCurrentPlan 
+                        ? "bg-green-600 hover:bg-green-700 text-white border-green-500" 
+                        : plan.name === "Free" 
+                          ? "bg-gray-700 hover:bg-gray-600" 
+                          : "bg-purple-600 hover:bg-purple-700"
+                    )} 
+                    onClick={() => handlePlanSelection(plan.name, plan.planId)} 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Loading..." : (isCurrentPlan ? "Your Current Plan" : plan.buttonText)}
+                  </Button>
+                  
+                  <ul className="space-y-3 text-sm">
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-start">
+                        <Check className="h-5 w-5 text-green-500 shrink-0 mr-2" />
+                        <span className="text-gray-300">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
                 
-                <div className="flex items-center gap-2 mb-6">
-                  <Coins className="h-5 w-5 text-purple-400" />
-                  <span className="text-purple-400 font-semibold">{plan.tokens} tokens</span>
-                </div>
-                
-                <Button variant={plan.buttonVariant} className={cn("w-full mb-6", plan.name === "Free" ? "bg-gray-700 hover:bg-gray-600" : "bg-purple-600 hover:bg-purple-700")} onClick={() => handlePlanSelection(plan.name)} disabled={plan.name === "Free"}>
-                  {plan.buttonText}
-                </Button>
-                
-                <ul className="space-y-3 text-sm">
-                  {plan.features.map((feature, idx) => <li key={idx} className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 shrink-0 mr-2" />
-                      <span className="text-gray-300">{feature}</span>
-                    </li>)}
-                </ul>
+                {plan.name !== "Free" && (
+                  <div className="border-t border-gray-800 py-3 px-6 flex justify-between items-center bg-gray-800/50">
+                    <span className="text-xs text-gray-400">Switch to monthly</span>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </div>
+                )}
               </div>
-              
-              {plan.name !== "Free" && <div className="border-t border-gray-800 py-3 px-6 flex justify-between items-center bg-gray-800/50">
-                  <span className="text-xs text-gray-400">Switch to monthly</span>
-                  <ChevronRight className="h-4 w-4 text-gray-400" />
-                </div>}
-            </div>)}
+            );
+          })}
         </div>
         
         <div className="max-w-3xl mx-auto mt-16 text-center">
@@ -170,6 +280,8 @@ const Pricing = () => {
           </div>
         </div>
       </footer>
-    </div>;
+    </div>
+  );
 };
+
 export default Pricing;

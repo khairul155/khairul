@@ -1,14 +1,57 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
 import UserCredits from "@/components/UserCredits";
 import { Button } from "@/components/ui/button";
 import { User, Settings, History, CreditCard, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, credits } = useAuth();
+  const [subscription, setSubscription] = useState('free');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('user_credits')
+          .select('subscription_plan')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching user profile:", error);
+          return;
+        }
+        
+        if (data) {
+          setSubscription(data.subscription_plan);
+        }
+      } catch (error) {
+        console.error("Error in fetchUserProfile:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
+
+  const getSubscriptionName = (plan) => {
+    const names = {
+      'free': 'Free Plan',
+      'basic': 'Basic Plan',
+      'advanced': 'Advanced Plan',
+      'pro': 'Pro Plan'
+    };
+    return names[plan] || 'Free Plan';
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -28,7 +71,9 @@ const Profile = () => {
                   </div>
                   <div>
                     <h3 className="font-medium">{user?.email}</h3>
-                    <p className="text-sm text-gray-400">Free Plan</p>
+                    <p className="text-sm text-gray-400">
+                      {isLoading ? 'Loading...' : getSubscriptionName(subscription)}
+                    </p>
                   </div>
                 </div>
                 
@@ -78,7 +123,9 @@ const Profile = () => {
                 <div>
                   <h3 className="text-sm font-medium text-gray-400 mb-1">Current Plan</h3>
                   <div className="flex items-center justify-between">
-                    <p className="text-lg">Free Plan</p>
+                    <p className="text-lg">
+                      {isLoading ? 'Loading...' : getSubscriptionName(subscription)}
+                    </p>
                     <Button asChild className="bg-purple-600 hover:bg-purple-700">
                       <Link to="/pricing">Upgrade</Link>
                     </Button>
@@ -89,9 +136,13 @@ const Profile = () => {
                   <h3 className="text-sm font-medium text-gray-400 mb-1">Token Balance</h3>
                   <div className="flex items-center gap-2">
                     <Coins className="h-5 w-5 text-yellow-500" />
-                    <p className="text-lg">{user ? 60 : 0} tokens</p>
+                    <p className="text-lg">{credits} tokens</p>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Free tokens reset daily at 00:00 (UTC+6 BST)</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {subscription === 'free' ? 
+                      'Free tokens reset daily at 00:00 (UTC+6 BST)' : 
+                      'Tokens reset monthly based on your billing cycle'}
+                  </p>
                 </div>
               </div>
             </div>
