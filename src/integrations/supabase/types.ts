@@ -36,6 +36,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_credits: {
+        Row: {
+          created_at: string
+          credits_used_today: number
+          daily_credits: number
+          id: number
+          last_reset_date: string
+          subscription_plan: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_used_today?: number
+          daily_credits?: number
+          id?: number
+          last_reset_date?: string
+          subscription_plan?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_used_today?: number
+          daily_credits?: number
+          id?: number
+          last_reset_date?: string
+          subscription_plan?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
