@@ -13,7 +13,6 @@ type AuthContextType = {
     message?: string;
     remaining?: number;
   }>;
-  refreshCredits: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     success: boolean;
@@ -48,11 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error("Error fetching user credits:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load your credits. Please try again.",
-          variant: "destructive",
-        });
         return;
       }
       
@@ -83,48 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Error invoking get-user-credits function:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load your credits. Please try again.",
-        variant: "destructive",
-      });
       setCredits(60); // Default fallback
-    }
-  };
-
-  // Function to refresh credits (added for explicit refreshing)
-  const refreshCredits = async () => {
-    if (!user) {
-      return;
-    }
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('get-user-credits', {
-        body: { userId: user.id }
-      });
-      
-      if (error) {
-        console.error("Error refreshing credits:", error);
-        toast({
-          title: "Error",
-          description: "Failed to refresh credits",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      console.log("Credits refreshed:", data);
-      
-      if (data && typeof data.credits === 'number') {
-        setCredits(data.credits);
-      }
-    } catch (error) {
-      console.error("Error invoking refresh credits function:", error);
-      toast({
-        title: "Error",
-        description: "Failed to refresh credits",
-        variant: "destructive",
-      });
     }
   };
 
@@ -227,12 +180,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     });
 
-    // Set up a realtime subscription to user_credits changes
+    // Set up a realtime subscription to profile changes
     const setupRealtimeSubscription = async () => {
       if (!user) return;
       
-      // Listen for profile changes (subscription plan updates)
-      const profileChannel = supabase
+      const channel = supabase
         .channel('profile-subscription-changes')
         .on(
           'postgres_changes',
@@ -250,31 +202,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         )
         .subscribe();
       
-      // Listen for user_credits changes
-      const creditsChannel = supabase
-        .channel('user-credits-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'user_credits',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            console.log('User credits updated in AuthProvider:', payload);
-            if (payload.new) {
-              // Update credits based on the new data
-              const newCredits = payload.new.daily_credits - payload.new.credits_used_today;
-              setCredits(newCredits);
-            }
-          }
-        )
-        .subscribe();
-      
       return () => {
-        supabase.removeChannel(profileChannel);
-        supabase.removeChannel(creditsChannel);
+        supabase.removeChannel(channel);
       };
     };
     
@@ -380,7 +309,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         credits,
         deductCredits,
-        refreshCredits,
         signIn,
         signUp,
         signInWithGoogle,
