@@ -75,14 +75,11 @@ secret = "env(GOOGLE_CLIENT_SECRET)"
 
 # Configure Edge Functions
 [functions]
-# Port to use for Edge Functions.
-port = 9000
+port = 9000  # Port for Edge Functions
 
 [[functions.import_map]]
-# Specifies a JSON file to use as an import map.
-path = "supabase/functions/import_map.json"
-# Specifies a URL to fetch an import map from.
-url = "https://deno.land/x/import_map/import_map.json"
+path = "supabase/functions/import_map.json"  # Specifies a JSON file for import map
+url = "https://deno.land/x/import_map/import_map.json"  # URL to fetch an import map from
 
 [realtime]
 enabled = true
