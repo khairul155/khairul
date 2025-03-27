@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const UserCredits = () => {
-  const { credits, user } = useAuth();
+  const { credits, user, refreshCredits } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [plan, setPlan] = useState("free");
@@ -50,32 +50,24 @@ const UserCredits = () => {
     }
   };
   
-  const refreshCredits = async () => {
+  const handleRefreshCredits = async () => {
     if (!user) return;
     
     setIsRefreshing(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('get-user-credits', {
-        body: { userId: user.id }
+      await refreshCredits();
+      toast({
+        title: "Credits Refreshed",
+        description: "Your token information has been updated",
       });
-      
-      if (error) {
-        console.error("Error refreshing credits:", error);
-        toast({
-          title: "Error",
-          description: "Failed to refresh credits",
-          variant: "destructive",
-        });
-      } else {
-        console.log("Credits refreshed:", data);
-        toast({
-          title: "Credits Refreshed",
-          description: "Your token information has been updated",
-        });
-      }
     } catch (error) {
       console.error("Exception refreshing credits:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh credits",
+        variant: "destructive",
+      });
     } finally {
       setIsRefreshing(false);
     }
@@ -99,6 +91,8 @@ const UserCredits = () => {
           console.log('Profile updated:', payload);
           if (payload.new && payload.new.subscription_plan) {
             setPlan(payload.new.subscription_plan);
+            // Refresh credits to ensure they match the new plan
+            refreshCredits();
             toast({
               title: "Subscription Updated",
               description: `Your plan has been updated to ${payload.new.subscription_plan}`,
@@ -111,7 +105,7 @@ const UserCredits = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, toast]);
+  }, [user, toast, refreshCredits]);
   
   return (
     <Card className="p-4 bg-gray-900 border-gray-800">
@@ -134,7 +128,7 @@ const UserCredits = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={refreshCredits} 
+          onClick={handleRefreshCredits} 
           disabled={isRefreshing}
           className="bg-gray-800 border-gray-700 hover:bg-gray-700"
         >

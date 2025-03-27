@@ -58,127 +58,84 @@ serve(async (req) => {
       dailyCredits = 600;
     }
     
+    // Create check_table_exists function if needed
+    await supabaseClient.rpc('check_table_exists', { table_name: 'user_credits' })
+      .catch(async () => {
+        console.log('Creating check_table_exists function');
+        await supabaseClient.functions.invoke('create-user-credits-function');
+      });
+    
+    // Check if user_credits table exists
+    const { data: tableExists, error: checkTableError } = await supabaseClient.rpc(
+      'check_table_exists',
+      { table_name: 'user_credits' }
+    ).single();
+    
+    if (!tableExists || checkTableError) {
+      console.log('Creating user_credits table');
+      await supabaseClient.functions.invoke('create-user-credits-function');
+      
+      // Wait a moment for the table to be created
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    // First check if user exists in user_credits table
+    const { data: userExists, error: checkError } = await supabaseClient
+      .from('user_credits')
+      .select('user_id')
+      .eq('user_id', userId);
+    
+    // If user doesn't exist in user_credits table, create entry
+    if (!userExists || userExists.length === 0 || checkError) {
+      console.log(`User ${userId} not found in user_credits, creating new entry`);
+      const { error: insertError } = await supabaseClient
+        .from('user_credits')
+        .insert([{ 
+          user_id: userId, 
+          subscription_plan: userPlan,
+          daily_credits: dailyCredits,
+          credits_used_today: 0,
+          last_reset_date: today
+        }]);
+      
+      if (insertError) {
+        console.error("Error creating user credits:", insertError.message);
+      }
+    } else {
+      // Update user's daily credits if their plan has changed
+      const { error: updatePlanError } = await supabaseClient
+        .from('user_credits')
+        .update({ 
+          subscription_plan: userPlan,
+          daily_credits: dailyCredits,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+        
+      if (updatePlanError) {
+        console.error("Error updating user plan:", updatePlanError.message);
+      }
+    }
+    
     // If action is "deduct", deduct 4 credits for image generation
     if (action === "deduct") {
       console.log(`Attempting to deduct credits for user: ${userId}`);
       
-      // Check if the user_credits table exists
-      const { error: tableExistsError } = await supabaseClient.rpc(
-        'check_table_exists',
-        { table_name: 'user_credits' }
-      ).single();
-      
-      // If the user_credits table doesn't exist, create it
-      if (tableExistsError) {
-        console.log('Creating user_credits table');
-        await supabaseClient.rpc('create_user_credits_table');
-      }
-      
-      // First check if user exists in user_credits table
-      const { data: userExists, error: checkError } = await supabaseClient
-        .from('user_credits')
-        .select('user_id')
-        .eq('user_id', userId);
-      
-      if (checkError) {
-        // If we still can't check, let's just return success and a credit amount based on plan
-        console.log("Error checking if user exists:", checkError.message);
-        
-        // Return a response with credits based on plan
-        return new Response(
-          JSON.stringify({ 
-            credits: dailyCredits - 4,
-            deducted: 4,
-            status: 'success'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      // If user doesn't exist in user_credits table, create entry
-      if (!userExists || userExists.length === 0) {
-        console.log(`User ${userId} not found in user_credits, creating new entry`);
-        const { error: insertError } = await supabaseClient
-          .from('user_credits')
-          .insert([{ 
-            user_id: userId, 
-            subscription_plan: userPlan,
-            daily_credits: dailyCredits,
-            credits_used_today: 0,
-            last_reset_date: today
-          }]);
-        
-        if (insertError) {
-          console.error("Error creating user credits:", insertError.message);
-          
-          // Return a response with credits based on plan even if the insert fails
-          return new Response(
-            JSON.stringify({ 
-              credits: dailyCredits - 4,
-              deducted: 4,
-              status: 'success'
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        
-        // Return response for new user
-        return new Response(
-          JSON.stringify({ 
-            credits: dailyCredits - 4,
-            deducted: 4,
-            status: 'success'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } else {
-        // Update user's daily credits if their plan has changed
-        const { error: updatePlanError } = await supabaseClient
-          .from('user_credits')
-          .update({ 
-            subscription_plan: userPlan,
-            daily_credits: dailyCredits,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId);
-          
-        if (updatePlanError) {
-          console.error("Error updating user plan:", updatePlanError.message);
-        }
-      }
-      
-      // Now get current user credits
+      // Get current user credits
       const { data: userData, error: userError } = await supabaseClient
         .from('user_credits')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
       
-      if (userError) {
-        console.error("Error retrieving user credits:", userError.message);
-        
-        // Return a fallback response based on plan
+      if (userError || !userData) {
+        console.error("Error retrieving user credits:", userError?.message || "No data returned");
         return new Response(
           JSON.stringify({ 
-            credits: dailyCredits - 4,
-            deducted: 4,
-            status: 'success'
+            error: 'Failed to retrieve user credits', 
+            details: userError?.message || "No data returned" 
           }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      if (!userData) {
-        console.error("User credits not found even after insert attempt");
-        
-        // Return a fallback response based on plan
-        return new Response(
-          JSON.stringify({ 
-            credits: dailyCredits - 4,
-            deducted: 4,
-            status: 'success'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
       
@@ -210,27 +167,17 @@ serve(async (req) => {
         
         if (resetError) {
           console.error("Error resetting credits:", resetError.message);
-          
-          // Return a fallback response based on plan
           return new Response(
             JSON.stringify({ 
-              credits: dailyCredits - 4,
-              deducted: 4,
-              status: 'success'
+              error: 'Failed to reset credits', 
+              details: resetError.message 
             }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }
         
-        // Return fresh credits after reset
-        return new Response(
-          JSON.stringify({ 
-            credits: userData.daily_credits - 4,
-            deducted: 4,
-            status: 'success'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        // Update userData after reset
+        userData.credits_used_today = 0;
       }
       
       // Update user credits (deduct 4)
@@ -245,15 +192,12 @@ serve(async (req) => {
       
       if (updateError) {
         console.error("Error updating credits:", updateError.message);
-        
-        // Return a fallback response
         return new Response(
           JSON.stringify({ 
-            credits: userData.daily_credits - (userData.credits_used_today + 4),
-            deducted: 4,
-            status: 'success'
+            error: 'Failed to deduct credits', 
+            details: updateError.message 
           }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
       
@@ -270,92 +214,6 @@ serve(async (req) => {
     
     // If no action or action is "get", just return the current credits
     console.log(`Getting credits for user ${userId}`);
-    
-    // Check if the user_credits table exists
-    const { error: tableExistsError } = await supabaseClient.rpc(
-      'check_table_exists',
-      { table_name: 'user_credits' }
-    ).single();
-    
-    // If the user_credits table doesn't exist, create it
-    if (tableExistsError) {
-      console.log('Creating user_credits table');
-      await supabaseClient.rpc('create_user_credits_table');
-    }
-    
-    // First check if user exists in user_credits table
-    const { data: userExists, error: checkError } = await supabaseClient
-      .from('user_credits')
-      .select('user_id')
-      .eq('user_id', userId);
-    
-    if (checkError) {
-      console.error("Error checking if user exists:", checkError.message);
-      
-      // Return fallback credits based on plan
-      return new Response(
-        JSON.stringify({ 
-          credits: dailyCredits,
-          resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
-          plan: userPlan
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // If user doesn't exist in user_credits table, create entry
-    if (!userExists || userExists.length === 0) {
-      console.log(`User ${userId} not found in user_credits, creating new entry`);
-      const { error: insertError } = await supabaseClient
-        .from('user_credits')
-        .insert([{ 
-          user_id: userId, 
-          subscription_plan: userPlan,
-          daily_credits: dailyCredits,
-          credits_used_today: 0,
-          last_reset_date: today
-        }]);
-      
-      if (insertError) {
-        console.error("Error creating user credits:", insertError.message);
-        
-        // Return fallback credits based on plan
-        return new Response(
-          JSON.stringify({ 
-            credits: dailyCredits,
-            resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
-            plan: userPlan
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      // Return default credits for new user
-      return new Response(
-        JSON.stringify({ 
-          credits: dailyCredits,
-          resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
-          plan: userPlan,
-          totalCredits: dailyCredits,
-          used: 0
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
-      // Update user's daily credits if their plan has changed
-      const { error: updatePlanError } = await supabaseClient
-        .from('user_credits')
-        .update({ 
-          subscription_plan: userPlan,
-          daily_credits: dailyCredits,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
-        
-      if (updatePlanError) {
-        console.error("Error updating user plan:", updatePlanError.message);
-      }
-    }
     
     // Get user credits
     const { data: userData, error: userError } = await supabaseClient
