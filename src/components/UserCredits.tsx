@@ -18,9 +18,24 @@ const UserCredits = () => {
       }
       
       try {
-        // Using the AuthProvider's session/user info directly instead of querying the profiles table
-        // This avoids type errors since the profiles table isn't in the TypeScript types yet
-        setIsLoading(false);
+        // Now that the profiles table is properly set up, we can query it
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('subscription_plan')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (error) {
+          console.error("Error fetching profile:", error);
+          setIsLoading(false);
+        } else if (data && data.subscription_plan) {
+          console.log("User subscription plan:", data.subscription_plan);
+          setPlan(data.subscription_plan);
+          setIsLoading(false);
+        } else {
+          console.log("No profile data found, using default free plan");
+          setIsLoading(false);
+        }
       } catch (error) {
         console.error("Exception fetching profile:", error);
         setIsLoading(false);
