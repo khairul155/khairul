@@ -117,41 +117,33 @@ serve(async (req) => {
       
       console.log("Retrieved user data:", userData);
       
-      // Handle based on subscription plan
-      if (userData.subscription_plan === 'free') {
-        // For free plan, check daily credits and reset if needed
-        console.log(`Current daily credits for user ${userId}: ${userData.daily_credits - userData.credits_used_today}`);
+      // Reset daily credits if needed for free plan
+      if (userData.subscription_plan === 'free' && userData.last_reset_date && userData.last_reset_date < today) {
+        console.log(`Resetting daily credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
+        const { error: resetError } = await supabaseClient
+          .from('user_credits')
+          .update({ 
+            credits_used_today: 0,
+            last_reset_date: today,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
         
-        // Reset credits if it's a new day
-        if (userData.last_reset_date && userData.last_reset_date < today) {
-          console.log(`Resetting daily credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
-          const { error: resetError } = await supabaseClient
-            .from('user_credits')
-            .update({ 
-              credits_used_today: 0,
-              last_reset_date: today,
-              updated_at: new Date().toISOString()
-            })
-            .eq('user_id', userId);
-          
-          if (resetError) {
-            console.error("Error resetting credits:", resetError.message);
-            return new Response(
-              JSON.stringify({ error: 'Failed to reset credits', details: resetError.message }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-            );
-          }
-          
-          // Return fresh credits after reset
+        if (resetError) {
+          console.error("Error resetting credits:", resetError.message);
           return new Response(
-            JSON.stringify({ 
-              credits: userData.daily_credits,
-              deducted: amount,
-              status: 'success'
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: 'Failed to reset credits', details: resetError.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }
+        
+        userData.credits_used_today = 0;
+      }
+      
+      // Handle based on subscription plan
+      if (userData.subscription_plan === 'free') {
+        // For free plan, check daily credits
+        console.log(`Current daily credits for user ${userId}: ${userData.daily_credits - userData.credits_used_today}`);
         
         // Check if user has enough daily credits
         if (userData.credits_used_today + amount > userData.daily_credits) {
@@ -319,28 +311,28 @@ serve(async (req) => {
       );
     }
     
-    // For free plan users - handle daily reset
-    if (userData.subscription_plan === 'free') {
-      // Reset credits if it's a new day
-      if (userData.last_reset_date && userData.last_reset_date < today) {
-        console.log(`Resetting credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
-        const { error: resetError } = await supabaseClient
-          .from('user_credits')
-          .update({ 
-            credits_used_today: 0,
-            last_reset_date: today,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId);
-        
-        if (resetError) {
-          console.error("Error resetting credits:", resetError.message);
-        } else {
-          userData.credits_used_today = 0;
-        }
-      }
+    // Reset daily credits if it's a new day for free users
+    if (userData.subscription_plan === 'free' && userData.last_reset_date && userData.last_reset_date < today) {
+      console.log(`Resetting credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
+      const { error: resetError } = await supabaseClient
+        .from('user_credits')
+        .update({ 
+          credits_used_today: 0,
+          last_reset_date: today,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
       
-      // Return available daily credits
+      if (resetError) {
+        console.error("Error resetting credits:", resetError.message);
+      } else {
+        userData.credits_used_today = 0;
+      }
+    }
+    
+    // Return available credits based on the subscription plan
+    if (userData.subscription_plan === 'free') {
+      // For free plan users - return daily credits
       return new Response(
         JSON.stringify({ 
           credits: userData.daily_credits - userData.credits_used_today,
