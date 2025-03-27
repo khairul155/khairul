@@ -33,7 +33,7 @@ const UserCredits = () => {
         setIsLoading(true);
         const { data, error } = await supabase
           .from('user_credits')
-          .select('subscription_plan, daily_credits, monthly_credits')
+          .select('subscription_plan, daily_credits, monthly_credits, credits_used_today, credits_used_this_month')
           .eq('user_id', user.id)
           .single();
         
@@ -48,11 +48,11 @@ const UserCredits = () => {
           
           // Update displayed credits based on subscription plan
           if (data.subscription_plan !== 'free') {
-            // For paid plans, use monthly_credits
-            setDisplayCredits(data.monthly_credits);
+            // For paid plans, calculate available monthly credits
+            setDisplayCredits(data.monthly_credits - data.credits_used_this_month);
           } else {
-            // For free plan, use daily_credits
-            setDisplayCredits(data.daily_credits);
+            // For free plan, calculate available daily credits
+            setDisplayCredits(data.daily_credits - data.credits_used_today);
           }
         }
       } catch (error) {

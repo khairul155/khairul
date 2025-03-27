@@ -113,78 +113,125 @@ serve(async (req) => {
         );
       }
       
-      console.log(`Current credits for user ${userId}: ${userData.daily_credits - userData.credits_used_today}`);
-      
-      // Check if user has enough credits
-      if (userData.credits_used_today + 4 > userData.daily_credits) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Not enough credits', 
-            details: 'You do not have enough credits to generate an image',
-            remaining: userData.daily_credits - userData.credits_used_today
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
-      
-      // Reset credits if it's a new day
-      if (userData.last_reset_date && userData.last_reset_date < today) {
-        console.log(`Resetting credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
-        const { error: resetError } = await supabaseClient
+      // Handle based on subscription plan
+      if (userData.subscription_plan === 'free') {
+        // For free plan, check daily credits and reset if needed
+        console.log(`Current daily credits for user ${userId}: ${userData.daily_credits - userData.credits_used_today}`);
+        
+        // Reset credits if it's a new day
+        if (userData.last_reset_date && userData.last_reset_date < today) {
+          console.log(`Resetting daily credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
+          const { error: resetError } = await supabaseClient
+            .from('user_credits')
+            .update({ 
+              credits_used_today: 0,
+              last_reset_date: today,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId);
+          
+          if (resetError) {
+            console.error("Error resetting credits:", resetError.message);
+            return new Response(
+              JSON.stringify({ error: 'Failed to reset credits', details: resetError.message }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+            );
+          }
+          
+          // Return fresh credits after reset
+          return new Response(
+            JSON.stringify({ 
+              credits: userData.daily_credits,
+              deducted: 4,
+              status: 'success'
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Check if user has enough daily credits
+        if (userData.credits_used_today + 4 > userData.daily_credits) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Not enough credits', 
+              details: 'You do not have enough credits to generate an image',
+              remaining: userData.daily_credits - userData.credits_used_today
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+        
+        // Update user credits (deduct 4)
+        console.log(`Deducting 4 daily credits for free user ${userId}`);
+        const { error: updateError } = await supabaseClient
           .from('user_credits')
           .update({ 
-            credits_used_today: 0,
-            last_reset_date: today,
+            credits_used_today: userData.credits_used_today + 4,
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId);
         
-        if (resetError) {
-          console.error("Error resetting credits:", resetError.message);
+        if (updateError) {
+          console.error("Error updating credits:", updateError.message);
           return new Response(
-            JSON.stringify({ error: 'Failed to reset credits', details: resetError.message }),
+            JSON.stringify({ error: 'Failed to update credits', details: updateError.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }
         
-        // Return fresh credits after reset
+        // Return updated credits
         return new Response(
           JSON.stringify({ 
-            credits: userData.daily_credits,
+            credits: userData.daily_credits - (userData.credits_used_today + 4),
+            deducted: 4,
+            status: 'success'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        // For paid plans, use monthly credits
+        console.log(`Current monthly credits for user ${userId}: ${userData.monthly_credits - userData.credits_used_this_month}`);
+        
+        // Check if user has enough monthly credits
+        if (userData.credits_used_this_month + 4 > userData.monthly_credits) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Not enough credits', 
+              details: 'You do not have enough monthly credits to generate an image',
+              remaining: userData.monthly_credits - userData.credits_used_this_month
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+        
+        // Update user credits (deduct 4 from monthly credits)
+        console.log(`Deducting 4 monthly credits for paid user ${userId}`);
+        const { error: updateError } = await supabaseClient
+          .from('user_credits')
+          .update({ 
+            credits_used_this_month: userData.credits_used_this_month + 4,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+        
+        if (updateError) {
+          console.error("Error updating monthly credits:", updateError.message);
+          return new Response(
+            JSON.stringify({ error: 'Failed to update credits', details: updateError.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+        
+        // Return updated credits
+        return new Response(
+          JSON.stringify({ 
+            credits: userData.monthly_credits - (userData.credits_used_this_month + 4),
             deducted: 4,
             status: 'success'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
-      // Update user credits (deduct 4)
-      console.log(`Deducting 4 credits for user ${userId}`);
-      const { error: updateError } = await supabaseClient
-        .from('user_credits')
-        .update({ 
-          credits_used_today: userData.credits_used_today + 4,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
-      
-      if (updateError) {
-        console.error("Error updating credits:", updateError.message);
-        return new Response(
-          JSON.stringify({ error: 'Failed to update credits', details: updateError.message }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-      
-      // Return updated credits
-      return new Response(
-        JSON.stringify({ 
-          credits: userData.daily_credits - (userData.credits_used_today + 4),
-          deducted: 4,
-          status: 'success'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
     
     // If no action or action is "get", just return the current credits
@@ -266,36 +313,51 @@ serve(async (req) => {
       );
     }
     
-    // Reset credits if it's a new day
-    if (userData.last_reset_date && userData.last_reset_date < today) {
-      console.log(`Resetting credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
-      const { error: resetError } = await supabaseClient
-        .from('user_credits')
-        .update({ 
-          credits_used_today: 0,
-          last_reset_date: today,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
-      
-      if (resetError) {
-        console.error("Error resetting credits:", resetError.message);
-      } else {
-        userData.credits_used_today = 0;
+    // For free plan users - handle daily reset
+    if (userData.subscription_plan === 'free') {
+      // Reset credits if it's a new day
+      if (userData.last_reset_date && userData.last_reset_date < today) {
+        console.log(`Resetting credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
+        const { error: resetError } = await supabaseClient
+          .from('user_credits')
+          .update({ 
+            credits_used_today: 0,
+            last_reset_date: today,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+        
+        if (resetError) {
+          console.error("Error resetting credits:", resetError.message);
+        } else {
+          userData.credits_used_today = 0;
+        }
       }
+      
+      // Return available daily credits
+      return new Response(
+        JSON.stringify({ 
+          credits: userData.daily_credits - userData.credits_used_today,
+          resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
+          plan: userData.subscription_plan,
+          totalCredits: userData.daily_credits,
+          used: userData.credits_used_today
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      // For paid plan users - return monthly credits
+      return new Response(
+        JSON.stringify({ 
+          credits: userData.monthly_credits - userData.credits_used_this_month,
+          resetDate: userData.next_reset_date ? `${userData.next_reset_date}T00:00:00+06:00` : null,
+          plan: userData.subscription_plan,
+          totalCredits: userData.monthly_credits,
+          used: userData.credits_used_this_month
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    
-    // Return the user's actual credits
-    return new Response(
-      JSON.stringify({ 
-        credits: userData.daily_credits - userData.credits_used_today,
-        resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
-        plan: userData.subscription_plan,
-        totalCredits: userData.daily_credits,
-        used: userData.credits_used_today
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
     
   } catch (error) {
     console.error('Error:', error);

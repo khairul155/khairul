@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
@@ -11,12 +12,17 @@ import { useToast } from "@/hooks/use-toast";
 // Define an interface for the payload data structure
 interface UserSubscriptionData {
   subscription_plan: string;
+  monthly_credits: number;
+  credits_used_this_month: number;
+  daily_credits: number;
+  credits_used_today: number;
 }
 
 const Profile = () => {
   const { user, credits } = useAuth();
   const [subscription, setSubscription] = useState('free');
   const [isLoading, setIsLoading] = useState(true);
+  const [displayCredits, setDisplayCredits] = useState(credits);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -27,7 +33,7 @@ const Profile = () => {
         setIsLoading(true);
         const { data, error } = await supabase
           .from('user_credits')
-          .select('subscription_plan')
+          .select('subscription_plan, monthly_credits, credits_used_this_month, daily_credits, credits_used_today')
           .eq('user_id', user.id)
           .single();
         
@@ -39,6 +45,13 @@ const Profile = () => {
         if (data) {
           console.log("Profile subscription data:", data);
           setSubscription(data.subscription_plan);
+          
+          // Set the correct credits display based on subscription plan
+          if (data.subscription_plan !== 'free') {
+            setDisplayCredits(data.monthly_credits - data.credits_used_this_month);
+          } else {
+            setDisplayCredits(data.daily_credits - data.credits_used_today);
+          }
         }
       } catch (error) {
         console.error("Error in fetchUserProfile:", error);
@@ -73,6 +86,13 @@ const Profile = () => {
                   title: "Subscription Updated",
                   description: `Your plan has been updated to ${newData.subscription_plan.charAt(0).toUpperCase() + newData.subscription_plan.slice(1)}`,
                 });
+                
+                // Update displayed credits based on plan
+                if (newData.subscription_plan !== 'free') {
+                  setDisplayCredits(newData.monthly_credits - newData.credits_used_this_month);
+                } else {
+                  setDisplayCredits(newData.daily_credits - newData.credits_used_today);
+                }
               }
             }
           }
@@ -180,7 +200,7 @@ const Profile = () => {
                   <h3 className="text-sm font-medium text-gray-400 mb-1">Token Balance</h3>
                   <div className="flex items-center gap-2">
                     <Coins className="h-5 w-5 text-yellow-500" />
-                    <p className="text-lg">{credits} tokens</p>
+                    <p className="text-lg">{displayCredits} tokens</p>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     {subscription === 'free' ? 
