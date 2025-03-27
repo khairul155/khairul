@@ -97,25 +97,15 @@ const Pricing = () => {
           </h1>
           
           
-          <div className="inline-flex p-1 rounded-full bg-gray-800 mb-10">
-            <button onClick={() => setPlanCategory("personal")} className={cn("px-6 py-2 rounded-full text-sm font-medium transition-all", planCategory === "personal" ? "bg-gray-700 text-white" : "text-gray-400 hover:text-white")}>
-              Personal
-            </button>
-            <button onClick={() => setPlanCategory("business")} className={cn("px-6 py-2 rounded-full text-sm font-medium transition-all", planCategory === "business" ? "bg-gray-700 text-white" : "text-gray-400 hover:text-white")}>
-              Business
-            </button>
-          </div>
+          
           
           <div className="flex justify-end items-center mb-2">
-            <span className="text-sm text-gray-400 mr-3">Billed yearly</span>
+            
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" checked={billingCycle === "yearly"} onChange={() => setBillingCycle(billingCycle === "monthly" ? "yearly" : "monthly")} />
-              <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+              
             </label>
-            <span className="text-sm text-white ml-3 flex items-center">
-              Billed yearly
-              <span className="ml-2 text-xs bg-purple-600 py-0.5 px-2 rounded-full">Save 20%</span>
-            </span>
+            
           </div>
         </div>
         
