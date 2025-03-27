@@ -35,6 +35,29 @@ serve(async (req) => {
     const bstTime = new Date(utcTime + (6 * 60 * 60 * 1000));
     const today = bstTime.toISOString().split('T')[0]; // Format as YYYY-MM-DD
     
+    // Get the user's subscription plan
+    const { data: profileData, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('subscription_plan')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    let userPlan = 'free';
+    if (!profileError && profileData && profileData.subscription_plan) {
+      userPlan = profileData.subscription_plan;
+      console.log(`User ${userId} is on ${userPlan} plan`);
+    }
+    
+    // Set daily credits based on subscription plan
+    let dailyCredits = 60; // Default for free plan
+    if (userPlan === 'basic') {
+      dailyCredits = 150;
+    } else if (userPlan === 'advanced') {
+      dailyCredits = 300;
+    } else if (userPlan === 'pro') {
+      dailyCredits = 600;
+    }
+    
     // If action is "deduct", deduct 4 credits for image generation
     if (action === "deduct") {
       console.log(`Attempting to deduct credits for user: ${userId}`);
@@ -60,8 +83,8 @@ serve(async (req) => {
           .from('user_credits')
           .insert([{ 
             user_id: userId, 
-            subscription_plan: 'free',
-            daily_credits: 60,
+            subscription_plan: userPlan,
+            daily_credits: dailyCredits,
             credits_used_today: 0,
             last_reset_date: today
           }]);
@@ -72,6 +95,20 @@ serve(async (req) => {
             JSON.stringify({ error: 'Failed to create user credits', details: insertError.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
+        }
+      } else {
+        // Update user's daily credits if their plan has changed
+        const { error: updatePlanError } = await supabaseClient
+          .from('user_credits')
+          .update({ 
+            subscription_plan: userPlan,
+            daily_credits: dailyCredits,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+          
+        if (updatePlanError) {
+          console.error("Error updating user plan:", updatePlanError.message);
         }
       }
       
@@ -188,9 +225,9 @@ serve(async (req) => {
       console.error("Error checking if user exists:", checkError.message);
       return new Response(
         JSON.stringify({ 
-          credits: 60,
+          credits: dailyCredits,
           resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
-          plan: 'free'
+          plan: userPlan
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -203,8 +240,8 @@ serve(async (req) => {
         .from('user_credits')
         .insert([{ 
           user_id: userId, 
-          subscription_plan: 'free',
-          daily_credits: 60,
+          subscription_plan: userPlan,
+          daily_credits: dailyCredits,
           credits_used_today: 0,
           last_reset_date: today
         }]);
@@ -213,9 +250,9 @@ serve(async (req) => {
         console.error("Error creating user credits:", insertError.message);
         return new Response(
           JSON.stringify({ 
-            credits: 60,
+            credits: dailyCredits,
             resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
-            plan: 'free'
+            plan: userPlan
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -224,14 +261,28 @@ serve(async (req) => {
       // Return default credits for new user
       return new Response(
         JSON.stringify({ 
-          credits: 60,
+          credits: dailyCredits,
           resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
-          plan: 'free',
-          totalCredits: 60,
+          plan: userPlan,
+          totalCredits: dailyCredits,
           used: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    } else {
+      // Update user's daily credits if their plan has changed
+      const { error: updatePlanError } = await supabaseClient
+        .from('user_credits')
+        .update({ 
+          subscription_plan: userPlan,
+          daily_credits: dailyCredits,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+        
+      if (updatePlanError) {
+        console.error("Error updating user plan:", updatePlanError.message);
+      }
     }
     
     // Get user credits
@@ -243,12 +294,12 @@ serve(async (req) => {
     
     if (userError || !userData) {
       console.error('Error fetching user credits:', userError?.message || 'No data returned');
-      // If not found, assume they are on the free plan with 60 tokens that reset daily
+      // If not found, use the subscription-based credits
       return new Response(
         JSON.stringify({ 
-          credits: 60,
+          credits: dailyCredits,
           resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
-          plan: 'free'
+          plan: userPlan
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -273,7 +324,7 @@ serve(async (req) => {
       }
     }
     
-    // Return the user's actual credits
+    // Return the user's actual credits, considering their plan
     return new Response(
       JSON.stringify({ 
         credits: userData.daily_credits - userData.credits_used_today,

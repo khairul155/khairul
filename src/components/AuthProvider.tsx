@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
@@ -160,6 +159,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     });
 
+    // Set up a realtime subscription to profile changes
+    const setupRealtimeSubscription = async () => {
+      if (!user) return;
+      
+      const channel = supabase
+        .channel('profile-subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Profile updated in AuthProvider:', payload);
+            // Re-fetch credits when profile is updated
+            fetchUserCredits(user.id);
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+    
+    const cleanup = setupRealtimeSubscription();
+    
     // Check for auth redirect errors on page load
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const error = hashParams.get("error");
@@ -176,8 +204,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       subscription.unsubscribe();
+      if (cleanup) cleanup.then(unsub => unsub && unsub());
     };
-  }, []);
+  }, [user, toast]);
 
   const signIn = async (email: string, password: string) => {
     try {

@@ -4,11 +4,13 @@ import { Coins } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const UserCredits = () => {
   const { credits, user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [plan, setPlan] = useState("free");
+  const { toast } = useToast();
   
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -18,7 +20,7 @@ const UserCredits = () => {
       }
       
       try {
-        // Now that the profiles table is properly set up, we can query it
+        // Query the profiles table with subscription_plan
         const { data, error } = await supabase
           .from('profiles')
           .select('subscription_plan')
@@ -27,6 +29,11 @@ const UserCredits = () => {
         
         if (error) {
           console.error("Error fetching profile:", error);
+          toast({
+            title: "Error",
+            description: "Could not fetch user profile data",
+            variant: "destructive",
+          });
           setIsLoading(false);
         } else if (data && data.subscription_plan) {
           console.log("User subscription plan:", data.subscription_plan);
@@ -43,7 +50,35 @@ const UserCredits = () => {
     };
     
     fetchUserProfile();
-  }, [user]);
+    
+    // Set up a realtime subscription to profile changes
+    const channel = supabase
+      .channel('profile-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles', 
+          filter: `id=eq.${user?.id}`
+        },
+        (payload) => {
+          console.log('Profile updated:', payload);
+          if (payload.new && payload.new.subscription_plan) {
+            setPlan(payload.new.subscription_plan);
+            toast({
+              title: "Subscription Updated",
+              description: `Your plan has been updated to ${payload.new.subscription_plan}`,
+            });
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, toast]);
   
   return (
     <Card className="p-4 bg-gray-900 border-gray-800">
