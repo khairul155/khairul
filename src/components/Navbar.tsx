@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
+import { TokenBalance } from "@/components/TokenBalance";
 import { 
   Menu, 
   X, 
@@ -17,8 +18,7 @@ import {
   Zap,
   Briefcase,
   CreditCard,
-  HelpCircle,
-  Coins
+  HelpCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -118,11 +118,8 @@ const Navbar = () => {
           {/* Left Side: Logo & Site Name */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md flex items-center justify-center border border-white/20">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h4V7h2v4h4v2h-4v4h-2v-4H7v-2z" 
-                  fill="white"/>
-                </svg>
+              <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center border border-white/20">
+                <Wand2 className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold text-white">
                 PixcraftAI
@@ -195,6 +192,8 @@ const Navbar = () => {
 
           {/* Right Side: Auth & Menu */}
           <div className="flex items-center space-x-4">
+            {user && <TokenBalance />}
+            
             <ThemeToggle />
 
             {user ? (
@@ -215,16 +214,6 @@ const Navbar = () => {
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
-                      <Link to="/pricing" className="flex">
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        <span>Subscription</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-white/10 cursor-pointer">
-                      <Coins className="mr-2 h-4 w-4" />
-                      <span>Tokens: {60}</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-gray-800" />
                     <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white/10 cursor-pointer text-red-400 hover:text-red-300">
