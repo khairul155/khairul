@@ -55,9 +55,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data && typeof data.credits === 'number') {
         setCredits(data.credits);
       } else {
-        // Default to 60 tokens for free tier if no specific credits found
-        console.log("Setting default credits (60)");
-        setCredits(60);
+        // Default to credits based on subscription plan
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('subscription_plan')
+          .eq('id', userId)
+          .maybeSingle();
+          
+        let defaultCredits = 60; // Free plan default
+        
+        if (profileData?.subscription_plan === 'basic') {
+          defaultCredits = 150;
+        } else if (profileData?.subscription_plan === 'advanced') {
+          defaultCredits = 300;
+        } else if (profileData?.subscription_plan === 'pro') {
+          defaultCredits = 600;
+        }
+        
+        console.log(`Setting credits based on ${profileData?.subscription_plan || 'free'} plan: ${defaultCredits}`);
+        setCredits(defaultCredits);
       }
     } catch (error) {
       console.error("Error invoking get-user-credits function:", error);
@@ -108,6 +124,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Update local state with new credit amount
       console.log("Credits updated to:", data.credits);
       setCredits(data.credits);
+      
+      toast({
+        title: "Credits deducted",
+        description: `4 credits used. ${data.credits} remaining.`,
+      });
       
       return { 
         success: true,
