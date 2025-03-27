@@ -22,8 +22,8 @@ const UserCredits = () => {
   const [displayCredits, setDisplayCredits] = useState(credits);
   const { toast } = useToast();
   
+  // Always refetch credits from AuthProvider when they might change
   useEffect(() => {
-    // Update displayed credits when the auth context credits change
     setDisplayCredits(credits);
   }, [credits]);
   
@@ -89,14 +89,19 @@ const UserCredits = () => {
             const newData = payload.new as UserCreditsData;
             
             if (newData) {
+              const oldSubscription = subscription;
               setSubscription(newData.subscription_plan);
               
-              // Update displayed credits based on new subscription plan
-              if (newData.subscription_plan !== 'free') {
+              // When plan changes, show a notification
+              if (newData.subscription_plan !== oldSubscription) {
                 toast({
                   title: "Subscription Updated",
                   description: `Your plan has been updated to ${newData.subscription_plan.charAt(0).toUpperCase() + newData.subscription_plan.slice(1)}`,
                 });
+              }
+              
+              // Update displayed credits based on subscription plan
+              if (newData.subscription_plan !== 'free') {
                 // For paid plans, calculate available monthly credits
                 const availableCredits = newData.monthly_credits - newData.credits_used_this_month;
                 console.log("Updated monthly credits:", availableCredits);
@@ -119,7 +124,7 @@ const UserCredits = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user, toast]);
+  }, [user, toast, subscription]);
   
   // Calculate token reset text based on subscription
   const getTokenResetText = () => {

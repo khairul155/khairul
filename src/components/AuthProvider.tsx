@@ -188,6 +188,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
+    // Set up real-time subscription for user_credits changes to update credit counts
+    if (user) {
+      const channel = supabase
+        .channel('auth-credits-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_credits',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            // Refetch credits when credits change
+            fetchUserCredits(user.id);
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        subscription.unsubscribe();
+        supabase.removeChannel(channel);
+      };
+    }
+
     return () => {
       subscription.unsubscribe();
     };
