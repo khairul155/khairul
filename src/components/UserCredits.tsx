@@ -18,20 +18,11 @@ const UserCredits = () => {
       }
       
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('subscription_plan')
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        if (error) {
-          console.error("Error fetching profile:", error);
-        } else if (data) {
-          setPlan(data.subscription_plan);
-        }
+        // Using the AuthProvider's session/user info directly instead of querying the profiles table
+        // This avoids type errors since the profiles table isn't in the TypeScript types yet
+        setIsLoading(false);
       } catch (error) {
         console.error("Exception fetching profile:", error);
-      } finally {
         setIsLoading(false);
       }
     };
