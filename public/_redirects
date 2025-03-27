@@ -16,4 +16,4 @@ https://*.netlify.app/* https://pixcraftai.com/:splat 301!
 /graphic-designer-bot /index.html 200
 /bulk-image-size-increaser /index.html 200
 /metadata-generator /index.html 200
-/pricing /index.html 200
+

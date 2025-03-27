@@ -4,7 +4,6 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
-import { TokenBalance } from "@/components/TokenBalance";
 import { 
   Menu, 
   X, 
@@ -18,7 +17,8 @@ import {
   Zap,
   Briefcase,
   CreditCard,
-  HelpCircle
+  HelpCircle,
+  Coins
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -192,8 +192,6 @@ const Navbar = () => {
 
           {/* Right Side: Auth & Menu */}
           <div className="flex items-center space-x-4">
-            {user && <TokenBalance />}
-            
             <ThemeToggle />
 
             {user ? (
@@ -214,6 +212,16 @@ const Navbar = () => {
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
+                      <Link to="/pricing" className="flex">
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        <span>Subscription</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="hover:bg-white/10 cursor-pointer">
+                      <Coins className="mr-2 h-4 w-4" />
+                      <span>Tokens: {60}</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-gray-800" />
                     <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white/10 cursor-pointer text-red-400 hover:text-red-300">

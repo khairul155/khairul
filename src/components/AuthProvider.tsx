@@ -8,6 +8,12 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
+  credits: number;
+  deductCredits: (amount?: number) => Promise<{
+    success: boolean;
+    message?: string;
+    remaining?: number;
+  }>;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     success: boolean;
@@ -29,72 +35,146 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [credits, setCredits] = useState<number>(60); // Default to 60 for free plan
   const { toast } = useToast();
 
+  // Function to fetch user credits
+  const fetchUserCredits = async (userId: string) => {
+    try {
+      console.log("Fetching credits for user:", userId);
+      const { data, error } = await supabase.functions.invoke('get-user-credits', {
+        body: { userId }
+      });
+      
+      if (error) {
+        console.error("Error fetching user credits:", error);
+        return;
+      }
+      
+      console.log("Credits data received:", data);
+      
+      if (data && typeof data.credits === 'number') {
+        setCredits(data.credits);
+      } else {
+        // Default to 60 tokens for free tier if no specific credits found
+        console.log("Setting default credits (60)");
+        setCredits(60);
+      }
+    } catch (error) {
+      console.error("Error invoking get-user-credits function:", error);
+      setCredits(60); // Default fallback
+    }
+  };
+
+  // Function to deduct credits
+  const deductCredits = async (amount = 4) => {
+    if (!user) {
+      return { success: false, message: "User not authenticated" };
+    }
+
+    try {
+      console.log("Deducting credits for user:", user.id);
+      const { data, error } = await supabase.functions.invoke('get-user-credits', {
+        body: { userId: user.id, action: "deduct" }
+      });
+
+      console.log("Deduct response:", data, error);
+
+      if (error) {
+        console.error("Error deducting credits:", error);
+        toast({
+          title: "Error",
+          description: "Failed to deduct credits. Please try again.",
+          variant: "destructive",
+        });
+        return { 
+          success: false, 
+          message: "Failed to deduct credits" 
+        };
+      }
+
+      if (data.error) {
+        console.error("API error deducting credits:", data.error);
+        toast({
+          title: "Not enough credits",
+          description: "You don't have enough credits to generate an image.",
+          variant: "destructive",
+        });
+        return { 
+          success: false, 
+          message: data.error 
+        };
+      }
+
+      // Update local state with new credit amount
+      console.log("Credits updated to:", data.credits);
+      setCredits(data.credits);
+      
+      return { 
+        success: true,
+        remaining: data.credits
+      };
+    } catch (error) {
+      console.error("Exception deducting credits:", error);
+      toast({
+        title: "Error",
+        description: "Failed to deduct credits. Please try again.",
+        variant: "destructive",
+      });
+      return { 
+        success: false, 
+        message: "Error processing request" 
+      };
+    }
+  };
+
   useEffect(() => {
-    let mounted = true;
-    
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         console.log("Auth state changed:", event);
-        if (mounted) {
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
-          setIsLoading(false);
+        setSession(newSession);
+        const newUser = newSession?.user ?? null;
+        setUser(newUser);
+        
+        // Fetch user credits when user is authenticated
+        if (newUser) {
+          fetchUserCredits(newUser.id);
         }
+        
+        setIsLoading(false);
       }
     );
 
     // Then check for an existing session
     supabase.auth.getSession().then(({ data }) => {
-      if (mounted) {
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
-        setIsLoading(false);
+      setSession(data.session);
+      const currentUser = data.session?.user ?? null;
+      setUser(currentUser);
+      
+      // Fetch user credits when user is authenticated
+      if (currentUser) {
+        fetchUserCredits(currentUser.id);
       }
-    }).catch(error => {
-      console.error("Error getting session:", error);
-      if (mounted) {
-        setIsLoading(false);
-      }
+      
+      setIsLoading(false);
     });
 
     // Check for auth redirect errors on page load
-    const checkForAuthRedirectErrors = () => {
-      try {
-        // Parse URL for error parameters
-        const params = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        
-        // Check both regular query params and hash params
-        const error = params.get("error") || hashParams.get("error");
-        const errorDescription = params.get("error_description") || hashParams.get("error_description");
-        
-        if (error) {
-          console.error("Auth redirect error:", error, errorDescription);
-          toast({
-            title: "Authentication Error",
-            description: errorDescription || "There was a problem with authentication.",
-            variant: "destructive",
-          });
-          
-          // Clean up the URL to remove error parameters
-          if (window.history && window.history.replaceState) {
-            const cleanUrl = window.location.pathname;
-            window.history.replaceState({}, document.title, cleanUrl);
-          }
-        }
-      } catch (err) {
-        console.error("Error checking for auth redirect errors:", err);
-      }
-    };
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const error = hashParams.get("error");
+    const errorDescription = hashParams.get("error_description");
     
-    // Check for errors
-    checkForAuthRedirectErrors();
+    if (error) {
+      console.error("Auth redirect error:", error, errorDescription);
+      toast({
+        title: "Authentication Error",
+        description: errorDescription || "There was a problem with authentication.",
+        variant: "destructive",
+      });
+    }
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -120,14 +200,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: { name: username }
         }
       });
-      
-      if (!error) {
-        toast({
-          title: "Account created successfully",
-          description: "Please check your email to confirm your account.",
-        });
-      }
-      
       return { error, success: !error };
     } catch (error) {
       return { error: error as Error, success: false };
@@ -185,6 +257,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         isLoading,
+        credits,
+        deductCredits,
         signIn,
         signUp,
         signInWithGoogle,

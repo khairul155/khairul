@@ -1,21 +1,18 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
-import { Check, Coins, ArrowRight, ChevronRight, Sparkles, Zap, Shield, Loader2, X, RefreshCw } from "lucide-react";
+import { Check, Coins, ArrowRight, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { useCredits, SubscriptionPlan } from "@/hooks/use-credits";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const pricingPlans = [
   {
     name: "Free",
     price: "0",
-    currency: "$",
+    currency: "Tk",
     description: "Basic access with daily limits",
     features: [
       "60 tokens/day",
@@ -29,13 +26,12 @@ const pricingPlans = [
     popular: false,
     tokens: 60,
     buttonText: "Your Current Plan",
-    buttonVariant: "outline" as const,
-    plan: "free" as SubscriptionPlan
+    buttonVariant: "outline" as const
   },
   {
     name: "Basic",
-    price: "10",
-    currency: "$",
+    price: "400",
+    currency: "Tk",
     description: "Good for occasional use",
     features: [
       "3,400 tokens/month (~113/day)",
@@ -49,13 +45,12 @@ const pricingPlans = [
     popular: false,
     tokens: 3400,
     buttonText: "Get Basic",
-    buttonVariant: "default" as const,
-    plan: "basic" as SubscriptionPlan
+    buttonVariant: "default" as const
   },
   {
     name: "Advanced",
-    price: "25",
-    currency: "$",
+    price: "750",
+    currency: "Tk",
     description: "Perfect for regular creators",
     features: [
       "8,000 tokens/month (~267/day)",
@@ -69,13 +64,12 @@ const pricingPlans = [
     popular: true,
     tokens: 8000,
     buttonText: "Get Advanced",
-    buttonVariant: "default" as const,
-    plan: "advanced" as SubscriptionPlan
+    buttonVariant: "default" as const
   },
   {
     name: "Pro",
-    price: "50",
-    currency: "$",
+    price: "1400",
+    currency: "Tk",
     description: "For power users and businesses",
     features: [
       "18,000 tokens/month (~600/day)",
@@ -89,97 +83,21 @@ const pricingPlans = [
     popular: false,
     tokens: 18000,
     buttonText: "Get Pro",
-    buttonVariant: "default" as const,
-    plan: "pro" as SubscriptionPlan
+    buttonVariant: "default" as const
   }
 ];
 
 type BillingCycle = "monthly" | "yearly";
 type PlanCategory = "personal" | "business";
-type PaymentStatus = "idle" | "processing" | "success" | "error" | "verifying";
 
 const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [planCategory, setPlanCategory] = useState<PlanCategory>("personal");
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState(false);
-  const [paymentDialog, setPaymentDialog] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("idle");
-  const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [transactionRef, setTransactionRef] = useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
-  
-  const [paymentAttempts, setPaymentAttempts] = useState(0);
-  
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { credits, fetchCredits, loading: creditsLoading } = useCredits();
   
-  useEffect(() => {
-    const checkTransactionStatus = async () => {
-      const url = new URL(window.location.href);
-      const txnId = url.searchParams.get('transaction_id');
-      const status = url.searchParams.get('status');
-      
-      // Clear URL parameters without reloading the page
-      if (txnId) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-      
-      if (txnId && status) {
-        setPaymentStatus("verifying");
-        setPaymentDialog(true);
-        
-        try {
-          setIsVerifying(true);
-          const { data, error } = await supabase.functions.invoke('process-payment/verify', {
-            method: 'POST',
-            body: {
-              transactionId: txnId,
-              userId: user?.id
-            }
-          });
-          
-          if (error) {
-            throw error;
-          }
-          
-          if (data.success) {
-            setPaymentStatus("success");
-            await fetchCredits();
-            toast({
-              title: "Payment Successful",
-              description: `Your plan has been upgraded to ${data.plan.charAt(0).toUpperCase() + data.plan.slice(1)}.`,
-            });
-          } else {
-            setPaymentStatus("error");
-            setPaymentError(data.error || "Payment verification failed. Please contact support.");
-            toast({
-              title: "Payment Error",
-              description: "There was an issue verifying your payment. Please try again.",
-              variant: "destructive",
-            });
-          }
-        } catch (error) {
-          console.error("Payment verification error:", error);
-          setPaymentStatus("error");
-          setPaymentError("Network error while verifying payment. Please check your connection.");
-          toast({
-            title: "Verification Error",
-            description: "Failed to verify payment status. Please contact support.",
-            variant: "destructive",
-          });
-        } finally {
-          setIsVerifying(false);
-        }
-      }
-    };
-    
-    checkTransactionStatus();
-  }, [user]);
-
-  const handlePlanSelection = (plan: SubscriptionPlan) => {
+  const handlePlanSelection = (planName: string) => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -190,96 +108,23 @@ const Pricing = () => {
       return;
     }
     
-    if (credits.subscription_plan === plan) {
+    // If it's the free plan, just show a toast
+    if (planName === "Free") {
       toast({
-        title: "Already subscribed",
-        description: `You are already on the ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan.`,
+        title: "Free plan selected",
+        description: "You are already on the free plan",
       });
       return;
     }
     
-    setSelectedPlan(plan);
-    setConfirmDialog(true);
-  };
-
-  const initiatePayment = async () => {
-    if (!selectedPlan || !user) return;
+    // For paid plans, redirect to NagorikPay
+    const paymentUrl = `https://secure-pay.nagorikpay.com/api/execute/02dc3553affdd9bdf91d0225d4e91aa0`;
+    window.open(paymentUrl, '_blank');
     
-    setPaymentStatus("processing");
-    setConfirmDialog(false);
-    setPaymentDialog(true);
-    setPaymentAttempts(prev => prev + 1);
-    
-    try {
-      console.log(`Initiating payment for plan: ${selectedPlan} (Attempt: ${paymentAttempts + 1})`);
-      
-      const { data, error } = await supabase.functions.invoke('process-payment/initiate', {
-        method: 'POST',
-        body: {
-          userId: user.id,
-          userEmail: user.email,
-          plan: selectedPlan,
-          redirectUrl: window.location.href
-        }
-      });
-      
-      if (error) {
-        console.error("Payment function error:", error);
-        throw error;
-      }
-      
-      if (data && data.url) {
-        setTransactionRef(data.transactionRef || null);
-        console.log("Redirecting to payment URL:", data.url);
-        window.location.href = data.url;
-      } else {
-        console.error("Invalid response data:", data);
-        setPaymentStatus("error");
-        setPaymentError(data?.error || "Failed to initialize payment. Please try again.");
-        toast({
-          title: "Payment Error",
-          description: "There was an issue setting up the payment. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Payment initiation error:", error);
-      setPaymentStatus("error");
-      setPaymentError(
-        "Network error while connecting to the payment gateway. " + 
-        "Please check your internet connection and try again, or contact support."
-      );
-      toast({
-        title: "Payment Error",
-        description: "Failed to connect to payment service. Please try again later.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const retryPayment = () => {
-    if (paymentAttempts >= 3) {
-      toast({
-        title: "Maximum Attempts Reached",
-        description: "Please try again later or contact support for assistance.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    initiatePayment();
-  };
-
-  const closePaymentDialog = () => {
-    setPaymentDialog(false);
-    setPaymentStatus("idle");
-    setPaymentError(null);
-    setTransactionRef(null);
-    setPaymentAttempts(0);
-  };
-
-  const formatPlanName = (plan: SubscriptionPlan): string => {
-    return plan.charAt(0).toUpperCase() + plan.slice(1);
+    toast({
+      title: "Payment Page Opened",
+      description: "Complete your payment in the new tab",
+    });
   };
 
   return (
@@ -321,7 +166,7 @@ const Pricing = () => {
           </div>
           
           <div className="flex justify-end items-center mb-2">
-            <span className="text-sm text-gray-400 mr-3">Billed monthly</span>
+            <span className="text-sm text-gray-400 mr-3">Billed yearly</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input 
                 type="checkbox" 
@@ -339,104 +184,68 @@ const Pricing = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {pricingPlans.map((plan, index) => {
-            const isCurrentPlan = !creditsLoading && credits.subscription_plan === plan.plan;
-            
-            return (
-              <div 
-                key={index} 
-                className={cn(
-                  "relative rounded-xl overflow-hidden border transition-all",
-                  plan.popular 
-                    ? "border-purple-500 shadow-lg shadow-purple-500/20" 
-                    : isCurrentPlan
-                      ? "border-green-500 shadow-lg shadow-green-500/20"
-                      : "border-gray-800 hover:border-gray-700",
-                  "bg-gray-900 backdrop-blur-sm"
-                )}
-              >
-                {plan.popular && !isCurrentPlan && (
-                  <div className="absolute top-0 right-0 bg-purple-600 text-white text-xs font-bold py-1 px-3 rounded-bl-lg">
-                    Most popular
-                  </div>
-                )}
+          {pricingPlans.map((plan, index) => (
+            <div 
+              key={index} 
+              className={cn(
+                "relative rounded-xl overflow-hidden border transition-all",
+                plan.popular 
+                  ? "border-purple-500 shadow-lg shadow-purple-500/20" 
+                  : "border-gray-800 hover:border-gray-700",
+                "bg-gray-900 backdrop-blur-sm"
+              )}
+            >
+              {plan.popular && (
+                <div className="absolute top-0 right-0 bg-purple-600 text-white text-xs font-bold py-1 px-3 rounded-bl-lg">
+                  Most popular
+                </div>
+              )}
+              
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                <div className="flex items-baseline mb-4">
+                  <span className="text-4xl font-extrabold text-white">{plan.currency}{plan.price}</span>
+                  <span className="text-gray-400 ml-2">/month</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
                 
-                {isCurrentPlan && (
-                  <div className="absolute top-0 right-0 bg-green-600 text-white text-xs font-bold py-1 px-3 rounded-bl-lg">
-                    Current Plan
-                  </div>
-                )}
-                
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                  <div className="flex items-baseline mb-4">
-                    <span className="text-4xl font-extrabold text-white">{plan.currency}{plan.price}</span>
-                    <span className="text-gray-400 ml-2">/month</span>
-                  </div>
-                  <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
-                  
-                  <div className="flex items-center gap-2 mb-6">
-                    <Coins className="h-5 w-5 text-purple-400" />
-                    <span className="text-purple-400 font-semibold">{plan.tokens.toLocaleString()} tokens</span>
-                  </div>
-                  
-                  {user ? (
-                    isCurrentPlan ? (
-                      <Button 
-                        variant="outline" 
-                        className="w-full mb-6 bg-gray-700 hover:bg-gray-600 cursor-default"
-                        disabled
-                      >
-                        Current Plan
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant={plan.buttonVariant} 
-                        className={cn(
-                          "w-full mb-6",
-                          plan.name === "Free" 
-                            ? "bg-gray-700 hover:bg-gray-600" 
-                            : "bg-purple-600 hover:bg-purple-700"
-                        )}
-                        onClick={() => handlePlanSelection(plan.plan)}
-                      >
-                        Upgrade to {plan.name}
-                      </Button>
-                    )
-                  ) : (
-                    <Button 
-                      variant={plan.buttonVariant} 
-                      className={cn(
-                        "w-full mb-6",
-                        plan.name === "Free" 
-                          ? "bg-gray-700 hover:bg-gray-600" 
-                          : "bg-purple-600 hover:bg-purple-700"
-                      )}
-                      onClick={() => navigate("/auth")}
-                    >
-                      Sign in to Subscribe
-                    </Button>
-                  )}
-                  
-                  <ul className="space-y-3 text-sm">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 shrink-0 mr-2" />
-                        <span className="text-gray-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="flex items-center gap-2 mb-6">
+                  <Coins className="h-5 w-5 text-purple-400" />
+                  <span className="text-purple-400 font-semibold">{plan.tokens} tokens</span>
                 </div>
                 
-                {plan.name !== "Free" && (
-                  <div className="border-t border-gray-800 py-3 px-6 flex justify-between items-center bg-gray-800/50">
-                    <span className="text-xs text-gray-400">Switch to monthly</span>
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
-                  </div>
-                )}
+                <Button 
+                  variant={plan.buttonVariant} 
+                  className={cn(
+                    "w-full mb-6",
+                    plan.name === "Free" 
+                      ? "bg-gray-700 hover:bg-gray-600" 
+                      : "bg-purple-600 hover:bg-purple-700"
+                  )}
+                  onClick={() => handlePlanSelection(plan.name)}
+                  disabled={plan.name === "Free"}
+                >
+                  {plan.buttonText}
+                </Button>
+                
+                <ul className="space-y-3 text-sm">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 shrink-0 mr-2" />
+                      <span className="text-gray-300">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            );
-          })}
+              
+              {plan.name !== "Free" && (
+                <div className="border-t border-gray-800 py-3 px-6 flex justify-between items-center bg-gray-800/50">
+                  <span className="text-xs text-gray-400">Switch to monthly</span>
+                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
         
         <div className="max-w-3xl mx-auto mt-16 text-center">
@@ -449,137 +258,6 @@ const Pricing = () => {
           </Button>
         </div>
       </div>
-      
-      <Dialog open={confirmDialog} onOpenChange={setConfirmDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upgrade to {selectedPlan ? formatPlanName(selectedPlan) : ''} Plan</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to upgrade to the {selectedPlan ? formatPlanName(selectedPlan) : ''} plan? 
-              You will be redirected to a secure payment page to complete your purchase.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedPlan && (
-            <div className="space-y-4 py-4">
-              <div className="flex items-start space-x-4">
-                <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900">
-                  {selectedPlan === 'basic' && <Coins className="h-6 w-6 text-purple-600" />}
-                  {selectedPlan === 'advanced' && <Sparkles className="h-6 w-6 text-purple-600" />}
-                  {selectedPlan === 'pro' && <Zap className="h-6 w-6 text-purple-600" />}
-                  {selectedPlan === 'free' && <Shield className="h-6 w-6 text-purple-600" />}
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-semibold">{formatPlanName(selectedPlan)}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedPlan === 'basic' && '$10/month · 3,400 tokens/month'}
-                    {selectedPlan === 'advanced' && '$25/month · 8,000 tokens/month'}
-                    {selectedPlan === 'pro' && '$50/month · 18,000 tokens/month'}
-                    {selectedPlan === 'free' && 'Free · 60 tokens/day'}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="border rounded-md p-4 bg-amber-950/10">
-                <p className="text-sm text-center text-amber-400">
-                  You'll be redirected to Drutopay to complete your payment securely. 
-                  Your plan will be updated immediately after successful payment.
-                </p>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialog(false)}>Cancel</Button>
-            <Button 
-              onClick={initiatePayment}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              Proceed to Payment
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={paymentDialog} onOpenChange={closePaymentDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {paymentStatus === "processing" && "Processing Payment"}
-              {paymentStatus === "verifying" && "Verifying Payment"}
-              {paymentStatus === "success" && "Payment Successful"}
-              {paymentStatus === "error" && "Payment Failed"}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-6 flex flex-col items-center justify-center space-y-4">
-            {(paymentStatus === "processing" || paymentStatus === "verifying") && (
-              <>
-                <div className="flex flex-col items-center space-y-4">
-                  <Loader2 className="h-16 w-16 animate-spin text-purple-600" />
-                  <p className="text-center text-lg">
-                    {paymentStatus === "processing" ? "Redirecting to payment gateway..." : "Verifying your payment..."}
-                  </p>
-                  {transactionRef && (
-                    <p className="text-sm text-gray-500">Reference: {transactionRef}</p>
-                  )}
-                </div>
-              </>
-            )}
-            
-            {paymentStatus === "success" && (
-              <>
-                <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                  <Check className="h-8 w-8 text-green-600" />
-                </div>
-                <h3 className="text-xl font-semibold">Payment Successful!</h3>
-                <p className="text-center text-gray-500 max-w-md">
-                  Your plan has been upgraded successfully. You now have access to additional features and credits.
-                </p>
-              </>
-            )}
-            
-            {paymentStatus === "error" && (
-              <>
-                <div className="h-16 w-16 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
-                  <X className="h-8 w-8 text-red-600" />
-                </div>
-                <h3 className="text-xl font-semibold">Payment Failed</h3>
-                <Alert variant="destructive" className="mt-2">
-                  <AlertDescription>{paymentError || "There was an error processing your payment. Please try again or contact support."}</AlertDescription>
-                </Alert>
-              </>
-            )}
-          </div>
-          
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            {paymentStatus === "success" && (
-              <Button onClick={closePaymentDialog}>Continue</Button>
-            )}
-            {paymentStatus === "error" && (
-              <>
-                <Button variant="outline" onClick={closePaymentDialog}>Close</Button>
-                <Button 
-                  className="gap-2" 
-                  onClick={retryPayment} 
-                  disabled={paymentAttempts >= 3}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Retry Payment
-                </Button>
-              </>
-            )}
-            {paymentStatus === "processing" && (
-              <Button variant="outline" onClick={closePaymentDialog}>Cancel</Button>
-            )}
-            {paymentStatus === "verifying" && (
-              <Button disabled={isVerifying} variant="outline" onClick={closePaymentDialog}>
-                {isVerifying ? "Verifying..." : "Close"}
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       
       <footer className="bg-gray-900 text-gray-300 py-12 mt-20">
         <div className="container mx-auto px-4">
