@@ -10,32 +10,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
-  const { user, credits } = useAuth();
+  const { user, credits, refreshCredits } = useAuth();
   const [plan, setPlan] = useState("free");
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
-  const refreshCredits = async () => {
+  const handleRefreshCredits = async () => {
     if (!user) return;
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-user-credits', {
-        body: { userId: user.id }
+      await refreshCredits();
+      toast({
+        title: "Success",
+        description: "Credits refreshed successfully",
       });
-      
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to refresh credits",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Credits refreshed successfully",
-        });
-      }
     } catch (error) {
       console.error("Error refreshing credits:", error);
       toast({
@@ -96,6 +85,8 @@ const Profile = () => {
           console.log('Profile updated in page:', payload);
           if (payload.new && payload.new.subscription_plan) {
             setPlan(payload.new.subscription_plan);
+            // Also refresh credits when plan changes
+            refreshCredits();
             toast({
               title: "Subscription Updated",
               description: `Your plan has been updated to ${payload.new.subscription_plan}`,
@@ -105,10 +96,35 @@ const Profile = () => {
       )
       .subscribe();
     
+    // Also setup a subscription to user_credits changes
+    const creditsChannel = supabase
+      .channel('profile-user-credits-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_credits',
+          filter: `user_id=eq.${user?.id}`
+        },
+        (payload) => {
+          console.log('User credits updated in profile page:', payload);
+          // Refresh credits when they change
+          refreshCredits();
+        }
+      )
+      .subscribe();
+    
+    // Refresh credits on page load
+    if (user) {
+      refreshCredits();
+    }
+    
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(creditsChannel);
     };
-  }, [user, toast]);
+  }, [user, toast, refreshCredits]);
 
   const getPlanDetails = () => {
     switch (plan) {
@@ -203,10 +219,10 @@ const Profile = () => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={refreshCredits}
+                  onClick={handleRefreshCredits}
                   disabled={isLoading}
                 >
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                   Refresh Credits
                 </Button>
               </div>

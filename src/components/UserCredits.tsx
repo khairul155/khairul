@@ -121,6 +121,11 @@ const UserCredits = () => {
       )
       .subscribe();
     
+    // Do an initial refresh of credits
+    if (user) {
+      authRefreshCredits();
+    }
+    
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(creditsChannel);
