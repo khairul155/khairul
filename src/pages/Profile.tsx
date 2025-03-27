@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { User, Settings, History, CreditCard, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
   const { user, credits } = useAuth();
   const [subscription, setSubscription] = useState('free');
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -31,6 +33,7 @@ const Profile = () => {
         }
         
         if (data) {
+          console.log("Profile subscription data:", data);
           setSubscription(data.subscription_plan);
         }
       } catch (error) {
@@ -41,7 +44,43 @@ const Profile = () => {
     };
 
     fetchUserProfile();
-  }, [user]);
+    
+    // Set up real-time subscription for plan changes
+    if (user) {
+      console.log("Setting up realtime subscription in Profile for user", user.id);
+      const channel = supabase
+        .channel('profile-subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen for all events
+            schema: 'public',
+            table: 'user_credits',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Subscription updated in Profile:', payload);
+            if (payload.new && payload.new.subscription_plan) {
+              const newPlan = payload.new.subscription_plan;
+              if (newPlan !== subscription) {
+                setSubscription(newPlan);
+                toast({
+                  title: "Subscription Updated",
+                  description: `Your plan has been updated to ${newPlan.charAt(0).toUpperCase() + newPlan.slice(1)}`,
+                });
+              }
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log("Profile subscription status:", status);
+        });
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user, toast, subscription]);
 
   const getSubscriptionName = (plan) => {
     const names = {
