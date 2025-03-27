@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      console.log("Deducting credits for user:", user.id);
+      console.log("Deducting credits for user:", user.id, "amount:", amount);
       const { data, error } = await supabase.functions.invoke('get-user-credits', {
         body: { userId: user.id, action: "deduct", amount: amount }
       });

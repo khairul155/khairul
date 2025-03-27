@@ -75,6 +75,8 @@ serve(async (req) => {
             subscription_plan: 'free',
             daily_credits: 60,
             credits_used_today: 0,
+            monthly_credits: 0,
+            credits_used_this_month: 0,
             last_reset_date: today
           }]);
         
@@ -112,6 +114,8 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
+      
+      console.log("Retrieved user data:", userData);
       
       // Handle based on subscription plan
       if (userData.subscription_plan === 'free') {
@@ -264,7 +268,9 @@ serve(async (req) => {
           user_id: userId, 
           subscription_plan: 'free',
           daily_credits: 60,
+          monthly_credits: 0,
           credits_used_today: 0,
+          credits_used_this_month: 0,
           last_reset_date: today
         }]);
       

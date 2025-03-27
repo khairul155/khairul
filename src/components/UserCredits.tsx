@@ -37,7 +37,7 @@ const UserCredits = () => {
           .from('user_credits')
           .select('subscription_plan, daily_credits, monthly_credits, credits_used_today, credits_used_this_month')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error("Error fetching user subscription:", error);
@@ -51,10 +51,14 @@ const UserCredits = () => {
           // Update displayed credits based on subscription plan
           if (data.subscription_plan !== 'free') {
             // For paid plans, calculate available monthly credits
-            setDisplayCredits(data.monthly_credits - data.credits_used_this_month);
+            const availableCredits = data.monthly_credits - data.credits_used_this_month;
+            console.log("Calculated monthly credits:", availableCredits);
+            setDisplayCredits(availableCredits);
           } else {
             // For free plan, calculate available daily credits
-            setDisplayCredits(data.daily_credits - data.credits_used_today);
+            const availableCredits = data.daily_credits - data.credits_used_today;
+            console.log("Calculated daily credits:", availableCredits);
+            setDisplayCredits(availableCredits);
           }
         }
       } catch (error) {
@@ -94,10 +98,14 @@ const UserCredits = () => {
                   description: `Your plan has been updated to ${newData.subscription_plan.charAt(0).toUpperCase() + newData.subscription_plan.slice(1)}`,
                 });
                 // For paid plans, calculate available monthly credits
-                setDisplayCredits(newData.monthly_credits - newData.credits_used_this_month);
+                const availableCredits = newData.monthly_credits - newData.credits_used_this_month;
+                console.log("Updated monthly credits:", availableCredits);
+                setDisplayCredits(availableCredits);
               } else {
                 // For free plan, calculate available daily credits
-                setDisplayCredits(newData.daily_credits - newData.credits_used_today);
+                const availableCredits = newData.daily_credits - newData.credits_used_today;
+                console.log("Updated daily credits:", availableCredits);
+                setDisplayCredits(availableCredits);
               }
             }
           }

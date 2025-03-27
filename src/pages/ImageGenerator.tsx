@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,6 +55,7 @@ const ImageGenerator = () => {
       return;
     }
 
+    // Validate that the user has credits available
     if (credits <= 0) {
       toast({
         title: "No credits available",
@@ -82,16 +82,13 @@ const ImageGenerator = () => {
       if (!deductResult.success) {
         clearInterval(progressInterval);
         setIsLoading(false);
-        toast({
-          title: "Credit Deduction Failed",
-          description: deductResult.message || "Could not deduct credits. Please try again.",
-          variant: "destructive",
-        });
+        // Toast is already handled in the deductCredits function
         return;
       }
 
       const seedToUse = generationSettings.useSeed ? generationSettings.seed : -1;
       
+      // Proceed with image generation only if credit deduction was successful
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt,
