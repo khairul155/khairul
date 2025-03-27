@@ -116,15 +116,27 @@ serve(async (req) => {
         if (insertError) {
           console.error("Error creating user credits:", insertError.message);
           
-          // Return a response with credits based on plan even if the insert fails
-          return new Response(
-            JSON.stringify({ 
-              credits: dailyCredits - 4,
-              deducted: 4,
-              status: 'success'
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          // Try direct SQL insertion if the insert fails
+          const { error: sqlInsertError } = await supabaseClient.query(`
+            INSERT INTO public.user_credits 
+              (user_id, subscription_plan, daily_credits, credits_used_today, last_reset_date)
+            VALUES 
+              ('${userId}', '${userPlan}', ${dailyCredits}, 0, '${today}')
+            ON CONFLICT (user_id) DO NOTHING
+          `);
+          
+          if (sqlInsertError) {
+            console.error("Error with direct SQL insert:", sqlInsertError.message);
+            // Return a response with credits based on plan even if the insert fails
+            return new Response(
+              JSON.stringify({ 
+                credits: dailyCredits - 4,
+                deducted: 4,
+                status: 'success'
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
         }
       } else {
         // Update user's daily credits if their plan has changed
@@ -209,15 +221,26 @@ serve(async (req) => {
       if (updateError) {
         console.error("Error updating credits:", updateError.message);
         
-        // Return a fallback response
-        return new Response(
-          JSON.stringify({ 
-            credits: userData.daily_credits - (userData.credits_used_today + 4),
-            deducted: 4,
-            status: 'success'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        // Try with direct SQL if the update fails
+        const { error: sqlUpdateError } = await supabaseClient.query(`
+          UPDATE public.user_credits 
+          SET credits_used_today = ${userData.credits_used_today + 4},
+              updated_at = now()
+          WHERE user_id = '${userId}'
+        `);
+        
+        if (sqlUpdateError) {
+          console.error("Error with direct SQL update:", sqlUpdateError.message);
+          // Return a fallback response
+          return new Response(
+            JSON.stringify({ 
+              credits: userData.daily_credits - (userData.credits_used_today + 4),
+              deducted: 4,
+              status: 'success'
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
       
       // Return updated credits
@@ -248,18 +271,18 @@ serve(async (req) => {
       }
       
       console.log(`User ${userId} not found in user_credits or there was an error, creating new entry`);
-      const { error: insertError } = await supabaseClient
-        .from('user_credits')
-        .insert([{ 
-          user_id: userId, 
-          subscription_plan: userPlan,
-          daily_credits: dailyCredits,
-          credits_used_today: 0,
-          last_reset_date: today
-        }]);
       
-      if (insertError) {
-        console.error("Error creating user credits:", insertError.message);
+      // Try direct SQL insertion
+      const { error: sqlInsertError } = await supabaseClient.query(`
+        INSERT INTO public.user_credits 
+          (user_id, subscription_plan, daily_credits, credits_used_today, last_reset_date)
+        VALUES 
+          ('${userId}', '${userPlan}', ${dailyCredits}, 0, '${today}')
+        ON CONFLICT (user_id) DO NOTHING
+      `);
+      
+      if (sqlInsertError) {
+        console.error("Error with direct SQL insert:", sqlInsertError.message);
       } else {
         // Fetch the newly created record
         const { data: newData, error: fetchError } = await supabaseClient
@@ -303,6 +326,22 @@ serve(async (req) => {
           
         if (updateError) {
           console.error("Error updating user plan:", updateError.message);
+          
+          // Try with direct SQL if the update fails
+          const { error: sqlUpdateError } = await supabaseClient.query(`
+            UPDATE public.user_credits 
+            SET subscription_plan = '${userPlan}',
+                daily_credits = ${dailyCredits},
+                updated_at = now()
+            WHERE user_id = '${userId}'
+          `);
+          
+          if (sqlUpdateError) {
+            console.error("Error with direct SQL update:", sqlUpdateError.message);
+          } else {
+            userData.subscription_plan = userPlan;
+            userData.daily_credits = dailyCredits;
+          }
         } else {
           userData.subscription_plan = userPlan;
           userData.daily_credits = dailyCredits;
@@ -324,6 +363,21 @@ serve(async (req) => {
       
       if (resetError) {
         console.error("Error resetting credits:", resetError.message);
+        
+        // Try with direct SQL if the update fails
+        const { error: sqlResetError } = await supabaseClient.query(`
+          UPDATE public.user_credits 
+          SET credits_used_today = 0,
+              last_reset_date = '${today}',
+              updated_at = now()
+          WHERE user_id = '${userId}'
+        `);
+        
+        if (sqlResetError) {
+          console.error("Error with direct SQL reset:", sqlResetError.message);
+        } else {
+          userData.credits_used_today = 0;
+        }
       } else {
         userData.credits_used_today = 0;
       }

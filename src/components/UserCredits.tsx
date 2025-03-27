@@ -102,8 +102,28 @@ const UserCredits = () => {
       )
       .subscribe();
     
+    // Also set up a subscription to user_credits changes to update credits in real-time
+    const creditsChannel = supabase
+      .channel('user-credits-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_credits',
+          filter: `user_id=eq.${user?.id}`
+        },
+        (payload) => {
+          console.log('User credits updated:', payload);
+          // Refresh credits when changes are detected
+          authRefreshCredits();
+        }
+      )
+      .subscribe();
+    
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(creditsChannel);
     };
   }, [user, toast, authRefreshCredits]);
   
