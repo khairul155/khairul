@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
@@ -8,6 +7,11 @@ import { User, Settings, History, CreditCard, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+// Define an interface for the payload data structure
+interface UserSubscriptionData {
+  subscription_plan: string;
+}
 
 const Profile = () => {
   const { user, credits } = useAuth();
@@ -60,13 +64,14 @@ const Profile = () => {
           },
           (payload) => {
             console.log('Subscription updated in Profile:', payload);
-            if (payload.new && payload.new.subscription_plan) {
-              const newPlan = payload.new.subscription_plan;
-              if (newPlan !== subscription) {
-                setSubscription(newPlan);
+            // Properly type the payload.new to avoid TypeScript errors
+            if (payload.new) {
+              const newData = payload.new as UserSubscriptionData;
+              if (newData.subscription_plan && newData.subscription_plan !== subscription) {
+                setSubscription(newData.subscription_plan);
                 toast({
                   title: "Subscription Updated",
-                  description: `Your plan has been updated to ${newPlan.charAt(0).toUpperCase() + newPlan.slice(1)}`,
+                  description: `Your plan has been updated to ${newData.subscription_plan.charAt(0).toUpperCase() + newData.subscription_plan.slice(1)}`,
                 });
               }
             }

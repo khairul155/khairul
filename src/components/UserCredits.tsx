@@ -6,6 +6,13 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Define an interface for the payload data structure
+interface UserCreditsData {
+  subscription_plan: string;
+  daily_credits: number;
+  monthly_credits: number;
+}
+
 const UserCredits = () => {
   const { credits, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -72,8 +79,9 @@ const UserCredits = () => {
           },
           (payload) => {
             console.log('Subscription changed in UserCredits:', payload);
+            // Properly type the payload.new to avoid TypeScript errors
             if (payload.new) {
-              const newData = payload.new;
+              const newData = payload.new as UserCreditsData;
               setSubscription(newData.subscription_plan);
               
               // Update displayed credits based on new subscription plan
