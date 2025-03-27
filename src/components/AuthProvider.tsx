@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
@@ -13,6 +14,7 @@ type AuthContextType = {
     message?: string;
     remaining?: number;
   }>;
+  refreshCredits: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     success: boolean;
@@ -47,6 +49,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error("Error fetching user credits:", error);
+        toast({
+          title: "Error",
+          description: "Could not fetch credit information",
+          variant: "destructive",
+        });
         return;
       }
       
@@ -77,7 +84,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("Error invoking get-user-credits function:", error);
+      toast({
+        title: "Error",
+        description: "Could not fetch credit information",
+        variant: "destructive",
+      });
       setCredits(60); // Default fallback
+    }
+  };
+
+  // Function to refresh credits
+  const refreshCredits = async () => {
+    if (!user) {
+      return;
+    }
+
+    try {
+      console.log("Refreshing credits for user:", user.id);
+      const { data, error } = await supabase.functions.invoke('get-user-credits', {
+        body: { userId: user.id }
+      });
+
+      if (error) {
+        console.error("Error refreshing credits:", error);
+        toast({
+          title: "Error",
+          description: "Failed to refresh credits",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("Refreshed credits data:", data);
+      
+      if (data && typeof data.credits === 'number') {
+        setCredits(data.credits);
+      }
+    } catch (error) {
+      console.error("Exception refreshing credits:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh credits",
+        variant: "destructive",
+      });
     }
   };
 
@@ -309,6 +358,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         credits,
         deductCredits,
+        refreshCredits,
         signIn,
         signUp,
         signInWithGoogle,
