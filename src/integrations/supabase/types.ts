@@ -14,7 +14,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           id: string
-          subscription_plan: string | null
+          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
           updated_at: string
           username: string | null
         }
@@ -22,7 +22,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id: string
-          subscription_plan?: string | null
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           updated_at?: string
           username?: string | null
         }
@@ -30,51 +30,9 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id?: string
-          subscription_plan?: string | null
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
           updated_at?: string
           username?: string | null
-        }
-        Relationships: []
-      }
-      user_credits: {
-        Row: {
-          created_at: string
-          credits_used_this_month: number
-          credits_used_today: number
-          daily_credits: number
-          id: number
-          last_reset_date: string
-          monthly_credits: number
-          next_reset_date: string | null
-          subscription_plan: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          credits_used_this_month?: number
-          credits_used_today?: number
-          daily_credits?: number
-          id?: number
-          last_reset_date?: string
-          monthly_credits?: number
-          next_reset_date?: string | null
-          subscription_plan?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          credits_used_this_month?: number
-          credits_used_today?: number
-          daily_credits?: number
-          id?: number
-          last_reset_date?: string
-          monthly_credits?: number
-          next_reset_date?: string | null
-          subscription_plan?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -83,60 +41,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      deduct_user_credits: {
-        Args: {
-          user_id: string
-          amount?: number
-        }
-        Returns: Json
-      }
-      get_user_credits: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      reset_daily_credits: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      reset_monthly_credits: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      update_user_subscription:
-        | {
-            Args: {
-              _user_id: string
-              _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              _user_id: string
-              _subscription_plan: string
-            }
-            Returns: undefined
-          }
-      update_user_subscription_with_payment: {
-        Args: {
-          _user_id: string
-          _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
-          _payment_id?: string
-          _prorated_credits?: number
-        }
-        Returns: undefined
-      }
-      use_tool: {
-        Args: {
-          _user_id: string
-          _tool_name: string
-          _credits?: number
-        }
-        Returns: Json
-      }
+      [_ in never]: never
     }
     Enums: {
-      subscription_plan: "free" | "pro" | "basic" | "advanced"
+      subscription_plan: "free" | "pro"
     }
     CompositeTypes: {
       [_ in never]: never
