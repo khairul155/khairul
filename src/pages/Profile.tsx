@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
@@ -24,6 +23,11 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [displayCredits, setDisplayCredits] = useState(credits);
   const { toast } = useToast();
+
+  // Update displayed credits when AuthProvider credits change
+  useEffect(() => {
+    setDisplayCredits(credits);
+  }, [credits]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -62,7 +66,7 @@ const Profile = () => {
 
     fetchUserProfile();
     
-    // Set up real-time subscription for plan changes
+    // Set up real-time subscription for credits changes
     if (user) {
       console.log("Setting up realtime subscription in Profile for user", user.id);
       const channel = supabase
@@ -76,36 +80,29 @@ const Profile = () => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('Subscription updated in Profile:', payload);
+            console.log('Credits updated in Profile:', payload);
+            
             // Properly type the payload.new to avoid TypeScript errors
             if (payload.new) {
               const newData = payload.new as UserSubscriptionData;
-              if (newData.subscription_plan && newData.subscription_plan !== subscription) {
-                setSubscription(newData.subscription_plan);
-                toast({
-                  title: "Subscription Updated",
-                  description: `Your plan has been updated to ${newData.subscription_plan.charAt(0).toUpperCase() + newData.subscription_plan.slice(1)}`,
-                });
-                
-                // Update displayed credits based on plan
-                if (newData.subscription_plan !== 'free') {
-                  setDisplayCredits(newData.monthly_credits - newData.credits_used_this_month);
-                } else {
-                  setDisplayCredits(newData.daily_credits - newData.credits_used_today);
-                }
+              setSubscription(newData.subscription_plan);
+              
+              // Update displayed credits based on plan
+              if (newData.subscription_plan !== 'free') {
+                setDisplayCredits(newData.monthly_credits - newData.credits_used_this_month);
+              } else {
+                setDisplayCredits(newData.daily_credits - newData.credits_used_today);
               }
             }
           }
         )
-        .subscribe((status) => {
-          console.log("Profile subscription status:", status);
-        });
+        .subscribe();
         
       return () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user, toast, subscription]);
+  }, [user, credits]);
 
   const getSubscriptionName = (plan) => {
     const names = {

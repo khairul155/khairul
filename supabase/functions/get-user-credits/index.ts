@@ -28,261 +28,103 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-
-    // Enable realtime for user_credits table
-    const { error: realtimeError } = await supabaseClient.rpc(
-      'supabase_realtime.enable_subscription',
-      { table: 'user_credits', publication: 'postgres_changes', claims: { client_id: 'all' } }
-    );
-
-    if (realtimeError) {
-      console.error("Error enabling realtime:", realtimeError.message);
-    } else {
-      console.log("Realtime enabled for user_credits table");
-    }
-
-    // Get the current date in UTC+6 (Bangladesh Standard Time)
-    const now = new Date();
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const bstTime = new Date(utcTime + (6 * 60 * 60 * 1000));
-    const today = bstTime.toISOString().split('T')[0]; // Format as YYYY-MM-DD
     
-    // If action is "deduct", deduct credits for image generation
+    console.log(`Request: userId=${userId}, action=${action}, amount=${amount}`);
+
+    // If action is "deduct", use our new deduct_user_credits function
     if (action === "deduct") {
-      console.log(`Attempting to deduct ${amount} credits for user: ${userId}`);
+      console.log(`Deducting ${amount} credits for user: ${userId}`);
       
-      // First check if user exists in user_credits table
-      const { data: userExists, error: checkError } = await supabaseClient
-        .from('user_credits')
-        .select('user_id')
-        .eq('user_id', userId);
+      const { data: deductResult, error: deductError } = await supabaseClient.rpc(
+        'deduct_user_credits',
+        { 
+          user_id: userId,
+          amount: amount
+        }
+      );
       
-      if (checkError) {
-        console.error("Error checking if user exists:", checkError.message);
+      if (deductError) {
+        console.error("Error deducting credits:", deductError);
         return new Response(
-          JSON.stringify({ error: 'Failed to check user credits', details: checkError.message }),
+          JSON.stringify({ error: 'Failed to deduct credits', details: deductError.message }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
       
-      // If user doesn't exist in user_credits table, create entry
-      if (!userExists || userExists.length === 0) {
-        console.log(`User ${userId} not found in user_credits, creating new entry`);
-        const { error: insertError } = await supabaseClient
-          .from('user_credits')
-          .insert([{ 
-            user_id: userId, 
-            subscription_plan: 'free',
-            daily_credits: 60,
-            credits_used_today: 0,
-            monthly_credits: 0,
-            credits_used_this_month: 0,
-            last_reset_date: today
-          }]);
-        
-        if (insertError) {
-          console.error("Error creating user credits:", insertError.message);
-          return new Response(
-            JSON.stringify({ error: 'Failed to create user credits', details: insertError.message }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-          );
-        }
-      }
+      console.log("Deduction result:", deductResult);
       
-      // Now get current user credits
-      const { data: userData, error: userError } = await supabaseClient
-        .from('user_credits')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      if (userError) {
-        console.error("Error retrieving user credits:", userError.message);
-        return new Response(
-          JSON.stringify({ error: 'Failed to retrieve user credits', details: userError.message }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-      
-      if (!userData) {
-        console.error("User credits not found even after insert attempt");
+      if (!deductResult.success) {
         return new Response(
           JSON.stringify({ 
-            error: 'User credits not found', 
-            details: 'Could not find or create user credits'
+            error: deductResult.message,
+            remaining: deductResult.remaining
           }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
       }
       
-      console.log("Retrieved user data:", userData);
-      
-      // Reset daily credits if needed for free plan
-      if (userData.subscription_plan === 'free' && userData.last_reset_date && userData.last_reset_date < today) {
-        console.log(`Resetting daily credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
-        const { error: resetError } = await supabaseClient
-          .from('user_credits')
-          .update({ 
-            credits_used_today: 0,
-            last_reset_date: today,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId);
-        
-        if (resetError) {
-          console.error("Error resetting credits:", resetError.message);
-          return new Response(
-            JSON.stringify({ error: 'Failed to reset credits', details: resetError.message }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-          );
-        }
-        
-        userData.credits_used_today = 0;
-      }
-      
-      // Handle based on subscription plan
-      if (userData.subscription_plan === 'free') {
-        // For free plan, check daily credits
-        console.log(`Current daily credits for user ${userId}: ${userData.daily_credits - userData.credits_used_today}`);
-        
-        // Check if user has enough daily credits
-        if (userData.credits_used_today + amount > userData.daily_credits) {
-          return new Response(
-            JSON.stringify({ 
-              error: 'Not enough credits', 
-              details: 'You do not have enough credits to generate an image',
-              remaining: userData.daily_credits - userData.credits_used_today
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
-        
-        // Update user credits
-        console.log(`Deducting ${amount} daily credits for free user ${userId}`);
-        const { error: updateError } = await supabaseClient
-          .from('user_credits')
-          .update({ 
-            credits_used_today: userData.credits_used_today + amount,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId);
-        
-        if (updateError) {
-          console.error("Error updating credits:", updateError.message);
-          return new Response(
-            JSON.stringify({ error: 'Failed to update credits', details: updateError.message }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-          );
-        }
-        
-        // Return updated credits
-        return new Response(
-          JSON.stringify({ 
-            credits: userData.daily_credits - (userData.credits_used_today + amount),
-            deducted: amount,
-            status: 'success'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } else {
-        // For paid plans, use monthly credits
-        console.log(`Current monthly credits for user ${userId}: ${userData.monthly_credits - userData.credits_used_this_month}`);
-        
-        // Check if user has enough monthly credits
-        if (userData.credits_used_this_month + amount > userData.monthly_credits) {
-          return new Response(
-            JSON.stringify({ 
-              error: 'Not enough credits', 
-              details: 'You do not have enough monthly credits to generate an image',
-              remaining: userData.monthly_credits - userData.credits_used_this_month
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
-        
-        // Update user credits (deduct from monthly credits)
-        console.log(`Deducting ${amount} monthly credits for paid user ${userId}`);
-        const { error: updateError } = await supabaseClient
-          .from('user_credits')
-          .update({ 
-            credits_used_this_month: userData.credits_used_this_month + amount,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId);
-        
-        if (updateError) {
-          console.error("Error updating monthly credits:", updateError.message);
-          return new Response(
-            JSON.stringify({ error: 'Failed to update credits', details: updateError.message }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-          );
-        }
-        
-        // Return updated credits
-        return new Response(
-          JSON.stringify({ 
-            credits: userData.monthly_credits - (userData.credits_used_this_month + amount),
-            deducted: amount,
-            status: 'success'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    }
-    
-    // If no action or action is "get", just return the current credits
-    console.log(`Getting credits for user ${userId}`);
-    
-    // First check if user exists in user_credits table
-    const { data: userExists, error: checkError } = await supabaseClient
-      .from('user_credits')
-      .select('user_id')
-      .eq('user_id', userId);
-    
-    if (checkError) {
-      console.error("Error checking if user exists:", checkError.message);
+      // Return success with remaining credits
       return new Response(
         JSON.stringify({ 
-          credits: 60,
-          resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
+          credits: deductResult.remaining,
+          deducted: amount,
+          status: 'success'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // For "get" action or no action, get current user credits
+    const { data: userData, error: userError } = await supabaseClient
+      .from('user_credits')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (userError) {
+      console.error("Error fetching user credits:", userError);
+      return new Response(
+        JSON.stringify({ 
+          credits: 60, // Default fallback
           plan: 'free'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // If user doesn't exist in user_credits table, create entry
-    if (!userExists || userExists.length === 0) {
-      console.log(`User ${userId} not found in user_credits, creating new entry`);
-      const { error: insertError } = await supabaseClient
+    // If user not found, create default record
+    if (!userData) {
+      console.log(`User ${userId} not found, creating default credit record`);
+      
+      // Insert new user_credits record
+      const { data: newUser, error: insertError } = await supabaseClient
         .from('user_credits')
-        .insert([{ 
-          user_id: userId, 
+        .insert([{
+          user_id: userId,
           subscription_plan: 'free',
           daily_credits: 60,
-          monthly_credits: 0,
           credits_used_today: 0,
+          monthly_credits: 0,
           credits_used_this_month: 0,
-          last_reset_date: today
-        }]);
+          last_reset_date: new Date().toISOString().split('T')[0]
+        }])
+        .select()
+        .single();
       
       if (insertError) {
-        console.error("Error creating user credits:", insertError.message);
+        console.error("Error creating user credit record:", insertError);
         return new Response(
           JSON.stringify({ 
-            credits: 60,
-            resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
+            credits: 60, // Default fallback
             plan: 'free'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
-      // Return default credits for new user
       return new Response(
         JSON.stringify({ 
           credits: 60,
-          resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
           plan: 'free',
           totalCredits: 60,
           used: 0
@@ -291,52 +133,33 @@ serve(async (req) => {
       );
     }
     
-    // Get user credits
-    const { data: userData, error: userError } = await supabaseClient
-      .from('user_credits')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (userError || !userData) {
-      console.error('Error fetching user credits:', userError?.message || 'No data returned');
-      // If not found, assume they are on the free plan with 60 tokens that reset daily
-      return new Response(
-        JSON.stringify({ 
-          credits: 60,
-          resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
-          plan: 'free'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Reset daily credits if it's a new day for free users
-    if (userData.subscription_plan === 'free' && userData.last_reset_date && userData.last_reset_date < today) {
-      console.log(`Resetting credits for user ${userId} as last reset was on ${userData.last_reset_date}`);
+    // Check if it's a new day for free users and reset if needed
+    const today = new Date().toISOString().split('T')[0];
+    if (userData.subscription_plan === 'free' && userData.last_reset_date < today) {
+      console.log(`Resetting daily credits for user ${userId}`);
+      
       const { error: resetError } = await supabaseClient
         .from('user_credits')
         .update({ 
           credits_used_today: 0,
-          last_reset_date: today,
-          updated_at: new Date().toISOString()
+          last_reset_date: today
         })
         .eq('user_id', userId);
       
       if (resetError) {
-        console.error("Error resetting credits:", resetError.message);
+        console.error("Error resetting daily credits:", resetError);
       } else {
         userData.credits_used_today = 0;
+        userData.last_reset_date = today;
       }
     }
     
-    // Return available credits based on the subscription plan
+    // Return credits based on subscription plan
     if (userData.subscription_plan === 'free') {
-      // For free plan users - return daily credits
+      // Free plan - return daily credits
       return new Response(
         JSON.stringify({ 
           credits: userData.daily_credits - userData.credits_used_today,
-          resetDate: `${today}T00:00:00+06:00`, // Midnight in UTC+6
           plan: userData.subscription_plan,
           totalCredits: userData.daily_credits,
           used: userData.credits_used_today
@@ -344,11 +167,10 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
-      // For paid plan users - return monthly credits
+      // Paid plan - return monthly credits
       return new Response(
         JSON.stringify({ 
           credits: userData.monthly_credits - userData.credits_used_this_month,
-          resetDate: userData.next_reset_date ? `${userData.next_reset_date}T00:00:00+06:00` : null,
           plan: userData.subscription_plan,
           totalCredits: userData.monthly_credits,
           used: userData.credits_used_this_month

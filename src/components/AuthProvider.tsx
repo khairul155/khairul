@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
@@ -200,7 +199,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             table: 'user_credits',
             filter: `user_id=eq.${user.id}`
           },
-          () => {
+          (payload) => {
+            console.log("Credit change detected:", payload);
             // Refetch credits when credits change
             fetchUserCredits(user.id);
           }
@@ -216,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [user?.id]);
 
   const signIn = async (email: string, password: string) => {
     try {
