@@ -3,10 +3,9 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
-import { Wand2, ArrowRight, Sparkles, Image, Zap, Shield, Download, Trophy, Check, ChevronRight, Star, Palette, MessageSquareText, Layers, Clock } from "lucide-react";
+import { Wand2, ArrowRight, Sparkles, Image, Zap, Shield, Download, Trophy, Check, ChevronRight, Star, Palette, MessageSquareText, Layers, Clock, Coins } from "lucide-react";
 import TypingEffect from "@/components/TypingEffect";
 import AiToolsSection from "@/components/AiToolsSection";
-
 const LandingPage = () => {
   const {
     user
@@ -57,6 +56,12 @@ const LandingPage = () => {
                   AI Image Generator <Wand2 className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
+              
+              <Button variant="outline" size="lg" className="w-full sm:w-auto border-purple-500 text-purple-400 hover:bg-purple-950" asChild>
+                <Link to="/pricing">
+                  View Pricing <Coins className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
             </div>
           </div>
           
@@ -91,7 +96,7 @@ const LandingPage = () => {
       </section>
 
       {/* Tools Section */}
-      <section ref={toolsRef} className="py-20 bg-gray-900">
+      <section ref={toolsRef} className="px-0 py-0 my-0 mx-0 bg-gray-800">
         <AiToolsSection />
       </section>
 
@@ -116,7 +121,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Section - Updated with pricing link */}
       <section className="py-20 bg-gradient-to-r from-blue-900 to-purple-900">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-6 text-white">Ready to Transform Your Creative Process?</h2>
@@ -128,6 +133,12 @@ const LandingPage = () => {
             <Button size="lg" className="bg-white text-purple-900 hover:bg-gray-100" asChild>
               <Link to="/image-generator">
                 Start Creating <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+            
+            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white/10" asChild>
+              <Link to="/pricing">
+                View Plans <Coins className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             
@@ -169,7 +180,7 @@ const LandingPage = () => {
                 <h4 className="text-lg font-semibold text-white mb-4">Company</h4>
                 <ul className="space-y-2">
                   <li><a href="#" className="hover:text-blue-400 transition-colors">About Us</a></li>
-                  <li><a href="#" className="hover:text-blue-400 transition-colors">Blog</a></li>
+                  <li><Link to="/pricing" className="hover:text-blue-400 transition-colors">Pricing</Link></li>
                   <li><a href="#" className="hover:text-blue-400 transition-colors">Contact</a></li>
                 </ul>
               </div>

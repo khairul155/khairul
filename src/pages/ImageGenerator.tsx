@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +20,7 @@ const ImageGenerator = () => {
   const [generationTime, setGenerationTime] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, deductCredits } = useAuth();
   const navigate = useNavigate();
   
   // Generation settings with updated default steps for fast mode
@@ -53,6 +52,19 @@ const ImageGenerator = () => {
         description: "Please sign in to generate images",
       });
       navigate("/auth");
+      return;
+    }
+
+    // Deduct credits before generating image
+    const deductResult = await deductCredits(4);
+    console.log("Deduct result:", deductResult);
+    
+    if (!deductResult.success) {
+      toast({
+        title: "Credit Deduction Failed",
+        description: deductResult.message || "Could not deduct credits. Please try again.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -90,6 +102,11 @@ const ImageGenerator = () => {
       // Handle multiple images if the API supports it
       const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
       setGeneratedImages(images);
+      
+      toast({
+        title: "Image Generated",
+        description: `Used 4 credits. You have ${deductResult.remaining} credits remaining.`,
+      });
       
     } catch (error) {
       console.error('Error generating image:', error);
