@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import { Wand2, ArrowRight, Sparkles, Image, Zap, Shield, Download, Trophy, Check, ChevronRight, Star, Palette, MessageSquareText, Layers, Clock } from "lucide-react";
 import TypingEffect from "@/components/TypingEffect";
 import AiToolsSection from "@/components/AiToolsSection";
+
 const LandingPage = () => {
   const {
     user
@@ -90,7 +91,7 @@ const LandingPage = () => {
       </section>
 
       {/* Tools Section */}
-      <section ref={toolsRef} className="px-0 py-0 my-0 mx-0 bg-gray-800">
+      <section ref={toolsRef} className="py-20 bg-gray-900">
         <AiToolsSection />
       </section>
 
