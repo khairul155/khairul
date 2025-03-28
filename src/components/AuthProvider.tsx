@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Function to deduct credits
+  // Function to deduct credits - Updated for better error handling and direct database call
   const deductCredits = async (amount = 4) => {
     if (!user) {
       return { success: false, message: "User not authenticated" };
@@ -74,8 +74,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       console.log("Deducting credits for user:", user.id, "amount:", amount);
-      const { data, error } = await supabase.functions.invoke('get-user-credits', {
-        body: { userId: user.id, action: "deduct", amount: amount }
+      
+      // Call the database function to deduct credits
+      const { data, error } = await supabase.rpc('deduct_user_credits', {
+        user_id: user.id,
+        amount: amount
       });
 
       console.log("Deduct response:", data, error);
@@ -93,27 +96,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      if (data && data.error) {
-        console.error("API error deducting credits:", data.error);
+      // If the deduction was unsuccessful
+      if (data && !data.success) {
+        console.error("Not enough credits:", data.message);
         toast({
           title: "Not enough credits",
-          description: data.error || "You don't have enough credits to generate an image.",
+          description: data.message || "You don't have enough credits to generate an image.",
           variant: "destructive",
         });
         return { 
           success: false, 
-          message: data.error 
+          message: data.message,
+          remaining: data.remaining
         };
       }
 
       // Update local state with new credit amount
-      if (data && typeof data.credits === 'number') {
-        console.log("Credits updated to:", data.credits);
-        setCredits(data.credits);
+      if (data && typeof data.remaining === 'number') {
+        console.log("Credits updated to:", data.remaining);
+        setCredits(data.remaining);
         
         return { 
           success: true,
-          remaining: data.credits
+          remaining: data.remaining
         };
       } else {
         // Handle unexpected API response format

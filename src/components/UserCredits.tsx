@@ -70,7 +70,7 @@ const UserCredits = () => {
 
     fetchUserSubscription();
     
-    // Set up real-time subscription for plan changes
+    // Set up real-time subscription for credit changes
     if (user) {
       console.log("Setting up realtime subscription for user", user.id);
       const channel = supabase
@@ -84,7 +84,7 @@ const UserCredits = () => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('Subscription changed in UserCredits:', payload);
+            console.log('Credits changed in UserCredits:', payload);
             // Properly type the payload.new to avoid TypeScript errors
             const newData = payload.new as UserCreditsData;
             
