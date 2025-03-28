@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon, Sparkles } from "lucide-react";
+import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon, Sparkles, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ImageGrid from "@/components/ImageGrid";
 import { Link, useNavigate } from "react-router-dom";
 import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
 import { useAuth } from "@/components/AuthProvider";
 import TypingEffect from "@/components/TypingEffect";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
@@ -19,9 +20,11 @@ const ImageGenerator = () => {
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generationTime, setGenerationTime] = useState<string>("");
+  const [notEnoughCredits, setNotEnoughCredits] = useState(false);
+  const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, deductCredits } = useAuth();
   const navigate = useNavigate();
   
   // Generation settings with updated default steps for fast mode
@@ -35,6 +38,26 @@ const ImageGenerator = () => {
     seed: -1, // Add seed with default value of -1 (random)
     useSeed: false // Add flag to track if seed should be used
   });
+
+  useEffect(() => {
+    if (user) {
+      fetchUserCredits();
+    }
+  }, [user]);
+
+  const fetchUserCredits = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_user_credits');
+      
+      if (error) throw error;
+      
+      if (data) {
+        setRemainingCredits(data.remaining_credits);
+      }
+    } catch (error) {
+      console.error('Error fetching user credits:', error);
+    }
+  };
 
   const generateImage = async () => {
     if (!prompt.trim()) {
@@ -56,8 +79,30 @@ const ImageGenerator = () => {
       return;
     }
 
+    // Calculate credits required - typically 4 for a standard image
+    const creditsRequired = 4;
+    
+    // Deduct credits first
+    const deductResult = await deductCredits(creditsRequired);
+    
+    if (!deductResult.success) {
+      setNotEnoughCredits(true);
+      setRemainingCredits(deductResult.remaining || 0);
+      
+      // Show toast
+      toast({
+        title: "Not enough credits",
+        description: deductResult.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Credits successfully deducted, continue with image generation
     setIsLoading(true);
     setProgress(0);
+    setNotEnoughCredits(false);
+    
     const progressInterval = setInterval(() => {
       setProgress((prev) => Math.min(prev + 5, 90));
     }, 400);
@@ -90,6 +135,9 @@ const ImageGenerator = () => {
       // Handle multiple images if the API supports it
       const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
       setGeneratedImages(images);
+      
+      // Update credit count after generation
+      fetchUserCredits();
       
     } catch (error) {
       console.error('Error generating image:', error);
@@ -169,13 +217,19 @@ const ImageGenerator = () => {
         
         <div className="flex items-center">
           <h1 className="text-xl font-bold text-[#FFA725] flex items-center">
-            <Sparkles className="w-5 h-5 mr-1.5 text-[#FFA725]" /> {/* Changed icon to Sparkles */}
+            <Sparkles className="w-5 h-5 mr-1.5 text-[#FFA725]" /> 
             PixcraftAI
           </h1>
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Space for balance */}
+          {user && remainingCredits !== null && (
+            <div className="text-sm text-gray-300">
+              <Link to="/profile" className="hover:text-white transition-colors">
+                {remainingCredits} credits left
+              </Link>
+            </div>
+          )}
         </div>
       </div>
       
@@ -190,7 +244,26 @@ const ImageGenerator = () => {
         <div className="flex-1 flex flex-col h-[calc(100vh-73px)]">
           {/* Main Content Area (expanded to take most space) */}
           <div className="flex-1 p-6 flex items-center justify-center overflow-hidden">
-            {generatedImages.length > 0 && !isLoading ? (
+            {notEnoughCredits ? (
+              <div className="max-w-md mx-auto">
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-5 w-5" />
+                  <AlertTitle>Not enough credits</AlertTitle>
+                  <AlertDescription>
+                    You need 4 credits to generate an image. You currently have {remainingCredits} credits left.
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="flex flex-col items-center gap-4">
+                  <p className="text-center text-gray-400">
+                    Visit the pricing page to upgrade your account and get more credits.
+                  </p>
+                  <Button asChild>
+                    <Link to="/pricing">View Pricing Plans</Link>
+                  </Button>
+                </div>
+              </div>
+            ) : generatedImages.length > 0 && !isLoading ? (
               <div className="w-full max-w-5xl mx-auto animate-fade-in">
                 <ImageGrid 
                   images={generatedImages} 
@@ -217,7 +290,7 @@ const ImageGenerator = () => {
                   </div>
                   <h2 className="text-2xl font-bold">PixCraftAI Provides You Only One Best Result.✨</h2>
                   <p className="text-gray-400">
-                    Try Now!
+                    Each image generation uses 4 credits. {user && remainingCredits !== null && `You have ${remainingCredits} credits left.`}
                   </p>
                 </div>
               </div>

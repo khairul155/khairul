@@ -3,6 +3,15 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
+import { Json } from "@/integrations/supabase/types";
+
+// Define the type for the response from deduct_user_credits
+interface DeductCreditsResponse {
+  success: boolean;
+  message: string;
+  remaining: number;
+  amount?: number;
+}
 
 type AuthContextType = {
   user: User | null;
@@ -21,6 +30,11 @@ type AuthContextType = {
     success: boolean;
   }>;
   signOut: () => Promise<void>;
+  deductCredits: (amount?: number) => Promise<{
+    success: boolean;
+    message: string;
+    remaining?: number;
+  }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -140,6 +154,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const deductCredits = async (amount: number = 4) => {
+    if (!user) {
+      return {
+        success: false,
+        message: "User not authenticated"
+      };
+    }
+
+    try {
+      const { data, error } = await supabase.rpc<DeductCreditsResponse>(
+        'deduct_user_credits',
+        { user_id: user.id, amount }
+      );
+
+      if (error) {
+        console.error("Error deducting credits:", error);
+        toast({
+          title: "Error",
+          description: "Failed to deduct credits. Please try again.",
+          variant: "destructive",
+        });
+        return { success: false, message: error.message };
+      }
+
+      if (!data.success) {
+        toast({
+          title: "Not enough credits",
+          description: data.message,
+          variant: "destructive",
+        });
+        return { 
+          success: false, 
+          message: data.message,
+          remaining: data.remaining 
+        };
+      }
+
+      // Successful deduction
+      console.log("Credits deducted successfully:", data);
+      return { 
+        success: true, 
+        message: "Credits deducted successfully",
+        remaining: data.remaining
+      };
+    } catch (error) {
+      console.error("Exception deducting credits:", error);
+      return {
+        success: false,
+        message: "An unexpected error occurred"
+      };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -150,6 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signInWithGoogle,
         signOut,
+        deductCredits
       }}
     >
       {children}
