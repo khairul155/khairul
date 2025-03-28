@@ -1,350 +1,195 @@
-
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon, Sparkles, AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import ImageGrid from "@/components/ImageGrid";
-import { Link, useNavigate } from "react-router-dom";
-import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
+import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import TypingEffect from "@/components/TypingEffect";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Navbar from "@/components/Navbar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "@/components/ui/use-toast";
+import { Copy, Check, Loader2 } from "lucide-react";
+import { useTheme } from "@/components/ThemeProvider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [generationTime, setGenerationTime] = useState<string>("");
-  const [notEnoughCredits, setNotEnoughCredits] = useState(false);
-  const [remainingCredits, setRemainingCredits] = useState<number | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { toast } = useToast();
-  const { user, deductCredits } = useAuth();
-  const navigate = useNavigate();
-  
-  // Generation settings with updated default steps for fast mode
-  const [generationSettings, setGenerationSettings] = useState<GenerationSettings>({
-    mode: "fast",
-    steps: 7, // Default for fast mode updated to 7
-    dimensionId: "1:1",
-    width: 832,
-    height: 832,
-    negativePrompt: "",
-    seed: -1, // Add seed with default value of -1 (random)
-    useSeed: false // Add flag to track if seed should be used
-  });
+  const [imageUrl, setImageUrl] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const { theme } = useTheme();
+  const { deductCredits } = useAuth();
+  const [selectedResolution, setSelectedResolution] = useState("512x512");
 
-  useEffect(() => {
-    if (user) {
-      fetchUserCredits();
-    }
-  }, [user]);
+  const resolutionOptions = [
+    { value: "256x256", label: "256x256" },
+    { value: "512x512", label: "512x512" },
+    { value: "1024x1024", label: "1024x1024" },
+  ];
 
-  const fetchUserCredits = async () => {
-    try {
-      const { data, error } = await supabase.rpc('get_user_credits');
-      
-      if (error) throw error;
-      
-      if (data) {
-        setRemainingCredits(data.remaining_credits);
-      }
-    } catch (error) {
-      console.error('Error fetching user credits:', error);
-    }
-  };
+  interface DeductCreditsResult {
+    success: boolean;
+    message: string;
+    remaining?: number;
+  }
 
   const generateImage = async () => {
-    if (!prompt.trim()) {
+    if (!prompt) {
       toast({
         title: "Error",
-        description: "Please enter a prompt first",
+        description: "Please enter a prompt.",
         variant: "destructive",
       });
+      setGenerating(false);
       return;
     }
-
-    // Check if user is authenticated and redirect to auth page if not
-    if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to generate images",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    // Calculate credits required - typically 4 for a standard image
-    const creditsRequired = 4;
-    
-    // Deduct credits first
-    const deductResult = await deductCredits(creditsRequired);
-    
-    if (!deductResult.success) {
-      setNotEnoughCredits(true);
-      setRemainingCredits(deductResult.remaining || 0);
-      
-      // Show toast
-      toast({
-        title: "Not enough credits",
-        description: deductResult.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Credits successfully deducted, continue with image generation
-    setIsLoading(true);
-    setProgress(0);
-    setNotEnoughCredits(false);
-    
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 5, 90));
-    }, 400);
-
-    // Record start time
-    const startTime = new Date();
 
     try {
-      const seedToUse = generationSettings.useSeed ? generationSettings.seed : -1;
-      
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { 
-          prompt,
-          width: generationSettings.width,
-          height: generationSettings.height,
-          negative_prompt: generationSettings.negativePrompt || "",
-          num_images: 1,
-          num_inference_steps: generationSettings.steps,
-          seed: seedToUse
-        }
+      const response = await fetch("/api/image-generation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt: prompt, resolution: selectedResolution }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      // Calculate generation time
-      const endTime = new Date();
-      const timeDiff = (endTime.getTime() - startTime.getTime()) / 1000; // in seconds
-      setGenerationTime(`${timeDiff.toFixed(1)}s`);
-
-      // Handle multiple images if the API supports it
-      const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
-      setGeneratedImages(images);
-      
-      // Update credit count after generation
-      fetchUserCredits();
-      
-    } catch (error) {
-      console.error('Error generating image:', error);
+      const data = await response.json();
+      setImageUrl(data.url);
+    } catch (error: any) {
+      console.error("Error generating image:", error);
       toast({
         title: "Error",
         description: "Failed to generate image. Please try again.",
         variant: "destructive",
       });
-      setGenerationTime("");
     } finally {
-      clearInterval(progressInterval);
-      setProgress(100);
-      setTimeout(() => {
-        setProgress(0);
-        setIsLoading(false);
-      }, 500);
+      setGenerating(false);
     }
   };
 
-  const handleRegenerate = () => {
-    if (prompt) {
-      generateImage();
-    }
+  const copyImageUrl = () => {
+    navigator.clipboard.writeText(imageUrl);
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   };
 
-  // Handle generation settings changes
-  const handleSettingsChange = (settings: Partial<GenerationSettings>) => {
-    setGenerationSettings(prev => ({
-      ...prev,
-      ...settings
-    }));
-  };
-
-  // Handle Enter key press
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      generateImage();
-    }
-  };
-
-  // Get inspiration prompt
-  const getInspiration = async () => {
-    setIsLoadingPrompt(true);
+  const deductCreditsAndGenerate = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-prompt', {
-        body: {}
-      });
-
-      if (error) throw error;
-
-      if (data && data.prompt) {
-        setPrompt(data.prompt);
+      // Attempt to deduct credits first
+      const result = await deductCredits() as DeductCreditsResult;
+      
+      if (result.success) {
+        // Credits successfully deducted, proceed with generation
+        console.log(`Remaining credits: ${result.remaining}`);
+        setGenerating(true);
+        await generateImage();
+      } else {
+        // Not enough credits
+        console.log(`Credit deduction failed: ${result.message}`);
+        toast({
+          title: "Not enough credits",
+          description: `You don't have enough tokens. ${result.message}`,
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Error getting inspiration:', error);
+      console.error("Error in deductCreditsAndGenerate:", error);
       toast({
         title: "Error",
-        description: "Failed to get inspiration. Please try again.",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoadingPrompt(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white flex flex-col">
-      {/* Top Navigation - Simplified to just PixcraftAI */}
-      <div className="border-b border-gray-800 p-4 flex items-center justify-between">
-        <div className="flex items-center">
-          <Link to="/" className="text-gray-300 hover:text-white flex items-center gap-1 transition-colors mr-4">
-            <ChevronLeft className="w-4 h-4" />
-            Back
-          </Link>
-        </div>
-        
-        <div className="flex items-center">
-          <h1 className="text-xl font-bold text-[#FFA725] flex items-center">
-            <Sparkles className="w-5 h-5 mr-1.5 text-[#FFA725]" /> 
-            PixcraftAI
-          </h1>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {user && remainingCredits !== null && (
-            <div className="text-sm text-gray-300">
-              <Link to="/profile" className="hover:text-white transition-colors">
-                {remainingCredits} credits left
-              </Link>
+    <div className="min-h-screen bg-gray-950 text-white">
+      <Navbar />
+      <div className="container mx-auto p-4 pt-28">
+        <h1 className="text-3xl font-bold mb-4">Image Generator</h1>
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-4">
+            <div className="grid gap-4">
+              <Input
+                type="text"
+                placeholder="Enter your prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="bg-gray-700 text-white border-gray-600 focus-ring-blue-500"
+              />
+              <Select value={selectedResolution} onValueChange={setSelectedResolution}>
+                <SelectTrigger className="bg-gray-700 text-white border-gray-600">
+                  <SelectValue placeholder="Select a resolution" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 text-white border-gray-700">
+                  {resolutionOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                className="bg-blue-500 text-white hover:bg-blue-600"
+                onClick={deductCreditsAndGenerate}
+                disabled={generating}
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate Image"
+                )}
+              </Button>
             </div>
-          )}
-        </div>
-      </div>
-      
-      <div className="flex flex-1">
-        {/* Left Sidebar */}
-        <GenerationSidebar 
-          settings={generationSettings}
-          onSettingsChange={handleSettingsChange}
-        />
+          </CardContent>
+        </Card>
 
-        {/* Main Content and Footer Structure */}
-        <div className="flex-1 flex flex-col h-[calc(100vh-73px)]">
-          {/* Main Content Area (expanded to take most space) */}
-          <div className="flex-1 p-6 flex items-center justify-center overflow-hidden">
-            {notEnoughCredits ? (
-              <div className="max-w-md mx-auto">
-                <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-5 w-5" />
-                  <AlertTitle>Not enough credits</AlertTitle>
-                  <AlertDescription>
-                    You need 4 credits to generate an image. You currently have {remainingCredits} credits left.
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="flex flex-col items-center gap-4">
-                  <p className="text-center text-gray-400">
-                    Visit the pricing page to upgrade your account and get more credits.
-                  </p>
-                  <Button asChild>
-                    <Link to="/pricing">View Pricing Plans</Link>
+        {imageUrl && (
+          <Card className="mt-6 bg-gray-800 border-gray-700">
+            <CardContent className="p-4">
+              <div className="grid gap-4">
+                <img
+                  src={imageUrl}
+                  alt="Generated Image"
+                  className="rounded-md"
+                />
+                <div className="flex justify-between items-center">
+                  <Button
+                    className="bg-gray-700 text-white hover:bg-gray-600"
+                    onClick={copyImageUrl}
+                    disabled={copied}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy Image URL
+                      </>
+                    )}
                   </Button>
+                  <a
+                    href={imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    Open in new tab
+                  </a>
                 </div>
               </div>
-            ) : generatedImages.length > 0 && !isLoading ? (
-              <div className="w-full max-w-5xl mx-auto animate-fade-in">
-                <ImageGrid 
-                  images={generatedImages} 
-                  prompt={prompt} 
-                  onRegenerate={handleRegenerate}
-                  generationTime={generationTime}
-                />
-              </div>
-            ) : isLoading ? (
-              <div className="text-center max-w-md mx-auto animate-pulse">
-                <div className="flex flex-col items-center justify-center gap-6">
-                  <div className="rounded-full bg-gradient-to-br from-[#FF5353]/20 to-[#FFA725]/20 p-6">
-                    <Loader2 className="h-12 w-12 text-[#FFA725] animate-spin" />
-                  </div>
-                  <h2 className="text-2xl font-bold">Creating your masterpiece...</h2>
-                  <Progress value={progress} className="h-1 w-64 bg-gray-700" />
-                </div>
-              </div>
-            ) : (
-              <div className="text-center max-w-md mx-auto">
-                <div className="flex flex-col items-center justify-center gap-6">
-                  <div>
-                    <ImageIcon className="h-24 w-24 text-gray-400" />
-                  </div>
-                  <h2 className="text-2xl font-bold">PixCraftAI Provides You Only One Best Result.✨</h2>
-                  <p className="text-gray-400">
-                    Each image generation uses 4 credits. {user && remainingCredits !== null && `You have ${remainingCredits} credits left.`}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Prompt Bar - Styled like the reference image and positioned at the bottom */}
-          <div className="bg-[#0A0A0A] border-t border-gray-800 p-5">
-            <div className="max-w-5xl mx-auto">
-              <div className="mb-4">
-                <Textarea
-                  ref={textareaRef}
-                  placeholder="Describe the image you want to generate"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={isLoading}
-                  className="min-h-[35px] max-h-[35px] px-4 py-1.5 bg-[#171717] rounded-lg border border-gray-800 text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-0 w-full"
-                />
-              </div>
-              
-              <div className="flex justify-end gap-3">
-                <Button
-                  onClick={getInspiration}
-                  disabled={isLoadingPrompt}
-                  variant="outline"
-                  className="bg-[#171717] hover:bg-[#2a2a2a] text-white border-gray-700 rounded-md px-4"
-                >
-                  {isLoadingPrompt ? (
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  ) : (
-                    <Wand2 className="h-5 w-5 mr-2" />
-                  )}
-                  Get Inspiration
-                </Button>
-              
-                <Button
-                  onClick={generateImage}
-                  disabled={isLoading || !prompt.trim()}
-                  className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-md px-6"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      Generating...
-                    </>
-                  ) : (
-                    "Generate"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

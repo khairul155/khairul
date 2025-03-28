@@ -13,6 +13,18 @@ interface DeductCreditsResponse {
   amount?: number;
 }
 
+// Define the type for the response from get_user_credits
+interface UserCreditsResponse {
+  subscription_plan: string;
+  daily_credits: number;
+  monthly_credits: number;
+  credits_used_today: number;
+  credits_used_this_month: number;
+  last_reset_date: string;
+  next_reset_date: string | null;
+  remaining_credits: number;
+}
+
 type AuthContextType = {
   user: User | null;
   session: Session | null;
@@ -164,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const { data, error } = await supabase.rpc<DeductCreditsResponse>(
-        'deduct_user_credits',
+        'deduct_user_credits', 
         { user_id: user.id, amount }
       );
 

@@ -43,7 +43,8 @@ const Profile = () => {
       
       if (error) throw error;
       
-      setCredits(data);
+      console.log("Fetched user credits:", data);
+      setCredits(data as UserCredits);
     } catch (error) {
       console.error("Error fetching user credits:", error);
     } finally {
