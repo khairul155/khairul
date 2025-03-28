@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Define an interface for the payload data structure
 interface UserCreditsData {
   subscription_plan: string;
   daily_credits: number;
@@ -69,7 +70,7 @@ const UserCredits = () => {
 
     fetchUserSubscription();
     
-    // Set up real-time subscription for credits changes
+    // Set up real-time subscription for plan changes
     if (user) {
       console.log("Setting up realtime subscription for user", user.id);
       const channel = supabase
@@ -83,13 +84,21 @@ const UserCredits = () => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('Credits changed in UserCredits:', payload);
-            
+            console.log('Subscription changed in UserCredits:', payload);
             // Properly type the payload.new to avoid TypeScript errors
             const newData = payload.new as UserCreditsData;
             
             if (newData) {
+              const oldSubscription = subscription;
               setSubscription(newData.subscription_plan);
+              
+              // When plan changes, show a notification
+              if (newData.subscription_plan !== oldSubscription) {
+                toast({
+                  title: "Subscription Updated",
+                  description: `Your plan has been updated to ${newData.subscription_plan.charAt(0).toUpperCase() + newData.subscription_plan.slice(1)}`,
+                });
+              }
               
               // Update displayed credits based on subscription plan
               if (newData.subscription_plan !== 'free') {
@@ -106,13 +115,16 @@ const UserCredits = () => {
             }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log("Subscription status:", status);
+        });
         
       return () => {
+        console.log("Removing realtime subscription");
         supabase.removeChannel(channel);
       };
     }
-  }, [user, toast]);
+  }, [user, toast, subscription]);
   
   // Calculate token reset text based on subscription
   const getTokenResetText = () => {
