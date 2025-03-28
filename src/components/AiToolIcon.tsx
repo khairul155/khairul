@@ -1,6 +1,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
+import { Coins } from "lucide-react";
 
 interface AiToolIconProps {
   icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI"; // Icon names
@@ -10,6 +11,7 @@ interface AiToolIconProps {
   className?: string;
   isActive?: boolean;
   isUpcoming?: boolean;
+  tokens?: number;
 }
 
 const AiToolIcon: React.FC<AiToolIconProps> = ({ 
@@ -19,7 +21,8 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
   onClick,
   className,
   isActive = false,
-  isUpcoming = false
+  isUpcoming = false,
+  tokens
 }) => {
   // Map of background colors for each icon type
   const colorMap = {
@@ -54,6 +57,13 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
         {isUpcoming && (
           <div className="absolute -top-2 -right-2 bg-amber-500 text-[10px] font-bold text-white rounded-full px-2 py-1 z-10">
             SOON
+          </div>
+        )}
+        
+        {tokens && (
+          <div className="absolute -top-2 -right-2 bg-blue-600 text-[10px] font-bold text-white rounded-full px-1.5 py-1 z-10 flex items-center gap-0.5">
+            <Coins className="w-3 h-3" />
+            <span>{tokens}</span>
           </div>
         )}
         

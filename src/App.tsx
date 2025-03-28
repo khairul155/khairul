@@ -17,7 +17,6 @@ import BulkImageSizeIncreaser from "./pages/BulkImageSizeIncreaser";
 import ImageGenerator from "./pages/ImageGenerator";
 import Pricing from "./pages/Pricing";
 import Profile from "./pages/Profile";
-import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -40,7 +39,6 @@ const App = () => (
               <Route path="/bulk-image-size-increaser" element={<BulkImageSizeIncreaser />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/admin" element={<AdminPanel />} />
               <Route path="/generator" element={<Navigate to="/" replace />} />
               {/* Redirect any unknown routes to the 404 component */}
               <Route path="/404" element={<NotFound />} />

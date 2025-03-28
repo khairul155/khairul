@@ -39,39 +39,30 @@ export type Database = {
       user_credits: {
         Row: {
           created_at: string
-          credits_used_this_month: number
           credits_used_today: number
           daily_credits: number
           id: number
           last_reset_date: string
-          monthly_credits: number
-          next_reset_date: string | null
           subscription_plan: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          credits_used_this_month?: number
           credits_used_today?: number
           daily_credits?: number
           id?: number
           last_reset_date?: string
-          monthly_credits?: number
-          next_reset_date?: string | null
           subscription_plan?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          credits_used_this_month?: number
           credits_used_today?: number
           daily_credits?: number
           id?: number
           last_reset_date?: string
-          monthly_credits?: number
-          next_reset_date?: string | null
           subscription_plan?: string
           updated_at?: string
           user_id?: string
@@ -83,13 +74,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      deduct_user_credits: {
-        Args: {
-          user_id: string
-          amount?: number
-        }
-        Returns: Json
-      }
       get_user_credits: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -102,21 +86,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      update_user_subscription:
-        | {
-            Args: {
-              _user_id: string
-              _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              _user_id: string
-              _subscription_plan: string
-            }
-            Returns: undefined
-          }
+      update_user_subscription: {
+        Args: {
+          _user_id: string
+          _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+        }
+        Returns: undefined
+      }
       update_user_subscription_with_payment: {
         Args: {
           _user_id: string
