@@ -4,158 +4,118 @@ import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
 import UserCredits from "@/components/UserCredits";
 import { Button } from "@/components/ui/button";
-import { User, Settings, History, CreditCard, Coins, RefreshCw } from "lucide-react";
+import { User, Settings, History, CreditCard, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Define an interface for the payload data structure
+interface UserSubscriptionData {
+  subscription_plan: string;
+  monthly_credits: number;
+  credits_used_this_month: number;
+  daily_credits: number;
+  credits_used_today: number;
+}
+
 const Profile = () => {
-  const { user, credits, refreshCredits } = useAuth();
-  const [plan, setPlan] = useState("free");
+  const { user, credits } = useAuth();
+  const [subscription, setSubscription] = useState('free');
   const [isLoading, setIsLoading] = useState(true);
+  const [displayCredits, setDisplayCredits] = useState(credits);
   const { toast } = useToast();
-  
-  const handleRefreshCredits = async () => {
-    if (!user) return;
-    
-    setIsLoading(true);
-    try {
-      await refreshCredits();
-      toast({
-        title: "Success",
-        description: "Credits refreshed successfully",
-      });
-    } catch (error) {
-      console.error("Error refreshing credits:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
+
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
+      if (!user) return;
       
       try {
+        setIsLoading(true);
         const { data, error } = await supabase
-          .from('profiles')
-          .select('subscription_plan')
-          .eq('id', user.id)
-          .maybeSingle();
+          .from('user_credits')
+          .select('subscription_plan, monthly_credits, credits_used_this_month, daily_credits, credits_used_today')
+          .eq('user_id', user.id)
+          .single();
         
         if (error) {
-          console.error("Error fetching profile:", error);
-          setIsLoading(false);
-        } else if (data && data.subscription_plan) {
-          console.log("User subscription plan:", data.subscription_plan);
-          setPlan(data.subscription_plan);
-          setIsLoading(false);
-        } else {
-          console.log("No profile data found, using default free plan");
-          setIsLoading(false);
+          console.error("Error fetching user profile:", error);
+          return;
+        }
+        
+        if (data) {
+          console.log("Profile subscription data:", data);
+          setSubscription(data.subscription_plan);
+          
+          // Set the correct credits display based on subscription plan
+          if (data.subscription_plan !== 'free') {
+            setDisplayCredits(data.monthly_credits - data.credits_used_this_month);
+          } else {
+            setDisplayCredits(data.daily_credits - data.credits_used_today);
+          }
         }
       } catch (error) {
-        console.error("Exception fetching profile:", error);
+        console.error("Error in fetchUserProfile:", error);
+      } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchUserProfile();
     
-    // Set up real-time subscription to profile changes
-    const channel = supabase
-      .channel('profile-changes-page')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'profiles', 
-          filter: `id=eq.${user?.id}`
-        },
-        (payload) => {
-          console.log('Profile updated in page:', payload);
-          if (payload.new && payload.new.subscription_plan) {
-            setPlan(payload.new.subscription_plan);
-            // Also refresh credits when plan changes
-            refreshCredits();
-            toast({
-              title: "Subscription Updated",
-              description: `Your plan has been updated to ${payload.new.subscription_plan}`,
-            });
-          }
-        }
-      )
-      .subscribe();
-    
-    // Also setup a subscription to user_credits changes
-    const creditsChannel = supabase
-      .channel('profile-user-credits-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_credits',
-          filter: `user_id=eq.${user?.id}`
-        },
-        (payload) => {
-          console.log('User credits updated in profile page:', payload);
-          // Refresh credits when they change
-          refreshCredits();
-        }
-      )
-      .subscribe();
-    
-    // Refresh credits on page load
+    // Set up real-time subscription for plan changes
     if (user) {
-      refreshCredits();
+      console.log("Setting up realtime subscription in Profile for user", user.id);
+      const channel = supabase
+        .channel('profile-subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen for all events
+            schema: 'public',
+            table: 'user_credits',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Subscription updated in Profile:', payload);
+            // Properly type the payload.new to avoid TypeScript errors
+            if (payload.new) {
+              const newData = payload.new as UserSubscriptionData;
+              if (newData.subscription_plan && newData.subscription_plan !== subscription) {
+                setSubscription(newData.subscription_plan);
+                toast({
+                  title: "Subscription Updated",
+                  description: `Your plan has been updated to ${newData.subscription_plan.charAt(0).toUpperCase() + newData.subscription_plan.slice(1)}`,
+                });
+                
+                // Update displayed credits based on plan
+                if (newData.subscription_plan !== 'free') {
+                  setDisplayCredits(newData.monthly_credits - newData.credits_used_this_month);
+                } else {
+                  setDisplayCredits(newData.daily_credits - newData.credits_used_today);
+                }
+              }
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log("Profile subscription status:", status);
+        });
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
-    
-    return () => {
-      supabase.removeChannel(channel);
-      supabase.removeChannel(creditsChannel);
-    };
-  }, [user, toast, refreshCredits]);
+  }, [user, toast, subscription]);
 
-  const getPlanDetails = () => {
-    switch (plan) {
-      case 'basic':
-        return {
-          name: 'Basic Plan',
-          tokensPerDay: 150,
-          color: 'bg-blue-600'
-        };
-      case 'advanced':
-        return {
-          name: 'Advanced Plan',
-          tokensPerDay: 300,
-          color: 'bg-purple-600'
-        };
-      case 'pro':
-        return {
-          name: 'Pro Plan',
-          tokensPerDay: 600,
-          color: 'bg-yellow-600'
-        };
-      default:
-        return {
-          name: 'Free Plan',
-          tokensPerDay: 60,
-          color: 'bg-gray-600'
-        };
-    }
+  const getSubscriptionName = (plan) => {
+    const names = {
+      'free': 'Free Plan',
+      'basic': 'Basic Plan',
+      'advanced': 'Advanced Plan',
+      'pro': 'Pro Plan'
+    };
+    return names[plan] || 'Free Plan';
   };
-  
-  const planDetails = getPlanDetails();
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -175,7 +135,9 @@ const Profile = () => {
                   </div>
                   <div>
                     <h3 className="font-medium">{user?.email}</h3>
-                    <p className="text-sm text-gray-400 capitalize">{planDetails.name}</p>
+                    <p className="text-sm text-gray-400">
+                      {isLoading ? 'Loading...' : getSubscriptionName(subscription)}
+                    </p>
                   </div>
                 </div>
                 
@@ -214,18 +176,7 @@ const Profile = () => {
             
             {/* Main content */}
             <div className="md:col-span-2 bg-gray-900 rounded-lg border border-gray-800 p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">Account Information</h2>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleRefreshCredits}
-                  disabled={isLoading}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                  Refresh Credits
-                </Button>
-              </div>
+              <h2 className="text-xl font-bold mb-6">Account Information</h2>
               
               <div className="space-y-6">
                 <div>
@@ -236,17 +187,9 @@ const Profile = () => {
                 <div>
                   <h3 className="text-sm font-medium text-gray-400 mb-1">Current Plan</h3>
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-lg capitalize">
-                        <span className={`inline-block w-3 h-3 rounded-full ${planDetails.color} mr-2`}></span>
-                        {planDetails.name}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {plan === 'free' ? 
-                          'Tokens reset daily at midnight (UTC+6 BST)' : 
-                          'Tokens reset monthly based on your billing cycle'}
-                      </p>
-                    </div>
+                    <p className="text-lg">
+                      {isLoading ? 'Loading...' : getSubscriptionName(subscription)}
+                    </p>
                     <Button asChild className="bg-purple-600 hover:bg-purple-700">
                       <Link to="/pricing">Upgrade</Link>
                     </Button>
@@ -254,38 +197,16 @@ const Profile = () => {
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-1">Token Allowance</h3>
+                  <h3 className="text-sm font-medium text-gray-400 mb-1">Token Balance</h3>
                   <div className="flex items-center gap-2">
                     <Coins className="h-5 w-5 text-yellow-500" />
-                    <p className="text-lg">{planDetails.tokensPerDay} tokens per day</p>
+                    <p className="text-lg">{displayCredits} tokens</p>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Current balance: {credits} tokens</p>
-                </div>
-                
-                <div className="p-4 bg-gray-800 rounded-lg mt-6">
-                  <h3 className="text-sm font-bold mb-2">Plan Benefits</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-start">
-                      <span className="text-green-400 mr-2">✓</span> 
-                      {plan === 'free' ? '60 tokens per day' : `${planDetails.tokensPerDay} tokens per day`}
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-green-400 mr-2">✓</span> 
-                      Image generation (4 tokens per image)
-                    </li>
-                    {plan !== 'free' && (
-                      <>
-                        <li className="flex items-start">
-                          <span className="text-green-400 mr-2">✓</span> 
-                          Priority processing
-                        </li>
-                        <li className="flex items-start">
-                          <span className="text-green-400 mr-2">✓</span> 
-                          {plan === 'pro' ? 'Unlimited' : 'Extended'} metadata generation
-                        </li>
-                      </>
-                    )}
-                  </ul>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {subscription === 'free' ? 
+                      'Free tokens reset daily at 00:00 (UTC+6 BST)' : 
+                      'Tokens reset monthly based on your billing cycle'}
+                  </p>
                 </div>
               </div>
             </div>
