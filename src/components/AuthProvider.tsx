@@ -14,7 +14,6 @@ type AuthContextType = {
     message?: string;
     remaining?: number;
   }>;
-  refreshCredits: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     success: boolean;
@@ -49,11 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error("Error fetching user credits:", error);
-        toast({
-          title: "Error",
-          description: "Could not fetch credit information",
-          variant: "destructive",
-        });
         return;
       }
       
@@ -62,71 +56,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data && typeof data.credits === 'number') {
         setCredits(data.credits);
       } else {
-        // Default to credits based on subscription plan
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('subscription_plan')
-          .eq('id', userId)
-          .maybeSingle();
-          
-        let defaultCredits = 60; // Free plan default
-        
-        if (profileData?.subscription_plan === 'basic') {
-          defaultCredits = 150;
-        } else if (profileData?.subscription_plan === 'advanced') {
-          defaultCredits = 300;
-        } else if (profileData?.subscription_plan === 'pro') {
-          defaultCredits = 600;
-        }
-        
-        console.log(`Setting credits based on ${profileData?.subscription_plan || 'free'} plan: ${defaultCredits}`);
-        setCredits(defaultCredits);
+        // Default to 60 tokens for free tier if no specific credits found
+        console.log("Setting default credits (60)");
+        setCredits(60);
       }
     } catch (error) {
       console.error("Error invoking get-user-credits function:", error);
-      toast({
-        title: "Error",
-        description: "Could not fetch credit information",
-        variant: "destructive",
-      });
       setCredits(60); // Default fallback
-    }
-  };
-
-  // Function to refresh credits
-  const refreshCredits = async () => {
-    if (!user) {
-      return;
-    }
-
-    try {
-      console.log("Refreshing credits for user:", user.id);
-      const { data, error } = await supabase.functions.invoke('get-user-credits', {
-        body: { userId: user.id }
-      });
-
-      if (error) {
-        console.error("Error refreshing credits:", error);
-        toast({
-          title: "Error",
-          description: "Failed to refresh credits",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log("Refreshed credits data:", data);
-      
-      if (data && typeof data.credits === 'number') {
-        setCredits(data.credits);
-      }
-    } catch (error) {
-      console.error("Exception refreshing credits:", error);
-      toast({
-        title: "Error",
-        description: "Failed to refresh credits",
-        variant: "destructive",
-      });
     }
   };
 
@@ -137,9 +73,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      console.log("Deducting credits for user:", user.id);
+      console.log("Deducting credits for user:", user.id, "amount:", amount);
       const { data, error } = await supabase.functions.invoke('get-user-credits', {
-        body: { userId: user.id, action: "deduct" }
+        body: { userId: user.id, action: "deduct", amount: amount }
       });
 
       console.log("Deduct response:", data, error);
@@ -157,11 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      if (data.error) {
+      if (data && data.error) {
         console.error("API error deducting credits:", data.error);
         toast({
           title: "Not enough credits",
-          description: "You don't have enough credits to generate an image.",
+          description: data.error || "You don't have enough credits to generate an image.",
           variant: "destructive",
         });
         return { 
@@ -171,18 +107,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Update local state with new credit amount
-      console.log("Credits updated to:", data.credits);
-      setCredits(data.credits);
-      
-      toast({
-        title: "Credits deducted",
-        description: `4 credits used. ${data.credits} remaining.`,
-      });
-      
-      return { 
-        success: true,
-        remaining: data.credits
-      };
+      if (data && typeof data.credits === 'number') {
+        console.log("Credits updated to:", data.credits);
+        setCredits(data.credits);
+        
+        return { 
+          success: true,
+          remaining: data.credits
+        };
+      } else {
+        // Handle unexpected API response format
+        console.error("Unexpected response format:", data);
+        toast({
+          title: "Error",
+          description: "Unexpected response from the server.",
+          variant: "destructive",
+        });
+        return {
+          success: false,
+          message: "Unexpected response format"
+        };
+      }
     } catch (error) {
       console.error("Exception deducting credits:", error);
       toast({
@@ -229,35 +174,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     });
 
-    // Set up a realtime subscription to profile changes
-    const setupRealtimeSubscription = async () => {
-      if (!user) return;
-      
-      const channel = supabase
-        .channel('profile-subscription-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'profiles',
-            filter: `id=eq.${user.id}`
-          },
-          (payload) => {
-            console.log('Profile updated in AuthProvider:', payload);
-            // Re-fetch credits when profile is updated
-            fetchUserCredits(user.id);
-          }
-        )
-        .subscribe();
-      
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    };
-    
-    const cleanup = setupRealtimeSubscription();
-    
     // Check for auth redirect errors on page load
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const error = hashParams.get("error");
@@ -272,11 +188,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
+    // Set up real-time subscription for user_credits changes to update credit counts
+    if (user) {
+      const channel = supabase
+        .channel('auth-credits-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_credits',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            // Refetch credits when credits change
+            fetchUserCredits(user.id);
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        subscription.unsubscribe();
+        supabase.removeChannel(channel);
+      };
+    }
+
     return () => {
       subscription.unsubscribe();
-      if (cleanup) cleanup.then(unsub => unsub && unsub());
     };
-  }, [user, toast]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -358,7 +298,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         credits,
         deductCredits,
-        refreshCredits,
         signIn,
         signUp,
         signInWithGoogle,
