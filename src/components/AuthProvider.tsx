@@ -4,6 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 
+// Define interface for RPC function response
+interface DeductCreditsResponse {
+  success: boolean;
+  message: string;
+  remaining: number;
+  amount?: number;
+}
+
 type AuthContextType = {
   user: User | null;
   session: Session | null;
@@ -76,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("Deducting credits for user:", user.id, "amount:", amount);
       
       // Call the database function to deduct credits
-      const { data, error } = await supabase.rpc('deduct_user_credits', {
+      const { data, error } = await supabase.rpc<DeductCreditsResponse>('deduct_user_credits', {
         user_id: user.id,
         amount: amount
       });
