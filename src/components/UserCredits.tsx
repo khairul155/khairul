@@ -25,6 +25,7 @@ const UserCredits = () => {
   // Always refetch credits from AuthProvider when they might change
   useEffect(() => {
     setDisplayCredits(credits);
+    console.log("Credits updated in UserCredits:", credits);
   }, [credits]);
   
   useEffect(() => {
@@ -33,6 +34,7 @@ const UserCredits = () => {
       
       try {
         setIsLoading(true);
+        console.log("Fetching subscription for user ID:", user.id);
         const { data, error } = await supabase
           .from('user_credits')
           .select('subscription_plan, daily_credits, monthly_credits, credits_used_today, credits_used_this_month')

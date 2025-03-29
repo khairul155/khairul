@@ -42,7 +42,7 @@ serve(async (req) => {
       console.log(`Attempting to deduct ${amount} credits for user: ${userId}`);
       
       // First check if user exists in user_credits table
-      const { data: userExists, error: checkError } = await supabaseClient
+      let { data: userExists, error: checkError } = await supabaseClient
         .from('user_credits')
         .select('*')
         .eq('user_id', userId)
