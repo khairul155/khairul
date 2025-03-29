@@ -9,6 +9,7 @@ type AuthContextType = {
   session: Session | null;
   isLoading: boolean;
   credits: number;
+  dailyLimit: number;
   deductCredits: (amount?: number) => Promise<{
     success: boolean;
     message?: string;
@@ -35,7 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [credits, setCredits] = useState<number>(60); // Default to 60 for free plan
+  const [credits, setCredits] = useState<number>(1); // Default to 1 for free plan
+  const [dailyLimit, setDailyLimit] = useState<number>(1); // Default to 1 for free plan
   const { toast } = useToast();
 
   // Function to fetch user credits
@@ -55,19 +57,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (data && typeof data.credits === 'number') {
         setCredits(data.credits);
+        setDailyLimit(data.daily_limit || 1);
       } else {
-        // Default to 60 tokens for free tier if no specific credits found
-        console.log("Setting default credits (60)");
-        setCredits(60);
+        // Default to 1 token for free tier if no specific credits found
+        console.log("Setting default credits (1)");
+        setCredits(1);
+        setDailyLimit(1);
       }
     } catch (error) {
       console.error("Error invoking get-user-credits function:", error);
-      setCredits(60); // Default fallback
+      setCredits(1); // Default fallback
+      setDailyLimit(1);
     }
   };
 
   // Function to deduct credits
-  const deductCredits = async (amount = 4) => {
+  const deductCredits = async (amount = 1) => {
     if (!user) {
       return { success: false, message: "User not authenticated" };
     }
@@ -96,8 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data && data.error) {
         console.error("API error deducting credits:", data.error);
         toast({
-          title: "Not enough credits",
-          description: data.error || "You don't have enough credits to generate an image.",
+          title: "Daily limit reached",
+          description: data.details || `You've reached your daily image generation limit.`,
           variant: "destructive",
         });
         return { 
@@ -300,6 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         isLoading,
         credits,
+        dailyLimit,
         deductCredits,
         signIn,
         signUp,

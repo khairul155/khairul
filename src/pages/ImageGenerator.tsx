@@ -58,8 +58,8 @@ const ImageGenerator = () => {
     // Validate that the user has credits available
     if (credits <= 0) {
       toast({
-        title: "No credits available",
-        description: "You don't have enough credits to generate an image.",
+        title: "Daily limit reached",
+        description: "You've used all your image generations for today. They will reset at midnight UTC.",
         variant: "destructive",
       });
       return;
@@ -77,7 +77,7 @@ const ImageGenerator = () => {
     try {
       // Deduct credits before generating image
       console.log("Starting token deduction process for user:", user.id);
-      const deductResult = await deductCredits(4);
+      const deductResult = await deductCredits(1);
       console.log("Deduct result:", deductResult);
       
       if (!deductResult.success) {
@@ -119,7 +119,7 @@ const ImageGenerator = () => {
       
       toast({
         title: "Image Generated",
-        description: `Used 4 credits. You have ${deductResult.remaining} credits remaining.`,
+        description: `You have ${deductResult.remaining} image generations remaining today.`,
       });
       
     } catch (error) {
