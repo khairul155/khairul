@@ -92,7 +92,7 @@ serve(async (req) => {
         userExists = newUser;
       }
       
-      // Reset daily credits if needed for all subscription plans
+      // Reset daily credits if needed
       if (userExists.last_reset_date < today) {
         console.log(`Resetting daily credits for user ${userId} as last reset was on ${userExists.last_reset_date}`);
         const { error: resetError } = await supabaseClient

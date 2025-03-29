@@ -32,11 +32,9 @@ const UserCredits = () => {
       try {
         setIsLoading(true);
         console.log("Fetching subscription for user ID:", user.id);
-        const { data, error } = await supabase
-          .from('user_credits')
-          .select('subscription_plan, daily_limit, credits_used_today')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        const { data, error } = await supabase.functions.invoke('get-user-credits', {
+          body: { userId: user.id }
+        });
         
         if (error) {
           console.error("Error fetching user subscription:", error);
@@ -45,12 +43,10 @@ const UserCredits = () => {
         
         if (data) {
           console.log("Subscription data received:", data);
-          setSubscription(data.subscription_plan);
+          setSubscription(data.plan || 'free');
           
           // Update displayed credits based on subscription plan
-          const availableCredits = data.daily_limit - data.credits_used_today;
-          console.log("Calculated daily credits:", availableCredits);
-          setDisplayCredits(availableCredits);
+          setDisplayCredits(data.credits || 0);
         }
       } catch (error) {
         console.error("Error in fetchUserSubscription:", error);

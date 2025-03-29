@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
@@ -29,11 +30,9 @@ const Profile = () => {
       
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('user_credits')
-          .select('subscription_plan, daily_limit, credits_used_today')
-          .eq('user_id', user.id)
-          .single();
+        const { data, error } = await supabase.functions.invoke('get-user-credits', {
+          body: { userId: user.id }
+        });
         
         if (error) {
           console.error("Error fetching user profile:", error);
@@ -42,10 +41,10 @@ const Profile = () => {
         
         if (data) {
           console.log("Profile subscription data:", data);
-          setSubscription(data.subscription_plan);
+          setSubscription(data.plan || 'free');
           
           // Set the correct credits display based on subscription plan
-          setDisplayCredits(data.daily_limit - data.credits_used_today);
+          setDisplayCredits(data.credits || 0);
         }
       } catch (error) {
         console.error("Error in fetchUserProfile:", error);
@@ -137,7 +136,7 @@ const Profile = () => {
   };
 
   const getSubscriptionName = (plan: string) => {
-    const names = {
+    const names: Record<string, string> = {
       'free': 'Free Plan (1 image/day)',
       'basic': 'Basic Plan (2 images/day)',
       'advanced': 'Advanced Plan (3 images/day)'
