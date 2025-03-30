@@ -200,15 +200,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             table: 'user_credits',
             filter: `user_id=eq.${user.id}`
           },
-          (payload) => {
-            console.log("Credits change detected:", payload);
+          () => {
             // Refetch credits when credits change
             fetchUserCredits(user.id);
           }
         )
-        .subscribe((status) => {
-          console.log("Subscription status:", status);
-        });
+        .subscribe();
         
       return () => {
         subscription.unsubscribe();
@@ -219,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [user?.id]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {

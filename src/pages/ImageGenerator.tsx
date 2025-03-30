@@ -76,7 +76,6 @@ const ImageGenerator = () => {
 
     try {
       // Deduct credits before generating image
-      console.log("Starting token deduction process for user:", user.id);
       const deductResult = await deductCredits(4);
       console.log("Deduct result:", deductResult);
       
@@ -90,7 +89,6 @@ const ImageGenerator = () => {
       const seedToUse = generationSettings.useSeed ? generationSettings.seed : -1;
       
       // Proceed with image generation only if credit deduction was successful
-      console.log("Tokens deducted successfully, proceeding with image generation");
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt,
@@ -103,10 +101,7 @@ const ImageGenerator = () => {
         }
       });
 
-      if (error) {
-        console.error("Error from generate-image function:", error);
-        throw error;
-      }
+      if (error) throw error;
 
       // Calculate generation time
       const endTime = new Date();
