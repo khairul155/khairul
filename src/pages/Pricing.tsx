@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
@@ -77,11 +76,10 @@ const Pricing = () => {
       
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('user_credits')
-          .select('subscription_plan')
-          .eq('user_id', user.id)
-          .single();
+        // Instead of directly querying the table, use the edge function
+        const { data, error } = await supabase.functions.invoke('get-user-credits', {
+          body: { userId: user.id }
+        });
         
         if (error) {
           console.error("Error fetching user subscription:", error);
@@ -89,7 +87,8 @@ const Pricing = () => {
         }
         
         if (data) {
-          setCurrentPlan(data.subscription_plan);
+          // Use the plan property instead of subscription_plan
+          setCurrentPlan(data.plan || 'free');
         }
       } catch (error) {
         console.error("Error in fetchUserSubscription:", error);
@@ -114,6 +113,7 @@ const Pricing = () => {
           },
           (payload) => {
             console.log('Subscription updated:', payload);
+            // Update the way we access the subscription plan property
             if (payload.new && payload.new.subscription_plan) {
               setCurrentPlan(payload.new.subscription_plan);
               toast({
