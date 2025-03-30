@@ -1,32 +1,8 @@
 
 project_id = "napbrxjntjvkjwlcpwql"
 
-[api]
-enabled = true
-port = 54321
-schemas = ["public", "storage", "graphql_public"]
-extra_search_path = ["public", "extensions"]
-max_rows = 1000
+[functions]
+port = 9999
 
-[db]
-port = 54322
-
-[realtime]
-enabled = true
-
-[studio]
-enabled = true
-port = 54323
-api_url = "http://localhost"
-
-[inbucket]
-enabled = true
-port = 54324
-
-[storage]
-enabled = true
-
-[auth]
-enabled = true
-site_url = "http://localhost:5173"
-additional_redirect_urls = ["https://localhost:5173", "http://localhost:3000"]
+[functions.import_map]
+path = "import_map.json"
