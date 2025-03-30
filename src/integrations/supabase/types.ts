@@ -15,6 +15,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      deduct_user_credits: {
+        Args: {
+          user_id: string
+          amount?: number
+        }
+        Returns: Json
+      }
       get_user_credits: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -27,13 +34,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      update_user_subscription: {
-        Args: {
-          _user_id: string
-          _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
-        }
-        Returns: undefined
-      }
+      update_user_subscription:
+        | {
+            Args: {
+              _user_id: string
+              _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _user_id: string
+              _subscription_plan: string
+            }
+            Returns: undefined
+          }
       update_user_subscription_with_payment: {
         Args: {
           _user_id: string

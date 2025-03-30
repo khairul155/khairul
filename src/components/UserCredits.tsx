@@ -6,17 +6,14 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// Define an interface for the payload data structure
 interface UserCreditsData {
   subscription_plan: string;
-  daily_credits: number;
-  monthly_credits: number;
+  daily_limit: number;
   credits_used_today: number;
-  credits_used_this_month: number;
 }
 
 const UserCredits = () => {
-  const { credits, user } = useAuth();
+  const { credits, dailyLimit, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [subscription, setSubscription] = useState('free');
   const [displayCredits, setDisplayCredits] = useState(credits);
@@ -25,6 +22,7 @@ const UserCredits = () => {
   // Always refetch credits from AuthProvider when they might change
   useEffect(() => {
     setDisplayCredits(credits);
+    console.log("Credits updated in UserCredits:", credits);
   }, [credits]);
   
   useEffect(() => {
@@ -33,11 +31,10 @@ const UserCredits = () => {
       
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('user_credits')
-          .select('subscription_plan, daily_credits, monthly_credits, credits_used_today, credits_used_this_month')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        console.log("Fetching subscription for user ID:", user.id);
+        const { data, error } = await supabase.functions.invoke('get-user-credits', {
+          body: { userId: user.id }
+        });
         
         if (error) {
           console.error("Error fetching user subscription:", error);
@@ -46,20 +43,10 @@ const UserCredits = () => {
         
         if (data) {
           console.log("Subscription data received:", data);
-          setSubscription(data.subscription_plan);
+          setSubscription(data.plan || 'free');
           
           // Update displayed credits based on subscription plan
-          if (data.subscription_plan !== 'free') {
-            // For paid plans, calculate available monthly credits
-            const availableCredits = data.monthly_credits - data.credits_used_this_month;
-            console.log("Calculated monthly credits:", availableCredits);
-            setDisplayCredits(availableCredits);
-          } else {
-            // For free plan, calculate available daily credits
-            const availableCredits = data.daily_credits - data.credits_used_today;
-            console.log("Calculated daily credits:", availableCredits);
-            setDisplayCredits(availableCredits);
-          }
+          setDisplayCredits(data.credits || 0);
         }
       } catch (error) {
         console.error("Error in fetchUserSubscription:", error);
@@ -100,18 +87,10 @@ const UserCredits = () => {
                 });
               }
               
-              // Update displayed credits based on subscription plan
-              if (newData.subscription_plan !== 'free') {
-                // For paid plans, calculate available monthly credits
-                const availableCredits = newData.monthly_credits - newData.credits_used_this_month;
-                console.log("Updated monthly credits:", availableCredits);
-                setDisplayCredits(availableCredits);
-              } else {
-                // For free plan, calculate available daily credits
-                const availableCredits = newData.daily_credits - newData.credits_used_today;
-                console.log("Updated daily credits:", availableCredits);
-                setDisplayCredits(availableCredits);
-              }
+              // Update displayed credits
+              const availableCredits = newData.daily_limit - newData.credits_used_today;
+              console.log("Updated daily credits:", availableCredits);
+              setDisplayCredits(availableCredits);
             }
           }
         )
@@ -126,17 +105,23 @@ const UserCredits = () => {
     }
   }, [user, toast, subscription]);
   
-  // Calculate token reset text based on subscription
+  // Get token reset text
   const getTokenResetText = () => {
-    return subscription === 'free' 
-      ? "Free tokens reset daily at 00:00 (UTC+6 BST)" 
-      : "Tokens reset monthly based on your billing cycle";
+    return "Free tokens reset daily at 00:00 (UTC)"; 
   };
   
-  // Get proper tokens for display based on subscription
+  // Get proper tokens for display
   const getTokenDisplay = () => {
     if (isLoading) return "...";
     return displayCredits;
+  };
+
+  // Get subscription display text
+  const getSubscriptionDisplay = () => {
+    if (subscription === 'free') return "1 image per day";
+    if (subscription === 'basic') return "2 images per day";
+    if (subscription === 'advanced') return "3 images per day";
+    return "1 image per day";
   };
   
   return (
@@ -146,15 +131,15 @@ const UserCredits = () => {
           <Coins className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h3 className="text-sm font-medium text-gray-200">Your Tokens</h3>
-          <p className="text-2xl font-bold text-white">{getTokenDisplay()}</p>
+          <h3 className="text-sm font-medium text-gray-200">Your Daily Limit</h3>
+          <p className="text-2xl font-bold text-white">{getTokenDisplay()} / {dailyLimit}</p>
           <p className="text-xs text-gray-400 mt-1">
             {getTokenResetText()}
           </p>
         </div>
       </div>
       <div className="mt-3 text-xs text-gray-400">
-        <p>4 tokens = 1 image generation</p>
+        <p>{getSubscriptionDisplay()}</p>
         {subscription !== 'free' && (
           <p className="mt-1 text-green-400">
             {subscription.charAt(0).toUpperCase() + subscription.slice(1)} Plan Active
