@@ -6,23 +6,25 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Define an interface for the payload data structure
 interface UserCreditsData {
   subscription_plan: string;
-  daily_limit: number;
+  daily_credits: number;
+  monthly_credits: number;
   credits_used_today: number;
+  credits_used_this_month: number;
 }
 
 const UserCredits = () => {
-  const { credits, dailyLimit, user } = useAuth();
+  const { credits, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [subscription, setSubscription] = useState('free');
   const [displayCredits, setDisplayCredits] = useState(credits);
   const { toast } = useToast();
   
-  // Always refetch credits from AuthProvider when they might change
   useEffect(() => {
+    // Update displayed credits when the auth context credits change
     setDisplayCredits(credits);
-    console.log("Credits updated in UserCredits:", credits);
   }, [credits]);
   
   useEffect(() => {
@@ -31,10 +33,11 @@ const UserCredits = () => {
       
       try {
         setIsLoading(true);
-        console.log("Fetching subscription for user ID:", user.id);
-        const { data, error } = await supabase.functions.invoke('get-user-credits', {
-          body: { userId: user.id }
-        });
+        const { data, error } = await supabase
+          .from('user_credits')
+          .select('subscription_plan, daily_credits, monthly_credits, credits_used_today, credits_used_this_month')
+          .eq('user_id', user.id)
+          .maybeSingle();
         
         if (error) {
           console.error("Error fetching user subscription:", error);
@@ -43,10 +46,20 @@ const UserCredits = () => {
         
         if (data) {
           console.log("Subscription data received:", data);
-          setSubscription(data.plan || 'free');
+          setSubscription(data.subscription_plan);
           
           // Update displayed credits based on subscription plan
-          setDisplayCredits(data.credits || 0);
+          if (data.subscription_plan !== 'free') {
+            // For paid plans, calculate available monthly credits
+            const availableCredits = data.monthly_credits - data.credits_used_this_month;
+            console.log("Calculated monthly credits:", availableCredits);
+            setDisplayCredits(availableCredits);
+          } else {
+            // For free plan, calculate available daily credits
+            const availableCredits = data.daily_credits - data.credits_used_today;
+            console.log("Calculated daily credits:", availableCredits);
+            setDisplayCredits(availableCredits);
+          }
         }
       } catch (error) {
         console.error("Error in fetchUserSubscription:", error);
@@ -76,21 +89,24 @@ const UserCredits = () => {
             const newData = payload.new as UserCreditsData;
             
             if (newData) {
-              const oldSubscription = subscription;
               setSubscription(newData.subscription_plan);
               
-              // When plan changes, show a notification
-              if (newData.subscription_plan !== oldSubscription) {
+              // Update displayed credits based on new subscription plan
+              if (newData.subscription_plan !== 'free') {
                 toast({
                   title: "Subscription Updated",
                   description: `Your plan has been updated to ${newData.subscription_plan.charAt(0).toUpperCase() + newData.subscription_plan.slice(1)}`,
                 });
+                // For paid plans, calculate available monthly credits
+                const availableCredits = newData.monthly_credits - newData.credits_used_this_month;
+                console.log("Updated monthly credits:", availableCredits);
+                setDisplayCredits(availableCredits);
+              } else {
+                // For free plan, calculate available daily credits
+                const availableCredits = newData.daily_credits - newData.credits_used_today;
+                console.log("Updated daily credits:", availableCredits);
+                setDisplayCredits(availableCredits);
               }
-              
-              // Update displayed credits
-              const availableCredits = newData.daily_limit - newData.credits_used_today;
-              console.log("Updated daily credits:", availableCredits);
-              setDisplayCredits(availableCredits);
             }
           }
         )
@@ -103,25 +119,19 @@ const UserCredits = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user, toast, subscription]);
+  }, [user, toast]);
   
-  // Get token reset text
+  // Calculate token reset text based on subscription
   const getTokenResetText = () => {
-    return "Free tokens reset daily at 00:00 (UTC)"; 
+    return subscription === 'free' 
+      ? "Free tokens reset daily at 00:00 (UTC+6 BST)" 
+      : "Tokens reset monthly based on your billing cycle";
   };
   
-  // Get proper tokens for display
+  // Get proper tokens for display based on subscription
   const getTokenDisplay = () => {
     if (isLoading) return "...";
     return displayCredits;
-  };
-
-  // Get subscription display text
-  const getSubscriptionDisplay = () => {
-    if (subscription === 'free') return "1 image per day";
-    if (subscription === 'basic') return "2 images per day";
-    if (subscription === 'advanced') return "3 images per day";
-    return "1 image per day";
   };
   
   return (
@@ -131,15 +141,15 @@ const UserCredits = () => {
           <Coins className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h3 className="text-sm font-medium text-gray-200">Your Daily Limit</h3>
-          <p className="text-2xl font-bold text-white">{getTokenDisplay()} / {dailyLimit}</p>
+          <h3 className="text-sm font-medium text-gray-200">Your Tokens</h3>
+          <p className="text-2xl font-bold text-white">{getTokenDisplay()}</p>
           <p className="text-xs text-gray-400 mt-1">
             {getTokenResetText()}
           </p>
         </div>
       </div>
       <div className="mt-3 text-xs text-gray-400">
-        <p>{getSubscriptionDisplay()}</p>
+        <p>4 tokens = 1 image generation</p>
         {subscription !== 'free' && (
           <p className="mt-1 text-green-400">
             {subscription.charAt(0).toUpperCase() + subscription.slice(1)} Plan Active

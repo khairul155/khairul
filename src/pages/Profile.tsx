@@ -12,15 +12,16 @@ import { useToast } from "@/hooks/use-toast";
 // Define an interface for the payload data structure
 interface UserSubscriptionData {
   subscription_plan: string;
-  daily_limit: number;
+  monthly_credits: number;
+  credits_used_this_month: number;
+  daily_credits: number;
   credits_used_today: number;
 }
 
 const Profile = () => {
-  const { user, credits, dailyLimit } = useAuth();
+  const { user, credits } = useAuth();
   const [subscription, setSubscription] = useState('free');
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
   const [displayCredits, setDisplayCredits] = useState(credits);
   const { toast } = useToast();
 
@@ -30,9 +31,11 @@ const Profile = () => {
       
       try {
         setIsLoading(true);
-        const { data, error } = await supabase.functions.invoke('get-user-credits', {
-          body: { userId: user.id }
-        });
+        const { data, error } = await supabase
+          .from('user_credits')
+          .select('subscription_plan, monthly_credits, credits_used_this_month, daily_credits, credits_used_today')
+          .eq('user_id', user.id)
+          .single();
         
         if (error) {
           console.error("Error fetching user profile:", error);
@@ -41,10 +44,14 @@ const Profile = () => {
         
         if (data) {
           console.log("Profile subscription data:", data);
-          setSubscription(data.plan || 'free');
+          setSubscription(data.subscription_plan);
           
           // Set the correct credits display based on subscription plan
-          setDisplayCredits(data.credits || 0);
+          if (data.subscription_plan !== 'free') {
+            setDisplayCredits(data.monthly_credits - data.credits_used_this_month);
+          } else {
+            setDisplayCredits(data.daily_credits - data.credits_used_today);
+          }
         }
       } catch (error) {
         console.error("Error in fetchUserProfile:", error);
@@ -81,7 +88,11 @@ const Profile = () => {
                 });
                 
                 // Update displayed credits based on plan
-                setDisplayCredits(newData.daily_limit - newData.credits_used_today);
+                if (newData.subscription_plan !== 'free') {
+                  setDisplayCredits(newData.monthly_credits - newData.credits_used_this_month);
+                } else {
+                  setDisplayCredits(newData.daily_credits - newData.credits_used_today);
+                }
               }
             }
           }
@@ -96,54 +107,16 @@ const Profile = () => {
     }
   }, [user, toast, subscription]);
 
-  const updateSubscription = async (newPlan: 'free' | 'basic' | 'advanced') => {
-    if (!user) return;
-    
-    setIsUpdating(true);
-    try {
-      // Call Supabase function to update the user's subscription
-      const { error } = await supabase.rpc('update_user_subscription', {
-        _user_id: user.id,
-        _subscription_plan: newPlan
-      });
-      
-      if (error) {
-        console.error("Error updating subscription:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update subscription. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      toast({
-        title: "Subscription Updated",
-        description: `Your plan has been changed to ${newPlan.charAt(0).toUpperCase() + newPlan.slice(1)}`,
-      });
-      
-      // The real-time subscription will update the UI automatically
-    } catch (error) {
-      console.error("Error in updateSubscription:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while updating your subscription.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdating(false);
-    }
+  const getSubscriptionName = (plan) => {
+    const names = {
+      'free': 'Free Plan',
+      'basic': 'Basic Plan',
+      'advanced': 'Advanced Plan',
+      'pro': 'Pro Plan'
+    };
+    return names[plan] || 'Free Plan';
   };
 
-  const getSubscriptionName = (plan: string) => {
-    const names: Record<string, string> = {
-      'free': 'Free Plan (1 image/day)',
-      'basic': 'Basic Plan (2 images/day)',
-      'advanced': 'Advanced Plan (3 images/day)'
-    };
-    return names[plan] || 'Free Plan (1 image/day)';
-  };
-  
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <Navbar />
@@ -217,48 +190,23 @@ const Profile = () => {
                     <p className="text-lg">
                       {isLoading ? 'Loading...' : getSubscriptionName(subscription)}
                     </p>
+                    <Button asChild className="bg-purple-600 hover:bg-purple-700">
+                      <Link to="/pricing">Upgrade</Link>
+                    </Button>
                   </div>
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-1">Daily Image Limit</h3>
+                  <h3 className="text-sm font-medium text-gray-400 mb-1">Token Balance</h3>
                   <div className="flex items-center gap-2">
                     <Coins className="h-5 w-5 text-yellow-500" />
-                    <p className="text-lg">{displayCredits} of {dailyLimit} remaining today</p>
+                    <p className="text-lg">{displayCredits} tokens</p>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Free tokens reset daily at 00:00 (UTC)
+                    {subscription === 'free' ? 
+                      'Free tokens reset daily at 00:00 (UTC+6 BST)' : 
+                      'Tokens reset monthly based on your billing cycle'}
                   </p>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-3">Change Subscription</h3>
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      onClick={() => updateSubscription('free')}
-                      disabled={isUpdating || subscription === 'free'}
-                      variant={subscription === 'free' ? "default" : "outline"}
-                      className={subscription === 'free' ? "bg-blue-600 hover:bg-blue-700" : ""}
-                    >
-                      Free (1/day)
-                    </Button>
-                    <Button
-                      onClick={() => updateSubscription('basic')}
-                      disabled={isUpdating || subscription === 'basic'}
-                      variant={subscription === 'basic' ? "default" : "outline"}
-                      className={subscription === 'basic' ? "bg-blue-600 hover:bg-blue-700" : ""}
-                    >
-                      Basic (2/day)
-                    </Button>
-                    <Button
-                      onClick={() => updateSubscription('advanced')}
-                      disabled={isUpdating || subscription === 'advanced'}
-                      variant={subscription === 'advanced' ? "default" : "outline"}
-                      className={subscription === 'advanced' ? "bg-blue-600 hover:bg-blue-700" : ""}
-                    >
-                      Advanced (3/day)
-                    </Button>
-                  </div>
                 </div>
               </div>
             </div>
