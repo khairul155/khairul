@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
 import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
@@ -26,23 +26,21 @@ const App = () => (
         <AuthProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/image-generator" element={<ImageGenerator />} />
-              <Route path="/metadata-generator" element={<MetadataGenerator />} />
-              <Route path="/image-to-prompt" element={<ImageToPrompt />} />
-              <Route path="/image-upscaler" element={<ImageUpscaler />} />
-              <Route path="/graphic-designer-bot" element={<GraphicDesignerBot />} />
-              <Route path="/bulk-image-size-increaser" element={<BulkImageSizeIncreaser />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/generator" element={<Navigate to="/" replace />} />
-              {/* Redirect any unknown routes to the 404 component */}
-              <Route path="/404" element={<NotFound />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/image-generator" element={<ImageGenerator />} />
+            <Route path="/metadata-generator" element={<MetadataGenerator />} />
+            <Route path="/image-to-prompt" element={<ImageToPrompt />} />
+            <Route path="/image-upscaler" element={<ImageUpscaler />} />
+            <Route path="/graphic-designer-bot" element={<GraphicDesignerBot />} />
+            <Route path="/bulk-image-size-increaser" element={<BulkImageSizeIncreaser />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/generator" element={<Navigate to="/" replace />} />
+            {/* Redirect any unknown routes to the 404 component */}
+            <Route path="/404" element={<NotFound />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </AuthProvider>
       </TooltipProvider>
     </ThemeProvider>
