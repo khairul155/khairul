@@ -16,6 +16,7 @@ import BulkImageSizeIncreaser from "./pages/BulkImageSizeIncreaser";
 import ImageGenerator from "./pages/ImageGenerator";
 import Pricing from "./pages/Pricing";
 import Profile from "./pages/Profile";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Sonner />
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/image-generator" element={<ImageGenerator />} />
             <Route path="/metadata-generator" element={<MetadataGenerator />} />
             <Route path="/image-to-prompt" element={<ImageToPrompt />} />

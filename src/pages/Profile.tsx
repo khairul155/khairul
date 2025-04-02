@@ -6,24 +6,58 @@ import UserCredits from "@/components/UserCredits";
 import { Button } from "@/components/ui/button";
 import { User, Settings, History, CreditCard, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/integrations/firebase/client";
 
 const Profile = () => {
   const { user, credits } = useAuth();
   const [subscription, setSubscription] = useState('free');
   const [isLoading, setIsLoading] = useState(true);
   const [displayCredits, setDisplayCredits] = useState(credits);
-  const { toast } = useToast();
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
-    // For now, just use the local credits value
-    // This will be replaced with Firebase Firestore data fetching later
-    setIsLoading(false);
-    setDisplayCredits(credits);
+    const fetchUserData = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        // Fetch user profile
+        const profileRef = doc(db, "profiles", user.uid);
+        const profileSnap = await getDoc(profileRef);
+        
+        if (profileSnap.exists()) {
+          const profileData = profileSnap.data();
+          setUserProfile(profileData);
+          setSubscription(profileData.subscription_plan || 'free');
+        }
+        
+        // Fetch user credits
+        const creditsRef = doc(db, "user_credits", user.uid);
+        const creditsSnap = await getDoc(creditsRef);
+        
+        if (creditsSnap.exists()) {
+          const creditsData = creditsSnap.data();
+          
+          // Calculate available credits
+          if (creditsData.subscription_plan === 'free') {
+            setDisplayCredits(creditsData.daily_credits - creditsData.credits_used_today);
+          } else {
+            setDisplayCredits(creditsData.monthly_credits - creditsData.credits_used_this_month);
+          }
+        }
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setIsLoading(false);
+      }
+    };
     
-    // Simulating subscription data (to be replaced with Firestore)
-    setSubscription('free');
-  }, [credits]);
+    fetchUserData();
+  }, [user, credits]);
 
   const getSubscriptionName = (plan) => {
     const names = {

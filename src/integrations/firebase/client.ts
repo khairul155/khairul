@@ -4,9 +4,9 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { collection, doc } from "firebase/firestore";
 
 // Your web app's Firebase configuration
-// Replace these placeholder values with your actual Firebase config values
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_API_KEY",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "YOUR_PROJECT_ID.firebaseapp.com",
@@ -23,5 +23,10 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Helper functions for user data
+export const getUserCreditsRef = (userId: string) => {
+  return doc(db, 'user_credits', userId);
+};
 
 export default app;
