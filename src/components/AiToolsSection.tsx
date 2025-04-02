@@ -1,6 +1,7 @@
 
 import { useNavigate, useLocation } from "react-router-dom";
 import AiToolIcon from "./AiToolIcon";
+import { Wand2, FileSearch, PenTool, MessageSquareText, ArrowUpFromLine, LayoutGrid } from "lucide-react";
 
 const AiToolsSection = () => {
   const navigate = useNavigate();
@@ -11,9 +12,6 @@ const AiToolsSection = () => {
     
     if (route) {
       navigate(route);
-    } else {
-      // This is a placeholder for actual tool functionality
-      // You can implement specific actions for each tool here
     }
   };
 
@@ -28,7 +26,7 @@ const AiToolsSection = () => {
           Our AI Tools
         </h2>
         
-        <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-7 gap-8 justify-items-center">
+        <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-8 justify-items-center">
           <AiToolIcon 
             icon="IG"
             label="Image Generator"
@@ -75,13 +73,6 @@ const AiToolsSection = () => {
             color="yellow"
             isUpcoming={true}
             onClick={() => handleToolClick("Bulk Image Size Increaser", "/bulk-image-size-increaser")}
-          />
-
-          <AiToolIcon 
-            icon="DM"
-            label="Demo"
-            color="green"
-            onClick={() => handleToolClick("Demo", "/demo")}
           />
         </div>
       </div>
