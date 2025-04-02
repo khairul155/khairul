@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import { Check, Coins, ArrowRight, ChevronRight } from "lucide-react";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const pricingPlans = [{
   name: "Free",
@@ -61,14 +62,86 @@ const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [planCategory, setPlanCategory] = useState<PlanCategory>("personal");
   const [currentPlan, setCurrentPlan] = useState("free");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   const navigate = useNavigate();
-  const { credits } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
-  // In our simplified system, we'll just show a toast about upgrading
+  useEffect(() => {
+    const fetchUserSubscription = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('user_credits')
+          .select('subscription_plan')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching user subscription:", error);
+          return;
+        }
+        
+        if (data) {
+          setCurrentPlan(data.subscription_plan);
+        }
+      } catch (error) {
+        console.error("Error in fetchUserSubscription:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserSubscription();
+    
+    // Set up real-time subscription for plan changes
+    if (user) {
+      const channel = supabase
+        .channel('subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'user_credits',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Subscription updated:', payload);
+            if (payload.new && payload.new.subscription_plan) {
+              setCurrentPlan(payload.new.subscription_plan);
+              toast({
+                title: "Subscription Updated",
+                description: `Your plan has been updated to ${payload.new.subscription_plan.charAt(0).toUpperCase() + payload.new.subscription_plan.slice(1)}`,
+              });
+            }
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user, toast]);
+
   const handlePlanSelection = (planName: string, planId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to subscribe to a plan",
+        variant: "destructive"
+      });
+      navigate("/auth");
+      return;
+    }
+
     // If it's the current plan, just show a toast
     if (planId === currentPlan) {
       toast({
@@ -78,7 +151,7 @@ const Pricing = () => {
       return;
     }
 
-    // For paid plans, show upgrade toast
+    // For paid plans, redirect to NagorikPay
     const paymentUrl = `https://secure-pay.nagorikpay.com/api/execute/02dc3553affdd9bdf91d0225d4e91aa0`;
     window.open(paymentUrl, '_blank');
     toast({

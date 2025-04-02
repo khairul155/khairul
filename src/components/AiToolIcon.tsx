@@ -1,10 +1,10 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Wand2, FileSearch, PenTool, MessageSquareText, ArrowUpFromLine, LayoutGrid, Coins } from "lucide-react";
+import { Coins, Wand2, FileSearch, PenTool, ArrowLeftRight, ArrowUpFromLine, LayoutGrid, Shapes } from "lucide-react";
 
 interface AiToolIconProps {
-  icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI";
+  icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI" | "DM"; // Icon names
   label: string;
   color: string;
   onClick?: () => void;
@@ -26,28 +26,30 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
 }) => {
   // Map of background colors for each icon type
   const colorMap = {
-    IG: "bg-blue-500",    // Image Generator
-    MD: "bg-gray-800",    // Meta Data Generator
-    GD: "bg-purple-600",  // Graphic Designer Bot
-    IP: "bg-orange-500",  // Image to Prompt
-    IU: "bg-pink-500",    // Image Upscaler
-    BI: "bg-yellow-500",  // Bulk Image Size Increaser
+    IG: "bg-blue-500", // Image Generator
+    MD: "bg-gray-800", // Meta Data Generator
+    GD: "bg-purple-600", // Graphic Designer Bot
+    IP: "bg-orange-500", // Image to Prompt
+    IU: "bg-pink-500", // Image Upscaler
+    BI: "bg-yellow-500", // Bulk Image Size Increaser
+    DM: "bg-green-500", // Demo
   };
 
   // Map of icons for each tool
   const iconMap = {
-    IG: <Wand2 className="w-7 h-7 text-white" strokeWidth={2.5} />,
-    MD: <FileSearch className="w-7 h-7 text-white" strokeWidth={2.5} />,
-    GD: <PenTool className="w-7 h-7 text-white" strokeWidth={2.5} />,
-    IP: <MessageSquareText className="w-7 h-7 text-white" strokeWidth={2.5} />,
-    IU: <ArrowUpFromLine className="w-7 h-7 text-white" strokeWidth={2.5} />,
-    BI: <LayoutGrid className="w-7 h-7 text-white" strokeWidth={2.5} />,
+    IG: <Wand2 className="w-6 h-6 text-white" />,
+    MD: <FileSearch className="w-6 h-6 text-white" />,
+    GD: <PenTool className="w-6 h-6 text-white" />,
+    IP: <ArrowLeftRight className="w-6 h-6 text-white" />,
+    IU: <ArrowUpFromLine className="w-6 h-6 text-white" />,
+    BI: <LayoutGrid className="w-6 h-6 text-white" />,
+    DM: <Shapes className="w-6 h-6 text-white" />,
   };
 
   return (
     <div 
       className={cn(
-        "flex flex-col items-center text-center transition-all duration-300 group",
+        "flex flex-col items-center text-center transition-all duration-300",
         isUpcoming ? "opacity-70 pointer-events-none" : "hover:scale-110 cursor-pointer",
         isActive && "scale-110",
         className
@@ -55,7 +57,7 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
       onClick={!isUpcoming ? onClick : undefined}
     >
       <div className={cn(
-        "w-20 h-20 rounded-xl shadow-lg flex items-center justify-center mb-3 relative transform transition-transform duration-300 group-hover:shadow-xl",
+        "w-16 h-16 rounded-full shadow-lg flex items-center justify-center mb-3 relative transform transition-transform duration-300",
         colorMap[icon],
         "hover:shadow-xl",
         isActive && "ring-2 ring-white ring-opacity-70"
@@ -77,9 +79,9 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
           </div>
         )}
         
-        {iconMap[icon]}
+        {iconMap[icon] || <span className="text-white text-lg font-bold">{icon}</span>}
       </div>
-      <h3 className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200 mt-2">
+      <h3 className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">
         {label}
       </h3>
     </div>
