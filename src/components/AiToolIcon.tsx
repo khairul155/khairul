@@ -1,10 +1,10 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Coins, Wand2, FileSearch, PenTool, ArrowLeftRight, ArrowUpFromLine, LayoutGrid, Shapes } from "lucide-react";
+import { Coins, Wand2, FileSearch, PenTool, ArrowLeftRight, ArrowUpFromLine, LayoutGrid } from "lucide-react";
 
 interface AiToolIconProps {
-  icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI" | "DM"; // Icon names
+  icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI"; // Icon names
   label: string;
   color: string;
   onClick?: () => void;
@@ -32,7 +32,6 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
     IP: "bg-orange-500", // Image to Prompt
     IU: "bg-pink-500", // Image Upscaler
     BI: "bg-yellow-500", // Bulk Image Size Increaser
-    DM: "bg-green-500", // Demo
   };
 
   // Map of icons for each tool
@@ -43,7 +42,6 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
     IP: <ArrowLeftRight className="w-6 h-6 text-white" />,
     IU: <ArrowUpFromLine className="w-6 h-6 text-white" />,
     BI: <LayoutGrid className="w-6 h-6 text-white" />,
-    DM: <Shapes className="w-6 h-6 text-white" />,
   };
 
   return (
