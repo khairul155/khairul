@@ -1,6 +1,6 @@
 
 import { NEBIUS_API_KEY } from "@/utils/apiKeys";
-import { doc, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, addDoc, serverTimestamp, collection } from "firebase/firestore";
 import { db, imagePromptHistoryCollection } from "@/integrations/firebase/client";
 
 type GenerationOptions = {
@@ -79,13 +79,17 @@ export const saveGeneratedImage = async (
   settings: Record<string, any>
 ) => {
   try {
-    const userImagesRef = doc(db, "users", userId, "saved_images");
-    await addDoc(userImagesRef, {
+    // Create a reference to the user's saved_images collection
+    const userImagesCollection = collection(db, "users", userId, "saved_images");
+    
+    // Add a new document to the collection
+    await addDoc(userImagesCollection, {
       imageUrl,
       prompt,
       settings,
       createdAt: serverTimestamp()
     });
+    
     return { success: true };
   } catch (error) {
     console.error("Error saving image:", error);
