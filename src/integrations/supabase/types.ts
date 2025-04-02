@@ -9,155 +9,19 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      payment_logs: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          id: string
-          payment_id: string | null
-          plan: string
-          prorated: boolean | null
-          prorated_credits: number | null
-          user_id: string
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string | null
-          id?: string
-          payment_id?: string | null
-          plan: string
-          prorated?: boolean | null
-          prorated_credits?: number | null
-          user_id: string
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string | null
-          id?: string
-          payment_id?: string | null
-          plan?: string
-          prorated?: boolean | null
-          prorated_credits?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          id: string
-          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
-          updated_at: string
-          username: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          id: string
-          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
-          updated_at?: string
-          username?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          id?: string
-          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
-          updated_at?: string
-          username?: string | null
-        }
-        Relationships: []
-      }
-      tool_usage: {
-        Row: {
-          created_at: string
-          daily_limit: number
-          id: string
-          last_reset_date: string
-          monthly_limit: number | null
-          tool_name: string
-          updated_at: string
-          usage_this_month: number
-          usage_today: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          daily_limit: number
-          id?: string
-          last_reset_date?: string
-          monthly_limit?: number | null
-          tool_name: string
-          updated_at?: string
-          usage_this_month?: number
-          usage_today?: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          daily_limit?: number
-          id?: string
-          last_reset_date?: string
-          monthly_limit?: number | null
-          tool_name?: string
-          updated_at?: string
-          usage_this_month?: number
-          usage_today?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_credits: {
-        Row: {
-          created_at: string
-          credits_used_this_month: number
-          credits_used_today: number
-          daily_credits: number
-          id: string
-          last_reset_date: string
-          monthly_credits: number
-          next_reset_date: string | null
-          slow_mode_enabled: boolean
-          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          credits_used_this_month?: number
-          credits_used_today?: number
-          daily_credits?: number
-          id?: string
-          last_reset_date?: string
-          monthly_credits?: number
-          next_reset_date?: string | null
-          slow_mode_enabled?: boolean
-          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          credits_used_this_month?: number
-          credits_used_today?: number
-          daily_credits?: number
-          id?: string
-          last_reset_date?: string
-          monthly_credits?: number
-          next_reset_date?: string | null
-          slow_mode_enabled?: boolean
-          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      deduct_user_credits: {
+        Args: {
+          user_id: string
+          amount?: number
+        }
+        Returns: Json
+      }
       get_user_credits: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -170,13 +34,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      update_user_subscription: {
-        Args: {
-          _user_id: string
-          _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
-        }
-        Returns: undefined
-      }
+      update_user_subscription:
+        | {
+            Args: {
+              _user_id: string
+              _subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _user_id: string
+              _subscription_plan: string
+            }
+            Returns: undefined
+          }
       update_user_subscription_with_payment: {
         Args: {
           _user_id: string
