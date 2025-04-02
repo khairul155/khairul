@@ -1,7 +1,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Wand2, FileSearch, PenTool, MessageSquareText, ArrowUpFromLine, LayoutGrid } from "lucide-react";
+import { Wand2, FileSearch, PenTool, MessageSquareText, ArrowUpFromLine, LayoutGrid, Coins } from "lucide-react";
 
 interface AiToolIconProps {
   icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI";
