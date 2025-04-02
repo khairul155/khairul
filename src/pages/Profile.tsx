@@ -6,17 +6,7 @@ import UserCredits from "@/components/UserCredits";
 import { Button } from "@/components/ui/button";
 import { User, Settings, History, CreditCard, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-// Define an interface for the payload data structure
-interface UserSubscriptionData {
-  subscription_plan: string;
-  monthly_credits: number;
-  credits_used_this_month: number;
-  daily_credits: number;
-  credits_used_today: number;
-}
 
 const Profile = () => {
   const { user, credits } = useAuth();
@@ -26,86 +16,14 @@ const Profile = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!user) return;
-      
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('user_credits')
-          .select('subscription_plan, monthly_credits, credits_used_this_month, daily_credits, credits_used_today')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (error) {
-          console.error("Error fetching user profile:", error);
-          return;
-        }
-        
-        if (data) {
-          console.log("Profile subscription data:", data);
-          setSubscription(data.subscription_plan);
-          
-          // Set the correct credits display based on subscription plan
-          if (data.subscription_plan !== 'free') {
-            setDisplayCredits(data.monthly_credits - data.credits_used_this_month);
-          } else {
-            setDisplayCredits(data.daily_credits - data.credits_used_today);
-          }
-        }
-      } catch (error) {
-        console.error("Error in fetchUserProfile:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserProfile();
+    // For now, just use the local credits value
+    // This will be replaced with Firebase Firestore data fetching later
+    setIsLoading(false);
+    setDisplayCredits(credits);
     
-    // Set up real-time subscription for plan changes
-    if (user) {
-      console.log("Setting up realtime subscription in Profile for user", user.id);
-      const channel = supabase
-        .channel('profile-subscription-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*', // Listen for all events
-            schema: 'public',
-            table: 'user_credits',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            console.log('Subscription updated in Profile:', payload);
-            // Properly type the payload.new to avoid TypeScript errors
-            if (payload.new) {
-              const newData = payload.new as UserSubscriptionData;
-              if (newData.subscription_plan && newData.subscription_plan !== subscription) {
-                setSubscription(newData.subscription_plan);
-                toast({
-                  title: "Subscription Updated",
-                  description: `Your plan has been updated to ${newData.subscription_plan.charAt(0).toUpperCase() + newData.subscription_plan.slice(1)}`,
-                });
-                
-                // Update displayed credits based on plan
-                if (newData.subscription_plan !== 'free') {
-                  setDisplayCredits(newData.monthly_credits - newData.credits_used_this_month);
-                } else {
-                  setDisplayCredits(newData.daily_credits - newData.credits_used_today);
-                }
-              }
-            }
-          }
-        )
-        .subscribe((status) => {
-          console.log("Profile subscription status:", status);
-        });
-        
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user, toast, subscription]);
+    // Simulating subscription data (to be replaced with Firestore)
+    setSubscription('free');
+  }, [credits]);
 
   const getSubscriptionName = (plan) => {
     const names = {
@@ -134,7 +52,7 @@ const Profile = () => {
                     <User className="h-6 w-6 text-gray-300" />
                   </div>
                   <div>
-                    <h3 className="font-medium">{user?.email}</h3>
+                    <h3 className="font-medium">{user?.email || 'Guest User'}</h3>
                     <p className="text-sm text-gray-400">
                       {isLoading ? 'Loading...' : getSubscriptionName(subscription)}
                     </p>
@@ -181,7 +99,7 @@ const Profile = () => {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-medium text-gray-400 mb-1">Email</h3>
-                  <p className="text-lg">{user?.email}</p>
+                  <p className="text-lg">{user?.email || 'Guest User'}</p>
                 </div>
                 
                 <div>
