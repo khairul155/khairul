@@ -2,16 +2,9 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, db } from "@/integrations/firebase/client";
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  onAuthStateChanged,
-  signOut as firebaseSignOut,
-  User
-} from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, collection, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { signInUser, signInWithGoogle, signOutUser, createUser } from "@/services/authService";
 
 type AuthContextType = {
   isLoading: boolean;
@@ -121,9 +114,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await initializeUserCredits(userCredential.user.uid);
-      return { success: true };
+      const result = await signInUser(email, password);
+      
+      if (result.success && result.user) {
+        await initializeUserCredits(result.user.uid);
+      }
+      
+      return { success: result.success, error: result.error };
     } catch (error) {
       console.error("Error signing in:", error);
       return { 
@@ -139,22 +136,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, username?: string) => {
     try {
       setIsLoading(true);
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const result = await createUser(email, password, username);
       
-      // Create user profile in Firestore
-      const userRef = doc(db, "profiles", userCredential.user.uid);
-      await setDoc(userRef, {
-        id: userCredential.user.uid,
-        email: email,
-        username: username || email.split('@')[0],
-        subscription_plan: 'free',
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp()
-      });
+      if (result.success && result.user) {
+        await initializeUserCredits(result.user.uid);
+      }
       
-      await initializeUserCredits(userCredential.user.uid);
-      
-      return { success: true };
+      return { success: result.success, error: result.error };
     } catch (error) {
       console.error("Error signing up:", error);
       return { 
@@ -167,29 +155,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Function to sign in with Google
-  const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
+  const handleSignInWithGoogle = async () => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      const result = await signInWithGoogle();
       
-      // Check if profile exists, if not create it
-      const userRef = doc(db, "profiles", user.uid);
-      const userSnap = await getDoc(userRef);
-      
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          id: user.uid,
-          email: user.email,
-          username: user.displayName || user.email?.split('@')[0],
-          subscription_plan: 'free',
-          created_at: serverTimestamp(),
-          updated_at: serverTimestamp()
+      if (result.success && result.user) {
+        await initializeUserCredits(result.user.uid);
+      } else if (!result.success) {
+        toast({
+          title: "Google sign in failed",
+          description: "An error occurred during Google sign in.",
+          variant: "destructive",
         });
       }
-      
-      await initializeUserCredits(user.uid);
-      
     } catch (error) {
       console.error("Error signing in with Google:", error);
       toast({
@@ -201,9 +179,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Function to sign out
-  const signOut = async () => {
+  const handleSignOut = async () => {
     try {
-      await firebaseSignOut(auth);
+      await signOutUser();
       setCredits(60); // Reset to default
     } catch (error) {
       console.error("Error signing out:", error);
@@ -348,8 +326,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credits,
         signIn,
         signUp,
-        signInWithGoogle,
-        signOut,
+        signInWithGoogle: handleSignInWithGoogle,
+        signOut: handleSignOut,
         deductCredits,
       }}
     >

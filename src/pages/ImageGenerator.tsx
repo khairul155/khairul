@@ -1,15 +1,16 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ChevronLeft, Wand2, ImageIcon, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import ImageGrid from "@/components/ImageGrid";
 import { Link, useNavigate } from "react-router-dom";
 import GenerationSidebar, { GenerationSettings } from "@/components/GenerationSidebar";
 import { useAuth } from "@/components/AuthProvider";
 import TypingEffect from "@/components/TypingEffect";
+import { generateImage } from "@/services/imageGenerationService";
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState("");
@@ -20,7 +21,7 @@ const ImageGenerator = () => {
   const [generationTime, setGenerationTime] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const { deductCredits, credits } = useAuth();
+  const { deductCredits, credits, user } = useAuth();
   const navigate = useNavigate();
   
   // Generation settings with updated default steps for fast mode
@@ -35,7 +36,7 @@ const ImageGenerator = () => {
     useSeed: false // Add flag to track if seed should be used
   });
 
-  const generateImage = async () => {
+  const handleImageGeneration = async () => {
     if (!prompt.trim()) {
       toast({
         title: "Error",
@@ -78,28 +79,27 @@ const ImageGenerator = () => {
 
       const seedToUse = generationSettings.useSeed ? generationSettings.seed : -1;
       
-      // Proceed with image generation only if credit deduction was successful
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { 
-          prompt,
-          width: generationSettings.width,
-          height: generationSettings.height,
-          negative_prompt: generationSettings.negativePrompt || "",
-          num_images: 1,
-          num_inference_steps: generationSettings.steps,
-          seed: seedToUse
-        }
-      });
+      // Call our image generation service
+      const result = await generateImage({
+        prompt,
+        negativePrompt: generationSettings.negativePrompt,
+        width: generationSettings.width,
+        height: generationSettings.height,
+        steps: generationSettings.steps,
+        seed: seedToUse
+      }, user?.uid);
 
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error || "Failed to generate image");
+      }
 
       // Calculate generation time
       const endTime = new Date();
       const timeDiff = (endTime.getTime() - startTime.getTime()) / 1000; // in seconds
       setGenerationTime(`${timeDiff.toFixed(1)}s`);
 
-      // Handle multiple images if the API supports it
-      const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
+      // Extract image data from the response
+      const images = result.data.images.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
       setGeneratedImages(images);
       
       toast({
@@ -127,7 +127,7 @@ const ImageGenerator = () => {
 
   const handleRegenerate = () => {
     if (prompt) {
-      generateImage();
+      handleImageGeneration();
     }
   };
 
@@ -143,7 +143,7 @@ const ImageGenerator = () => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      generateImage();
+      handleImageGeneration();
     }
   };
 
@@ -151,15 +151,18 @@ const ImageGenerator = () => {
   const getInspiration = async () => {
     setIsLoadingPrompt(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-prompt', {
-        body: {}
-      });
-
-      if (error) throw error;
-
-      if (data && data.prompt) {
-        setPrompt(data.prompt);
-      }
+      // Here we could fetch from Nebius or another AI service
+      // For now, use some predefined prompts
+      const inspirationPrompts = [
+        "A serene landscape with mountains and a lake at sunset, dramatic lighting",
+        "Futuristic cyberpunk city with neon lights and flying vehicles",
+        "A magical forest with glowing plants and mystical creatures",
+        "Portrait of a fantasy character with detailed armor and weapons",
+        "An underwater scene with coral reefs and exotic fish, photorealistic"
+      ];
+      
+      const randomPrompt = inspirationPrompts[Math.floor(Math.random() * inspirationPrompts.length)];
+      setPrompt(randomPrompt);
     } catch (error) {
       console.error('Error getting inspiration:', error);
       toast({
@@ -271,7 +274,7 @@ const ImageGenerator = () => {
                 </Button>
               
                 <Button
-                  onClick={generateImage}
+                  onClick={handleImageGeneration}
                   disabled={isLoading || !prompt.trim()}
                   className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-md px-6"
                 >

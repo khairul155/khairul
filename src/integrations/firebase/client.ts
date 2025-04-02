@@ -32,4 +32,10 @@ export const getUserCreditsRef = (userId: string) => {
   return doc(db, 'user_credits', userId);
 };
 
+// Helper functions for essential collections
+export const usersCollection = collection(db, 'users');
+export const generatedImagesCollection = collection(db, 'generated_images');
+export const userPreferencesCollection = collection(db, 'user_preferences');
+export const imagePromptHistoryCollection = collection(db, 'image_prompt_history');
+
 export default app;
