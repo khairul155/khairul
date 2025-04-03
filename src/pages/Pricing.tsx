@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const pricingPlans = [{
   name: "Free",
@@ -68,15 +69,67 @@ const Pricing = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // For now, just use a simple timeout to simulate loading
-    // This will be replaced with Firebase Firestore data fetching later
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      setCurrentPlan('free');
-    }, 500);
+    const fetchUserSubscription = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('user_credits')
+          .select('subscription_plan')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching user subscription:", error);
+          return;
+        }
+        
+        if (data) {
+          setCurrentPlan(data.subscription_plan);
+        }
+      } catch (error) {
+        console.error("Error in fetchUserSubscription:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserSubscription();
     
-    return () => clearTimeout(timer);
-  }, [user]);
+    // Set up real-time subscription for plan changes
+    if (user) {
+      const channel = supabase
+        .channel('subscription-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'user_credits',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Subscription updated:', payload);
+            if (payload.new && payload.new.subscription_plan) {
+              setCurrentPlan(payload.new.subscription_plan);
+              toast({
+                title: "Subscription Updated",
+                description: `Your plan has been updated to ${payload.new.subscription_plan.charAt(0).toUpperCase() + payload.new.subscription_plan.slice(1)}`,
+              });
+            }
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user, toast]);
 
   const handlePlanSelection = (planName: string, planId: string) => {
     if (!user) {

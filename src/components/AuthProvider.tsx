@@ -1,309 +1,135 @@
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User, Session } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
-import { auth, db } from "@/integrations/firebase/client";
-import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { signInUser, signInWithGoogle, signOutUser, createUser } from "@/services/authService";
 
 type AuthContextType = {
-  isLoading: boolean;
   user: User | null;
+  session: Session | null;
+  isLoading: boolean;
   credits: number;
-  signIn: (email: string, password: string) => Promise<{
-    success: boolean;
-    error?: Error;
-  }>;
-  signUp: (email: string, password: string, username?: string) => Promise<{
-    success: boolean;
-    error?: Error;
-  }>;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => Promise<void>;
   deductCredits: (amount?: number) => Promise<{
     success: boolean;
     message?: string;
     remaining?: number;
   }>;
+  signIn: (email: string, password: string) => Promise<{
+    error: Error | null;
+    success: boolean;
+  }>;
+  signUp: (email: string, password: string, username?: string) => Promise<{
+    error: Error | null;
+    success: boolean;
+  }>;
+  signInWithGoogle: () => Promise<{
+    error: Error | null;
+    success: boolean;
+  }>;
+  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [credits, setCredits] = useState<number>(60); // Default free credits
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [credits, setCredits] = useState<number>(60); // Default to 60 for free plan
   const { toast } = useToast();
 
-  // Function to initialize or get user credits
-  const initializeUserCredits = async (userId: string) => {
+  // Function to fetch user credits
+  const fetchUserCredits = async (userId: string) => {
     try {
-      const userCreditsRef = doc(db, "user_credits", userId);
-      const creditsDoc = await getDoc(userCreditsRef);
+      console.log("Fetching credits for user:", userId);
+      const { data, error } = await supabase.functions.invoke('get-user-credits', {
+        body: { userId }
+      });
       
-      // Get current date in UTC+6 (Bangladesh Standard Time)
-      const now = new Date();
-      const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-      const bstTime = new Date(utcTime + (6 * 60 * 60 * 1000));
-      const today = bstTime.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      if (error) {
+        console.error("Error fetching user credits:", error);
+        return;
+      }
       
-      if (!creditsDoc.exists()) {
-        // Create new user credits document
-        await setDoc(userCreditsRef, {
-          user_id: userId,
-          subscription_plan: 'free',
-          daily_credits: 60,
-          credits_used_today: 0,
-          monthly_credits: 0,
-          credits_used_this_month: 0,
-          last_reset_date: today,
-          created_at: serverTimestamp(),
-          updated_at: serverTimestamp()
-        });
-        setCredits(60);
-        return 60;
+      console.log("Credits data received:", data);
+      
+      if (data && typeof data.credits === 'number') {
+        setCredits(data.credits);
       } else {
-        const userData = creditsDoc.data();
-        
-        // Reset daily credits if it's a new day for free users
-        if (userData.subscription_plan === 'free' && userData.last_reset_date < today) {
-          await updateDoc(userCreditsRef, {
-            credits_used_today: 0,
-            last_reset_date: today,
-            updated_at: serverTimestamp()
-          });
-          setCredits(userData.daily_credits);
-          return userData.daily_credits;
-        }
-        
-        // Calculate available credits based on plan
-        if (userData.subscription_plan === 'free') {
-          const availableCredits = userData.daily_credits - userData.credits_used_today;
-          setCredits(availableCredits);
-          return availableCredits;
-        } else {
-          const availableCredits = userData.monthly_credits - userData.credits_used_this_month;
-          setCredits(availableCredits);
-          return availableCredits;
-        }
+        // Default to 60 tokens for free tier if no specific credits found
+        console.log("Setting default credits (60)");
+        setCredits(60);
       }
     } catch (error) {
-      console.error("Error initializing user credits:", error);
-      // Default to 60 credits if there's an error
-      setCredits(60);
-      return 60;
-    }
-  };
-
-  // Listen for auth state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      
-      if (user) {
-        await initializeUserCredits(user.uid);
-      }
-      
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Function to sign in
-  const signIn = async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      const result = await signInUser(email, password);
-      
-      if (result.success && result.user) {
-        await initializeUserCredits(result.user.uid);
-      }
-      
-      return { success: result.success, error: result.error };
-    } catch (error) {
-      console.error("Error signing in:", error);
-      return { 
-        success: false, 
-        error: error as Error 
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Function to sign up
-  const signUp = async (email: string, password: string, username?: string) => {
-    try {
-      setIsLoading(true);
-      const result = await createUser(email, password, username);
-      
-      if (result.success && result.user) {
-        await initializeUserCredits(result.user.uid);
-      }
-      
-      return { success: result.success, error: result.error };
-    } catch (error) {
-      console.error("Error signing up:", error);
-      return { 
-        success: false, 
-        error: error as Error 
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Function to sign in with Google
-  const handleSignInWithGoogle = async () => {
-    try {
-      const result = await signInWithGoogle();
-      
-      if (result.success && result.user) {
-        await initializeUserCredits(result.user.uid);
-      } else if (!result.success) {
-        toast({
-          title: "Google sign in failed",
-          description: "An error occurred during Google sign in.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error signing in with Google:", error);
-      toast({
-        title: "Google sign in failed",
-        description: "An error occurred during Google sign in.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Function to sign out
-  const handleSignOut = async () => {
-    try {
-      await signOutUser();
-      setCredits(60); // Reset to default
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        title: "Sign out failed",
-        description: "An error occurred during sign out.",
-        variant: "destructive",
-      });
+      console.error("Error invoking get-user-credits function:", error);
+      setCredits(60); // Default fallback
     }
   };
 
   // Function to deduct credits
   const deductCredits = async (amount = 4) => {
+    if (!user) {
+      return { success: false, message: "User not authenticated" };
+    }
+
     try {
-      setIsLoading(true);
-      
-      if (!user) {
+      console.log("Deducting credits for user:", user.id, "amount:", amount);
+      const { data, error } = await supabase.functions.invoke('get-user-credits', {
+        body: { userId: user.id, action: "deduct", amount: amount }
+      });
+
+      console.log("Deduct response:", data, error);
+
+      if (error) {
+        console.error("Error deducting credits:", error);
         toast({
-          title: "Not authenticated",
-          description: "You need to be logged in to use this feature.",
+          title: "Error",
+          description: "Failed to deduct credits. Please try again.",
           variant: "destructive",
         });
         return { 
           success: false, 
-          message: "Not authenticated" 
+          message: "Failed to deduct credits" 
         };
       }
-      
-      // Simple check without Firebase if not enough credits
-      if (credits < amount) {
+
+      if (data && data.error) {
+        console.error("API error deducting credits:", data.error);
         toast({
           title: "Not enough credits",
-          description: "You don't have enough credits to generate an image.",
+          description: data.error || "You don't have enough credits to generate an image.",
           variant: "destructive",
         });
         return { 
           success: false, 
-          message: "Not enough credits" 
+          message: data.error 
         };
       }
-      
-      // Get current date in UTC+6 (Bangladesh Standard Time)
-      const now = new Date();
-      const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-      const bstTime = new Date(utcTime + (6 * 60 * 60 * 1000));
-      const today = bstTime.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-      
-      const userCreditsRef = doc(db, "user_credits", user.uid);
-      const creditsDoc = await getDoc(userCreditsRef);
-      
-      if (!creditsDoc.exists()) {
-        // This shouldn't happen normally, but create if not exists
-        await setDoc(userCreditsRef, {
-          user_id: user.uid,
-          subscription_plan: 'free',
-          daily_credits: 60,
-          credits_used_today: amount,
-          monthly_credits: 0,
-          credits_used_this_month: 0,
-          last_reset_date: today,
-          created_at: serverTimestamp(),
-          updated_at: serverTimestamp()
-        });
-        
-        const newCredits = 60 - amount;
-        setCredits(newCredits);
+
+      // Update local state with new credit amount
+      if (data && typeof data.credits === 'number') {
+        console.log("Credits updated to:", data.credits);
+        setCredits(data.credits);
         
         return { 
           success: true,
-          remaining: newCredits
-        };
-      }
-      
-      const userData = creditsDoc.data();
-      
-      // Reset daily credits if it's a new day for free users
-      if (userData.subscription_plan === 'free' && userData.last_reset_date < today) {
-        await updateDoc(userCreditsRef, {
-          credits_used_today: amount,
-          last_reset_date: today,
-          updated_at: serverTimestamp()
-        });
-        
-        const newCredits = userData.daily_credits - amount;
-        setCredits(newCredits);
-        
-        return { 
-          success: true,
-          remaining: newCredits
-        };
-      }
-      
-      // Update credits based on plan
-      if (userData.subscription_plan === 'free') {
-        await updateDoc(userCreditsRef, {
-          credits_used_today: userData.credits_used_today + amount,
-          updated_at: serverTimestamp()
-        });
-        
-        const newCredits = userData.daily_credits - (userData.credits_used_today + amount);
-        setCredits(newCredits);
-        
-        return { 
-          success: true,
-          remaining: newCredits
+          remaining: data.credits
         };
       } else {
-        await updateDoc(userCreditsRef, {
-          credits_used_this_month: userData.credits_used_this_month + amount,
-          updated_at: serverTimestamp()
+        // Handle unexpected API response format
+        console.error("Unexpected response format:", data);
+        toast({
+          title: "Error",
+          description: "Unexpected response from the server.",
+          variant: "destructive",
         });
-        
-        const newCredits = userData.monthly_credits - (userData.credits_used_this_month + amount);
-        setCredits(newCredits);
-        
-        return { 
-          success: true,
-          remaining: newCredits
+        return {
+          success: false,
+          message: "Unexpected response format"
         };
       }
     } catch (error) {
-      console.error("Error deducting credits:", error);
+      console.error("Exception deducting credits:", error);
       toast({
         title: "Error",
         description: "Failed to deduct credits. Please try again.",
@@ -313,22 +139,144 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         success: false, 
         message: "Error processing request" 
       };
-    } finally {
-      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    // First set up the auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        console.log("Auth state changed:", event);
+        setSession(newSession);
+        const newUser = newSession?.user ?? null;
+        setUser(newUser);
+        
+        // Fetch user credits when user is authenticated
+        if (newUser) {
+          fetchUserCredits(newUser.id);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Then check for an existing session
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      const currentUser = data.session?.user ?? null;
+      setUser(currentUser);
+      
+      // Fetch user credits when user is authenticated
+      if (currentUser) {
+        fetchUserCredits(currentUser.id);
+      }
+      
+      setIsLoading(false);
+    });
+
+    // Check for auth redirect errors on page load
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const error = hashParams.get("error");
+    const errorDescription = hashParams.get("error_description");
+    
+    if (error) {
+      console.error("Auth redirect error:", error, errorDescription);
+      toast({
+        title: "Authentication Error",
+        description: errorDescription || "There was a problem with authentication.",
+        variant: "destructive",
+      });
+    }
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error, success: !error };
+    } catch (error) {
+      return { error: error as Error, success: false };
+    }
+  };
+
+  const signUp = async (email: string, password: string, username?: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name: username }
+        }
+      });
+      return { error, success: !error };
+    } catch (error) {
+      return { error: error as Error, success: false };
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      console.log("Initiating Google sign-in...");
+      
+      // Get the current site URL for redirect
+      const redirectTo = window.location.origin + '/auth';
+      console.log("Redirect URL:", redirectTo);
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
+      
+      if (error) {
+        console.error("Google sign-in error:", error);
+        toast({
+          title: "Google Sign-In Failed",
+          description: error.message || "There was a problem signing in with Google.",
+          variant: "destructive",
+        });
+        return { error, success: false };
+      }
+      
+      return { error: null, success: true };
+    } catch (error) {
+      console.error("Google sign-in exception:", error);
+      toast({
+        title: "Google Sign-In Failed",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      return { error: error as Error, success: false };
+    }
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
     <AuthContext.Provider
       value={{
-        isLoading,
         user,
+        session,
+        isLoading,
         credits,
+        deductCredits,
         signIn,
         signUp,
-        signInWithGoogle: handleSignInWithGoogle,
-        signOut: handleSignOut,
-        deductCredits,
+        signInWithGoogle,
+        signOut,
       }}
     >
       {children}

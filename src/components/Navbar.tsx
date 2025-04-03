@@ -3,10 +3,14 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/components/AuthProvider";
 import { 
   Menu, 
   X, 
   ChevronDown, 
+  LogOut, 
+  User,
+  Wand2,
   Home,
   Image,
   MessageSquare,
@@ -16,6 +20,14 @@ import {
   HelpCircle,
   Coins
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -26,7 +38,6 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { useAuth } from "@/components/AuthProvider";
 
 // Subcomponent for navigation menu items
 const ListItem = React.forwardRef<
@@ -61,9 +72,9 @@ ListItem.displayName = "ListItem";
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
-  const { credits } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -81,6 +92,14 @@ const Navbar = () => {
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({
+      title: "Signed out",
+      description: "You have been successfully signed out.",
+    });
+  };
 
   const isLandingPage = location.pathname === "/";
   const isGeneratorPage = location.pathname === "/image-generator";
@@ -174,13 +193,56 @@ const Navbar = () => {
             </NavigationMenu>
           </div>
 
-          {/* Right Side: Theme Toggle & Credits */}
+          {/* Right Side: Auth & Menu */}
           <div className="flex items-center space-x-4">
             <ThemeToggle />
-            <div className="hidden md:flex items-center gap-2 text-white">
-              <Coins className="h-4 w-4 text-yellow-500" />
-              <span>{credits} tokens</span>
-            </div>
+
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="border-gray-700 text-white bg-transparent hover:bg-white/10"
+                  >
+                    My Account
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
+                      <Link to="/profile" className="flex">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
+                      <Link to="/pricing" className="flex">
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        <span>Subscription</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="hover:bg-white/10 cursor-pointer">
+                      <Coins className="mr-2 h-4 w-4" />
+                      <span>Tokens: {60}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-gray-800" />
+                    <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white/10 cursor-pointer text-red-400 hover:text-red-300">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                variant="default" 
+                className="bg-white text-black hover:bg-gray-300"
+                asChild
+              >
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )}
 
             {/* Mobile menu button */}
             <Button 
@@ -264,10 +326,37 @@ const Navbar = () => {
               About
             </Link>
             
-            <div className="flex items-center px-3 py-2 text-base font-medium text-gray-300">
-              <Coins className="mr-2 h-5 w-5 text-yellow-500" />
-              <span>{credits} tokens</span>
-            </div>
+            {user ? (
+              <>
+                <div className="border-t border-gray-800 py-2">
+                  <p className="px-3 py-1 text-xs text-gray-500 uppercase">Account</p>
+                </div>
+                
+                <Link 
+                  to="/profile" 
+                  className="flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </Link>
+                
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-gray-900"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </Button>
+              </>
+            ) : (
+              <Button 
+                className="w-full mt-4 bg-white text-black hover:bg-gray-300"
+                asChild
+              >
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )}
           </div>
         </div>
       )}
