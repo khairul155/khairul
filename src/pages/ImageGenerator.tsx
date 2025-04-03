@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon, Sparkles } from "lucide-react";
+import { Loader2, ChevronLeft, Wand2, ImageIcon, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ImageGrid from "@/components/ImageGrid";
 import { Link, useNavigate } from "react-router-dom";
@@ -20,7 +20,7 @@ const ImageGenerator = () => {
   const [generationTime, setGenerationTime] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const { user, deductCredits, credits } = useAuth();
+  const { deductCredits, credits } = useAuth();
   const navigate = useNavigate();
   
   // Generation settings with updated default steps for fast mode
@@ -42,16 +42,6 @@ const ImageGenerator = () => {
         description: "Please enter a prompt first",
         variant: "destructive",
       });
-      return;
-    }
-
-    // Check if user is authenticated and redirect to auth page if not
-    if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to generate images",
-      });
-      navigate("/auth");
       return;
     }
 
