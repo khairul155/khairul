@@ -1,233 +1,155 @@
 
-import { createContext, useContext, useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { Session, User } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { User, Session } from "@supabase/supabase-js";
+import { useToast } from "@/hooks/use-toast";
 
 type AuthContextType = {
-  isLoading: boolean;
   user: User | null;
   session: Session | null;
-  credits: number;
+  isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{
+    error: Error | null;
     success: boolean;
-    error?: Error;
   }>;
   signUp: (email: string, password: string, username?: string) => Promise<{
+    error: Error | null;
     success: boolean;
-    error?: Error;
   }>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<{
+    error: Error | null;
+    success: boolean;
+  }>;
   signOut: () => Promise<void>;
-  deductCredits: (amount?: number) => Promise<{
-    success: boolean;
-    message?: string;
-    remaining?: number;
-  }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [credits, setCredits] = useState<number>(0);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Initialize authentication state
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Don't load credits here to avoid circular dependency
-        // Use setTimeout to defer the fetch
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserCredits(session.user.id);
-          }, 0);
-        } else {
-          setCredits(0);
-        }
+      (event, newSession) => {
+        console.log("Auth state changed:", event);
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        setIsLoading(false);
       }
     );
-    
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserCredits(session.user.id);
-      }
-      
+
+    // Then check for an existing session
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
       setIsLoading(false);
     });
-    
-    return () => subscription.unsubscribe();
-  }, []);
-  
-  // Function to fetch user credits
-  const fetchUserCredits = async (userId: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('get-user-credits', {
-        body: { userId }
-      });
-      
-      if (error) {
-        console.error("Error fetching credits:", error);
-        return;
-      }
-      
-      if (data && data.credits !== undefined) {
-        setCredits(data.credits);
-      }
-    } catch (error) {
-      console.error("Error in fetchUserCredits:", error);
-    }
-  };
 
-  // Authentication functions
+    // Check for auth redirect errors on page load
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const error = hashParams.get("error");
+    const errorDescription = hashParams.get("error_description");
+    
+    if (error) {
+      console.error("Auth redirect error:", error, errorDescription);
+      toast({
+        title: "Authentication Error",
+        description: errorDescription || "There was a problem with authentication.",
+        variant: "destructive",
+      });
+    }
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const signIn = async (email: string, password: string) => {
     try {
-      setIsLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      
-      if (error) {
-        throw error;
-      }
-      
-      return { success: true };
+      return { error, success: !error };
     } catch (error) {
-      console.error("Sign in error:", error);
-      return { success: false, error: error as Error };
-    } finally {
-      setIsLoading(false);
+      return { error: error as Error, success: false };
     }
   };
 
   const signUp = async (email: string, password: string, username?: string) => {
     try {
-      setIsLoading(true);
-      
-      const { error } = await supabase.auth.signUp({ 
-        email, 
+      const { error } = await supabase.auth.signUp({
+        email,
         password,
         options: {
-          data: {
-            username
+          data: { name: username }
+        }
+      });
+      return { error, success: !error };
+    } catch (error) {
+      return { error: error as Error, success: false };
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      console.log("Initiating Google sign-in...");
+      
+      // Get the current site URL for redirect
+      const redirectTo = window.location.origin + '/auth';
+      console.log("Redirect URL:", redirectTo);
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
           }
         }
       });
       
       if (error) {
-        throw error;
+        console.error("Google sign-in error:", error);
+        toast({
+          title: "Google Sign-In Failed",
+          description: error.message || "There was a problem signing in with Google.",
+          variant: "destructive",
+        });
+        return { error, success: false };
       }
       
-      return { success: true };
+      return { error: null, success: true };
     } catch (error) {
-      console.error("Sign up error:", error);
-      return { success: false, error: error as Error };
-    } finally {
-      setIsLoading(false);
+      console.error("Google sign-in exception:", error);
+      toast({
+        title: "Google Sign-In Failed",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+      return { error: error as Error, success: false };
     }
-  };
-
-  const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
-  // Function to deduct credits
-  const deductCredits = async (amount = 1) => {
-    try {
-      setIsLoading(true);
-      
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to use this feature.",
-          variant: "destructive",
-        });
-        return { 
-          success: false, 
-          message: "Authentication required" 
-        };
-      }
-      
-      const { data, error } = await supabase.functions.invoke('get-user-credits', {
-        body: { 
-          userId: user.id,
-          action: "deduct",
-          amount
-        }
-      });
-      
-      if (error || (data && data.error)) {
-        const errorMessage = data?.error || error?.message || "Error processing request";
-        toast({
-          title: "Error",
-          description: data?.details || errorMessage,
-          variant: "destructive",
-        });
-        return { 
-          success: false, 
-          message: errorMessage
-        };
-      }
-      
-      // Update local credits
-      if (data && data.credits !== undefined) {
-        setCredits(data.credits);
-      }
-      
-      return { 
-        success: true,
-        remaining: data?.credits || 0
-      };
-    } catch (error) {
-      console.error("Error deducting credits:", error);
-      toast({
-        title: "Error",
-        description: "Failed to deduct credits. Please try again.",
-        variant: "destructive",
-      });
-      return { 
-        success: false, 
-        message: "Error processing request" 
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <AuthContext.Provider
       value={{
-        isLoading,
         user,
         session,
-        credits,
+        isLoading,
         signIn,
         signUp,
         signInWithGoogle,
         signOut,
-        deductCredits,
       }}
     >
       {children}

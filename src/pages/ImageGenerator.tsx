@@ -1,9 +1,10 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, Wand2, ImageIcon, Sparkles } from "lucide-react";
+import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ImageGrid from "@/components/ImageGrid";
 import { Link, useNavigate } from "react-router-dom";
@@ -20,7 +21,7 @@ const ImageGenerator = () => {
   const [generationTime, setGenerationTime] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const { deductCredits, credits } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   
   // Generation settings with updated default steps for fast mode
@@ -45,13 +46,13 @@ const ImageGenerator = () => {
       return;
     }
 
-    // Validate that the user has credits available
-    if (credits <= 0) {
+    // Check if user is authenticated and redirect to auth page if not
+    if (!user) {
       toast({
-        title: "No credits available",
-        description: "You don't have enough credits to generate an image.",
-        variant: "destructive",
+        title: "Sign in required",
+        description: "Please sign in to generate images",
       });
+      navigate("/auth");
       return;
     }
 
@@ -65,20 +66,8 @@ const ImageGenerator = () => {
     const startTime = new Date();
 
     try {
-      // Deduct credits before generating image
-      const deductResult = await deductCredits(4);
-      console.log("Deduct result:", deductResult);
-      
-      if (!deductResult.success) {
-        clearInterval(progressInterval);
-        setIsLoading(false);
-        // Toast is already handled in the deductCredits function
-        return;
-      }
-
       const seedToUse = generationSettings.useSeed ? generationSettings.seed : -1;
       
-      // Proceed with image generation only if credit deduction was successful
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt,
@@ -101,11 +90,6 @@ const ImageGenerator = () => {
       // Handle multiple images if the API supports it
       const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
       setGeneratedImages(images);
-      
-      toast({
-        title: "Image Generated",
-        description: `Used 4 credits. You have ${deductResult.remaining} credits remaining.`,
-      });
       
     } catch (error) {
       console.error('Error generating image:', error);

@@ -1,17 +1,15 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Coins, Wand2, FileSearch, PenTool, ArrowLeftRight, ArrowUpFromLine, LayoutGrid, Shapes } from "lucide-react";
 
 interface AiToolIconProps {
-  icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI" | "DM"; // Icon names
+  icon: "IG" | "MD" | "GD" | "IP" | "IU" | "BI"; // Icon names
   label: string;
   color: string;
   onClick?: () => void;
   className?: string;
   isActive?: boolean;
   isUpcoming?: boolean;
-  tokens?: number;
 }
 
 const AiToolIcon: React.FC<AiToolIconProps> = ({ 
@@ -21,8 +19,7 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
   onClick,
   className,
   isActive = false,
-  isUpcoming = false,
-  tokens
+  isUpcoming = false
 }) => {
   // Map of background colors for each icon type
   const colorMap = {
@@ -32,18 +29,6 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
     IP: "bg-orange-500", // Image to Prompt
     IU: "bg-pink-500", // Image Upscaler
     BI: "bg-yellow-500", // Bulk Image Size Increaser
-    DM: "bg-green-500", // Demo
-  };
-
-  // Map of icons for each tool
-  const iconMap = {
-    IG: <Wand2 className="w-6 h-6 text-white" />,
-    MD: <FileSearch className="w-6 h-6 text-white" />,
-    GD: <PenTool className="w-6 h-6 text-white" />,
-    IP: <ArrowLeftRight className="w-6 h-6 text-white" />,
-    IU: <ArrowUpFromLine className="w-6 h-6 text-white" />,
-    BI: <LayoutGrid className="w-6 h-6 text-white" />,
-    DM: <Shapes className="w-6 h-6 text-white" />,
   };
 
   return (
@@ -72,14 +57,9 @@ const AiToolIcon: React.FC<AiToolIconProps> = ({
           </div>
         )}
         
-        {tokens && (
-          <div className="absolute -top-2 -right-2 bg-blue-600 text-[10px] font-bold text-white rounded-full px-1.5 py-1 z-10 flex items-center gap-0.5">
-            <Coins className="w-3 h-3" />
-            <span>{tokens}</span>
-          </div>
-        )}
-        
-        {iconMap[icon] || <span className="text-white text-lg font-bold">{icon}</span>}
+        <span className="text-white text-lg font-bold">
+          {icon}
+        </span>
       </div>
       <h3 className="font-semibold text-sm md:text-base text-gray-800 dark:text-gray-200">
         {label}
