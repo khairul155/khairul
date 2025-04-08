@@ -29,8 +29,9 @@ const Pricing = () => {
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .rpc('get_user_credits', { user_id: user.id });
+      // Use type assertion to bypass TypeScript error
+      const { data, error } = await (supabase
+        .rpc('get_user_credits', { user_id: user.id }) as unknown as Promise<{ data: UserCredits | null, error: Error | null }>);
 
       if (error) {
         console.error("Error fetching user credits:", error);
@@ -59,8 +60,9 @@ const Pricing = () => {
 
     setUpgrading(true);
     try {
-      const { error } = await supabase
-        .rpc('upgrade_user_to_premium', { user_id: user.id });
+      // Use type assertion to bypass TypeScript error
+      const { error } = await (supabase
+        .rpc('upgrade_user_to_premium', { user_id: user.id }) as unknown as Promise<{ error: Error | null }>);
 
       if (error) throw error;
 
@@ -88,8 +90,9 @@ const Pricing = () => {
 
     setUpgrading(true);
     try {
-      const { error } = await supabase
-        .rpc('downgrade_user_to_free', { user_id: user.id });
+      // Use type assertion to bypass TypeScript error
+      const { error } = await (supabase
+        .rpc('downgrade_user_to_free', { user_id: user.id }) as unknown as Promise<{ error: Error | null }>);
 
       if (error) throw error;
 

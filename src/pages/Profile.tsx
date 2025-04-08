@@ -22,8 +22,9 @@ const Profile = () => {
 
     const fetchUserCredits = async () => {
       try {
-        const { data, error } = await supabase
-          .rpc('get_user_credits', { user_id: user.id });
+        // Use type assertion to bypass TypeScript error
+        const { data, error } = await (supabase
+          .rpc('get_user_credits', { user_id: user.id }) as unknown as Promise<{ data: UserCredits | null, error: Error | null }>);
 
         if (error) {
           console.error("Error fetching user credits:", error);
