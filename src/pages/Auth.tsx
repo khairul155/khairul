@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogIn, UserPlus, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Auth = () => {
   const { user, signIn, signUp, signInWithGoogle, isLoading: authLoading } = useAuth();
@@ -99,16 +98,12 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-      
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-block">
             <h1 className="text-4xl font-bold text-white flex items-center justify-center">
               <Wand2 className="mr-2 h-8 w-8 text-purple-400" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">AIMagine</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">PixcraftAI</span>
             </h1>
           </Link>
           <p className="text-gray-300 mt-2">Transform your ideas into stunning visuals</p>
