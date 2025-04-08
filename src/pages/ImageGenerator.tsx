@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +18,8 @@ const ImageGenerator = () => {
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generationTime, setGenerationTime] = useState<string>("");
+  const [userCanGenerate, setUserCanGenerate] = useState(true);
+  const [remainingCredits, setRemainingCredits] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -35,6 +36,37 @@ const ImageGenerator = () => {
     seed: -1, // Add seed with default value of -1 (random)
     useSeed: false // Add flag to track if seed should be used
   });
+
+  // Check if user can generate images
+  useEffect(() => {
+    if (user) {
+      checkUserCredits();
+    }
+  }, [user]);
+
+  const checkUserCredits = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("check-user-credits", {
+        body: { user_id: user.id }
+      });
+
+      if (error) {
+        console.error("Error checking credits:", error);
+        return;
+      }
+
+      setUserCanGenerate(data.can_generate);
+      if (data.subscription_plan !== "premium") {
+        setRemainingCredits(data.daily_credits - data.credits_used_today);
+      } else {
+        setRemainingCredits(-1); // -1 indicates unlimited
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
 
   const generateImage = async () => {
     if (!prompt.trim()) {
@@ -53,6 +85,17 @@ const ImageGenerator = () => {
         description: "Please sign in to generate images",
       });
       navigate("/auth");
+      return;
+    }
+
+    // Check if user can generate an image
+    if (!userCanGenerate) {
+      toast({
+        title: "Credit limit reached",
+        description: "You've reached your daily limit. Upgrade to premium for unlimited generations.",
+        variant: "destructive",
+      });
+      navigate("/pricing");
       return;
     }
 
@@ -91,6 +134,9 @@ const ImageGenerator = () => {
       const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
       setGeneratedImages(images);
       
+      // Update user credits
+      await updateUserCredits();
+      
     } catch (error) {
       console.error('Error generating image:', error);
       toast({
@@ -106,6 +152,27 @@ const ImageGenerator = () => {
         setProgress(0);
         setIsLoading(false);
       }, 500);
+    }
+  };
+
+  const updateUserCredits = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("update-user-credits", {
+        body: { user_id: user.id }
+      });
+
+      if (error) {
+        console.error("Error updating credits:", error);
+        return;
+      }
+
+      // Check updated credits
+      checkUserCredits();
+      
+    } catch (error) {
+      console.error("Error:", error);
     }
   };
 
@@ -169,13 +236,17 @@ const ImageGenerator = () => {
         
         <div className="flex items-center">
           <h1 className="text-xl font-bold text-[#FFA725] flex items-center">
-            <Sparkles className="w-5 h-5 mr-1.5 text-[#FFA725]" /> {/* Changed icon to Sparkles */}
+            <Sparkles className="w-5 h-5 mr-1.5 text-[#FFA725]" />
             PixcraftAI
           </h1>
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Space for balance */}
+          {user && remainingCredits !== -1 && (
+            <span className="text-sm text-gray-300">
+              Credits: {remainingCredits} remaining
+            </span>
+          )}
         </div>
       </div>
       
@@ -219,6 +290,17 @@ const ImageGenerator = () => {
                   <p className="text-gray-400">
                     Try Now!
                   </p>
+                  {user && !userCanGenerate && (
+                    <div className="mt-4 p-4 rounded-lg bg-red-900/30 border border-red-800">
+                      <p className="text-center text-red-300">
+                        You've reached your daily generation limit.
+                        <br />
+                        <Link to="/pricing" className="text-blue-400 hover:underline mt-2 block">
+                          Upgrade to premium for unlimited generations
+                        </Link>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -256,7 +338,7 @@ const ImageGenerator = () => {
               
                 <Button
                   onClick={generateImage}
-                  disabled={isLoading || !prompt.trim()}
+                  disabled={isLoading || !prompt.trim() || (!user || !userCanGenerate)}
                   className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-md px-6"
                 >
                   {isLoading ? (

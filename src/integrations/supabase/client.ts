@@ -35,3 +35,5 @@ export const getAuthErrorFromUrl = () => {
   
   return null;
 };
+
+// Add a route to App.tsx for the new pages
