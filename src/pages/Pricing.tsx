@@ -29,10 +29,8 @@ const Pricing = () => {
     
     setLoading(true);
     try {
-      // Use RPC to fetch user credits
       const { data, error } = await supabase
-        .rpc('get_user_credits', { user_id: user.id })
-        .single();
+        .rpc('get_user_credits', { user_id: user.id });
 
       if (error) {
         console.error("Error fetching user credits:", error);
@@ -61,7 +59,6 @@ const Pricing = () => {
 
     setUpgrading(true);
     try {
-      // Use RPC to upgrade the user
       const { error } = await supabase
         .rpc('upgrade_user_to_premium', { user_id: user.id });
 
@@ -91,7 +88,6 @@ const Pricing = () => {
 
     setUpgrading(true);
     try {
-      // Use RPC to downgrade the user
       const { error } = await supabase
         .rpc('downgrade_user_to_free', { user_id: user.id });
 

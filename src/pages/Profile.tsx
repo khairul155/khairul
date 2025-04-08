@@ -22,10 +22,8 @@ const Profile = () => {
 
     const fetchUserCredits = async () => {
       try {
-        // Use raw SQL query with RPC instead of the typed client
         const { data, error } = await supabase
-          .rpc('get_user_credits', { user_id: user.id })
-          .single();
+          .rpc('get_user_credits', { user_id: user.id });
 
         if (error) {
           console.error("Error fetching user credits:", error);
