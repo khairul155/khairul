@@ -3,30 +3,19 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useAuth } from "@/components/AuthProvider";
 import { 
   Menu, 
   X, 
   ChevronDown, 
-  LogOut, 
-  User,
-  Wand2,
   Home,
   Image,
   MessageSquare,
   Zap,
   Briefcase,
   CreditCard,
-  HelpCircle
+  HelpCircle,
+  Coins
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -37,6 +26,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import { useAuth } from "@/components/AuthProvider";
 
 // Subcomponent for navigation menu items
 const ListItem = React.forwardRef<
@@ -71,9 +61,9 @@ ListItem.displayName = "ListItem";
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
+  const { credits } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -92,14 +82,6 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: "Signed out",
-      description: "You have been successfully signed out.",
-    });
-  };
-
   const isLandingPage = location.pathname === "/";
   const isGeneratorPage = location.pathname === "/image-generator";
 
@@ -117,8 +99,11 @@ const Navbar = () => {
           {/* Left Side: Logo & Site Name */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 bg-black rounded-md flex items-center justify-center border border-white/20">
-                <Wand2 className="h-5 w-5 text-white" />
+              <div className="h-8 w-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md flex items-center justify-center border border-white/20">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h4V7h2v4h4v2h-4v4h-2v-4H7v-2z" 
+                  fill="white"/>
+                </svg>
               </div>
               <span className="text-xl font-bold text-white">
                 PixcraftAI
@@ -189,46 +174,13 @@ const Navbar = () => {
             </NavigationMenu>
           </div>
 
-          {/* Right Side: Auth & Menu */}
+          {/* Right Side: Theme Toggle & Credits */}
           <div className="flex items-center space-x-4">
             <ThemeToggle />
-
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="border-gray-700 text-white bg-transparent hover:bg-white/10"
-                  >
-                    My Account
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-black border-gray-800" align="end">
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem asChild className="hover:bg-white/10 cursor-pointer">
-                      <Link to="/profile" className="flex">
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-gray-800" />
-                    <DropdownMenuItem onClick={handleSignOut} className="hover:bg-white/10 cursor-pointer text-red-400 hover:text-red-300">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button 
-                variant="default" 
-                className="bg-white text-black hover:bg-gray-300"
-                asChild
-              >
-                <Link to="/auth">Sign In</Link>
-              </Button>
-            )}
+            <div className="hidden md:flex items-center gap-2 text-white">
+              <Coins className="h-4 w-4 text-yellow-500" />
+              <span>{credits} tokens</span>
+            </div>
 
             {/* Mobile menu button */}
             <Button 
@@ -312,37 +264,10 @@ const Navbar = () => {
               About
             </Link>
             
-            {user ? (
-              <>
-                <div className="border-t border-gray-800 py-2">
-                  <p className="px-3 py-1 text-xs text-gray-500 uppercase">Account</p>
-                </div>
-                
-                <Link 
-                  to="/profile" 
-                  className="flex items-center px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-900 rounded-md"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </Link>
-                
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-gray-900"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
-                </Button>
-              </>
-            ) : (
-              <Button 
-                className="w-full mt-4 bg-white text-black hover:bg-gray-300"
-                asChild
-              >
-                <Link to="/auth">Sign In</Link>
-              </Button>
-            )}
+            <div className="flex items-center px-3 py-2 text-base font-medium text-gray-300">
+              <Coins className="mr-2 h-5 w-5 text-yellow-500" />
+              <span>{credits} tokens</span>
+            </div>
           </div>
         </div>
       )}

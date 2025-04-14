@@ -1,248 +1,232 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Check, Loader2 } from "lucide-react";
+import Navbar from "@/components/Navbar";
+import { Check, Coins, ArrowRight, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { UserCredits } from "@/types/userCredits";
+
+const pricingPlans = [{
+  name: "Free",
+  price: "0",
+  currency: "Tk",
+  description: "Basic access with daily limits",
+  features: ["60 tokens/day", "10 Metadata Generator images/day", "10 Graphic Designer Bot prompts/day", "20 Image to Prompt images/day", "Fast & Quality mode", "Commercial license", "Ad-free experience"],
+  popular: false,
+  tokens: 60,
+  buttonText: "Your Current Plan",
+  buttonVariant: "outline" as const,
+  planId: "free"
+}, {
+  name: "Basic",
+  price: "400",
+  currency: "Tk",
+  description: "Good for occasional use",
+  features: ["3,400 tokens/month (~113/day)", "2,500 Metadata Generator images/month", "1,000 Graphic Designer Bot prompts/month", "2,000 Image to Prompt images/month", "Fast, Quality & Ultra modes", "Unlimited prompt suggestions", "Commercial license"],
+  popular: false,
+  tokens: 3400,
+  buttonText: "Get Basic",
+  buttonVariant: "default" as const,
+  planId: "basic"
+}, {
+  name: "Advanced",
+  price: "750",
+  currency: "Tk",
+  description: "Perfect for regular creators",
+  features: ["8,000 tokens/month (~267/day)", "4,500 Metadata Generator images/month", "2,500 Graphic Designer Bot prompts/month", "4,500 Image to Prompt images/month", "Fast, Quality & Ultra modes", "Unlimited prompt suggestions", "Commercial license"],
+  popular: true,
+  tokens: 8000,
+  buttonText: "Get Advanced",
+  buttonVariant: "default" as const,
+  planId: "advanced"
+}, {
+  name: "Pro",
+  price: "1400",
+  currency: "Tk",
+  description: "For power users and businesses",
+  features: ["18,000 tokens/month (~600/day)", "10,000 Metadata Generator images/month", "5,500 Graphic Designer Bot prompts/month", "10,000 Image to Prompt images/month", "Fast, Quality & Ultra modes", "Unlimited prompt suggestions", "Commercial license"],
+  popular: false,
+  tokens: 18000,
+  buttonText: "Get Pro",
+  buttonVariant: "default" as const,
+  planId: "pro"
+}];
+
+type BillingCycle = "monthly" | "yearly";
+type PlanCategory = "personal" | "business";
 
 const Pricing = () => {
-  const { user } = useAuth();
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [planCategory, setPlanCategory] = useState<PlanCategory>("personal");
+  const [currentPlan, setCurrentPlan] = useState("free");
+  const [isLoading, setIsLoading] = useState(true);
+  
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [upgrading, setUpgrading] = useState(false);
-  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
-      fetchUserPlan();
-    }
+    // For now, just use a simple timeout to simulate loading
+    // This will be replaced with Firebase Firestore data fetching later
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      setCurrentPlan('free');
+    }, 500);
+    
+    return () => clearTimeout(timer);
   }, [user]);
 
-  const fetchUserPlan = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      // Use type assertion to bypass TypeScript error
-      const { data, error } = await (supabase
-        .rpc('get_user_credits', { user_id: user.id }) as unknown as Promise<{ data: UserCredits | null, error: Error | null }>);
-
-      if (error) {
-        console.error("Error fetching user credits:", error);
-        return;
-      }
-
-      const userCredits = data as UserCredits;
-      setCurrentPlan(userCredits.subscription_plan);
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpgrade = async () => {
+  const handlePlanSelection = (planName: string, planId: string) => {
     if (!user) {
       toast({
-        title: "Please sign in",
-        description: "You need to be signed in to upgrade your plan",
-        variant: "destructive",
+        title: "Authentication required",
+        description: "Please sign in to subscribe to a plan",
+        variant: "destructive"
       });
       navigate("/auth");
       return;
     }
 
-    setUpgrading(true);
-    try {
-      // Use type assertion to bypass TypeScript error
-      const { error } = await (supabase
-        .rpc('upgrade_user_to_premium', { user_id: user.id }) as unknown as Promise<{ error: Error | null }>);
-
-      if (error) throw error;
-
-      // Update local state
-      setCurrentPlan("premium");
-      
+    // If it's the current plan, just show a toast
+    if (planId === currentPlan) {
       toast({
-        title: "Upgrade successful!",
-        description: "You now have access to unlimited image generations.",
+        title: `${planName} plan selected`,
+        description: `You are already on the ${planName.toLowerCase()} plan`
       });
-    } catch (error) {
-      console.error("Error upgrading:", error);
-      toast({
-        title: "Upgrade failed",
-        description: "There was a problem upgrading your plan. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUpgrading(false);
+      return;
     }
+
+    // For paid plans, redirect to NagorikPay
+    const paymentUrl = `https://secure-pay.nagorikpay.com/api/execute/02dc3553affdd9bdf91d0225d4e91aa0`;
+    window.open(paymentUrl, '_blank');
+    toast({
+      title: "Payment Page Opened",
+      description: "Complete your payment in the new tab"
+    });
   };
-
-  const handleDowngrade = async () => {
-    if (!user) return;
-
-    setUpgrading(true);
-    try {
-      // Use type assertion to bypass TypeScript error
-      const { error } = await (supabase
-        .rpc('downgrade_user_to_free', { user_id: user.id }) as unknown as Promise<{ error: Error | null }>);
-
-      if (error) throw error;
-
-      // Update local state
-      setCurrentPlan("free");
-      
-      toast({
-        title: "Downgrade successful",
-        description: "Your plan has been changed to Free.",
-      });
-    } catch (error) {
-      console.error("Error downgrading:", error);
-      toast({
-        title: "Downgrade failed",
-        description: "There was a problem downgrading your plan. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUpgrading(false);
-    }
-  };
-
-  const isCurrentPlan = (plan: string) => currentPlan === plan;
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Simple, Transparent Pricing</h1>
-          <p className="text-xl text-gray-400">Choose the plan that's right for you</p>
+    <div className="min-h-screen bg-gray-950 text-white">
+      <Navbar />
+      
+      <div className="container mx-auto px-4 py-20">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500">
+            Upgrade your plan
+          </h1>
+          
+          <div className="flex justify-end items-center mb-2">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={billingCycle === "yearly"} 
+                onChange={() => setBillingCycle(billingCycle === "monthly" ? "yearly" : "monthly")} 
+              />
+            </label>
+          </div>
         </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 text-white animate-spin" />
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-8 mt-8">
-            {/* Free Plan */}
-            <Card className={`bg-[#1A1A1A] border ${isCurrentPlan("free") ? "border-blue-500" : "border-gray-800"} text-white relative overflow-hidden`}>
-              {isCurrentPlan("free") && (
-                <Badge className="absolute top-6 right-6 bg-blue-500 hover:bg-blue-600">Current Plan</Badge>
-              )}
-              <CardHeader>
-                <CardTitle className="text-2xl">Free Plan</CardTitle>
-                <CardDescription className="text-gray-400">Get started with basic features</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-6">
-                  <p className="text-4xl font-bold">$0</p>
-                  <p className="text-gray-400">Forever free</p>
-                </div>
-                <ul className="space-y-2">
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-2" />
-                    <span>5 image generations per day</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-2" />
-                    <span>Standard quality</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-2" />
-                    <span>Basic support</span>
-                  </li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                {isCurrentPlan("free") ? (
-                  <Button disabled className="w-full bg-gray-700 cursor-not-allowed">
-                    Current Plan
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleDowngrade}
-                    disabled={upgrading} 
-                    className="w-full bg-gray-700 hover:bg-gray-600"
-                  >
-                    {upgrading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Downgrading...
-                      </>
-                    ) : (
-                      "Switch to Free"
-                    )}
-                  </Button>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {pricingPlans.map((plan, index) => {
+            const isCurrentPlan = plan.planId === currentPlan;
+            return (
+              <div 
+                key={index} 
+                className={cn(
+                  "relative rounded-xl overflow-hidden border transition-all", 
+                  plan.popular ? "border-purple-500 shadow-lg shadow-purple-500/20" : "border-gray-800 hover:border-gray-700",
+                  isCurrentPlan ? "border-green-500 shadow-lg shadow-green-500/20" : "",
+                  "bg-gray-900 backdrop-blur-sm"
                 )}
-              </CardFooter>
-            </Card>
-
-            {/* Premium Plan */}
-            <Card className={`bg-[#1A1A1A] border ${isCurrentPlan("premium") ? "border-blue-500" : "border-gray-800"} text-white relative overflow-hidden`}>
-              {isCurrentPlan("premium") && (
-                <Badge className="absolute top-6 right-6 bg-blue-500 hover:bg-blue-600">Current Plan</Badge>
-              )}
-              <CardHeader>
-                <CardTitle className="text-2xl">Premium Plan</CardTitle>
-                <CardDescription className="text-gray-400">For serious creators</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-6">
-                  <p className="text-4xl font-bold">$19.99</p>
-                  <p className="text-gray-400">per month</p>
-                </div>
-                <ul className="space-y-2">
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-2" />
-                    <span><strong>Unlimited</strong> image generations</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-2" />
-                    <span>High quality</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-2" />
-                    <span>Priority support</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-2" />
-                    <span>Advanced generation options</span>
-                  </li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                {isCurrentPlan("premium") ? (
-                  <Button disabled className="w-full bg-gray-700 cursor-not-allowed">
-                    Current Plan
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleUpgrade}
-                    disabled={upgrading} 
-                    className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700"
-                  >
-                    {upgrading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Upgrading...
-                      </>
-                    ) : (
-                      "Upgrade to Premium"
-                    )}
-                  </Button>
+              >
+                {plan.popular && !isCurrentPlan && (
+                  <div className="absolute top-0 right-0 bg-purple-600 text-white text-xs font-bold py-1 px-3 rounded-bl-lg">
+                    Most popular
+                  </div>
                 )}
-              </CardFooter>
-            </Card>
-          </div>
-        )}
+                
+                {isCurrentPlan && (
+                  <div className="absolute top-0 right-0 bg-green-600 text-white text-xs font-bold py-1 px-3 rounded-bl-lg">
+                    Current Plan
+                  </div>
+                )}
+                
+                <div className="p-6">
+                  <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                  <div className="flex items-baseline mb-4">
+                    <span className="text-4xl font-extrabold text-white">{plan.currency}{plan.price}</span>
+                    <span className="text-gray-400 ml-2">/month</span>
+                  </div>
+                  <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
+                  
+                  <div className="flex items-center gap-2 mb-6">
+                    <Coins className="h-5 w-5 text-purple-400" />
+                    <span className="text-purple-400 font-semibold">{plan.tokens} tokens</span>
+                  </div>
+                  
+                  <Button 
+                    variant={isCurrentPlan ? "outline" : plan.buttonVariant} 
+                    className={cn(
+                      "w-full mb-6", 
+                      isCurrentPlan 
+                        ? "bg-green-600 hover:bg-green-700 text-white border-green-500" 
+                        : plan.name === "Free" 
+                          ? "bg-gray-700 hover:bg-gray-600" 
+                          : "bg-purple-600 hover:bg-purple-700"
+                    )} 
+                    onClick={() => handlePlanSelection(plan.name, plan.planId)} 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Loading..." : (isCurrentPlan ? "Your Current Plan" : plan.buttonText)}
+                  </Button>
+                  
+                  <ul className="space-y-3 text-sm">
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-start">
+                        <Check className="h-5 w-5 text-green-500 shrink-0 mr-2" />
+                        <span className="text-gray-300">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                {plan.name !== "Free" && (
+                  <div className="border-t border-gray-800 py-3 px-6 flex justify-between items-center bg-gray-800/50">
+                    <span className="text-xs text-gray-400">Switch to monthly</span>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        
+        <div className="max-w-3xl mx-auto mt-16 text-center">
+          <h3 className="text-2xl font-bold mb-4">Need more tokens?</h3>
+          <p className="text-gray-400 mb-6">
+            Contact us for custom enterprise plans and volume discounts.
+          </p>
+          <Button className="bg-white text-gray-900 hover:bg-gray-200">
+            Contact Sales <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       </div>
+      
+      <footer className="bg-gray-900 text-gray-300 py-12 mt-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <p className="text-sm text-gray-400">
+              All plans include access to our core features. Prices may vary by region.
+            </p>
+            <p className="text-sm text-gray-400 mt-2">
+              &copy; {new Date().getFullYear()} PixcraftAI. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

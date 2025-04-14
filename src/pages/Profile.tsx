@@ -1,137 +1,169 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Navbar from "@/components/Navbar";
+import UserCredits from "@/components/UserCredits";
 import { Button } from "@/components/ui/button";
-import { UserCredits } from "@/types/userCredits";
-import { Loader2, Crown } from "lucide-react";
+import { User, Settings, History, CreditCard, Coins } from "lucide-react";
+import { Link } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/integrations/firebase/client";
 
 const Profile = () => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [userCredits, setUserCredits] = useState<UserCredits | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, credits } = useAuth();
+  const [subscription, setSubscription] = useState('free');
+  const [isLoading, setIsLoading] = useState(true);
+  const [displayCredits, setDisplayCredits] = useState(credits);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
-
-    const fetchUserCredits = async () => {
+    const fetchUserData = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+      
       try {
-        // Use type assertion to bypass TypeScript error
-        const { data, error } = await (supabase
-          .rpc('get_user_credits', { user_id: user.id }) as unknown as Promise<{ data: UserCredits | null, error: Error | null }>);
-
-        if (error) {
-          console.error("Error fetching user credits:", error);
-          return;
+        // Fetch user profile
+        const profileRef = doc(db, "profiles", user.uid);
+        const profileSnap = await getDoc(profileRef);
+        
+        if (profileSnap.exists()) {
+          const profileData = profileSnap.data();
+          setUserProfile(profileData);
+          setSubscription(profileData.subscription_plan || 'free');
         }
-
-        setUserCredits(data as UserCredits);
+        
+        // Fetch user credits
+        const creditsRef = doc(db, "user_credits", user.uid);
+        const creditsSnap = await getDoc(creditsRef);
+        
+        if (creditsSnap.exists()) {
+          const creditsData = creditsSnap.data();
+          
+          // Calculate available credits
+          if (creditsData.subscription_plan === 'free') {
+            setDisplayCredits(creditsData.daily_credits - creditsData.credits_used_today);
+          } else {
+            setDisplayCredits(creditsData.monthly_credits - creditsData.credits_used_this_month);
+          }
+        }
+        
+        setIsLoading(false);
       } catch (error) {
-        console.error("Error:", error);
-      } finally {
-        setLoading(false);
+        console.error("Error fetching user data:", error);
+        setIsLoading(false);
       }
     };
+    
+    fetchUserData();
+  }, [user, credits]);
 
-    fetchUserCredits();
-  }, [user, navigate]);
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
+  const getSubscriptionName = (plan) => {
+    const names = {
+      'free': 'Free Plan',
+      'basic': 'Basic Plan',
+      'advanced': 'Advanced Plan',
+      'pro': 'Pro Plan'
+    };
+    return names[plan] || 'Free Plan';
   };
 
-  const isPremium = userCredits?.subscription_plan === "premium";
-
   return (
-    <div className="min-h-screen bg-[#0F0F0F] py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-8">Your Profile</h1>
-
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 text-white animate-spin" />
-          </div>
-        ) : (
-          <>
-            <Card className="mb-8 bg-[#1A1A1A] border-gray-800 text-white">
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center">
-                  Your Subscription
-                  {isPremium && <Crown className="ml-2 h-5 w-5 text-yellow-500" />}
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  Current plan and usage
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+    <div className="min-h-screen bg-gray-950 text-white">
+      <Navbar />
+      
+      <div className="container mx-auto px-4 py-20">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-8">My Account</h1>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Sidebar */}
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-900 rounded-lg border border-gray-800">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-12 w-12 bg-gray-800 rounded-full flex items-center justify-center">
+                    <User className="h-6 w-6 text-gray-300" />
+                  </div>
                   <div>
-                    <p className="text-gray-400">Current Plan</p>
-                    <p className="text-xl font-medium capitalize">
-                      {userCredits?.subscription_plan || "Free"}
+                    <h3 className="font-medium">{user?.email || 'Guest User'}</h3>
+                    <p className="text-sm text-gray-400">
+                      {isLoading ? 'Loading...' : getSubscriptionName(subscription)}
                     </p>
                   </div>
-                  
-                  {userCredits?.subscription_plan === "premium" ? (
-                    <div>
-                      <p className="text-gray-400">Benefits</p>
-                      <ul className="list-disc pl-5 text-gray-300">
-                        <li>Unlimited image generations</li>
-                        <li>Priority processing</li>
-                        <li>Advanced generation options</li>
-                      </ul>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-gray-400">Daily Credits</p>
-                        <p className="text-xl font-medium">
-                          {userCredits?.daily_credits && userCredits?.credits_used_today
-                            ? `${userCredits.daily_credits - userCredits.credits_used_today} / ${userCredits.daily_credits}`
-                            : "0 / 0"}
-                        </p>
-                      </div>
-                      <Button 
-                        onClick={() => navigate("/pricing")}
-                        className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white"
-                      >
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  )}
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="mb-8 bg-[#1A1A1A] border-gray-800 text-white">
-              <CardHeader>
-                <CardTitle className="text-xl">Account Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-gray-400">Email</p>
-                    <p className="text-xl font-medium">{user?.email || "Not available"}</p>
+                
+                <UserCredits />
+              </div>
+              
+              <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+                <ul className="divide-y divide-gray-800">
+                  <li>
+                    <Link to="/profile" className="flex items-center gap-3 p-4 hover:bg-gray-800 transition">
+                      <User className="h-5 w-5 text-gray-400" />
+                      <span>Profile</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/pricing" className="flex items-center gap-3 p-4 hover:bg-gray-800 transition">
+                      <CreditCard className="h-5 w-5 text-gray-400" />
+                      <span>Subscription</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/history" className="flex items-center gap-3 p-4 hover:bg-gray-800 transition">
+                      <History className="h-5 w-5 text-gray-400" />
+                      <span>History</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/settings" className="flex items-center gap-3 p-4 hover:bg-gray-800 transition">
+                      <Settings className="h-5 w-5 text-gray-400" />
+                      <span>Settings</span>
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            
+            {/* Main content */}
+            <div className="md:col-span-2 bg-gray-900 rounded-lg border border-gray-800 p-6">
+              <h2 className="text-xl font-bold mb-6">Account Information</h2>
+              
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-400 mb-1">Email</h3>
+                  <p className="text-lg">{user?.email || 'Guest User'}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-400 mb-1">Current Plan</h3>
+                  <div className="flex items-center justify-between">
+                    <p className="text-lg">
+                      {isLoading ? 'Loading...' : getSubscriptionName(subscription)}
+                    </p>
+                    <Button asChild className="bg-purple-600 hover:bg-purple-700">
+                      <Link to="/pricing">Upgrade</Link>
+                    </Button>
                   </div>
-                  <Button 
-                    variant="destructive" 
-                    onClick={handleSignOut}
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Sign Out
-                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-400 mb-1">Token Balance</h3>
+                  <div className="flex items-center gap-2">
+                    <Coins className="h-5 w-5 text-yellow-500" />
+                    <p className="text-lg">{displayCredits} tokens</p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {subscription === 'free' ? 
+                      'Free tokens reset daily at 00:00 (UTC+6 BST)' : 
+                      'Tokens reset monthly based on your billing cycle'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

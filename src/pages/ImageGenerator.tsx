@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, Wand2, LogIn, ImageIcon, Sparkles } from "lucide-react";
+import { Loader2, ChevronLeft, Wand2, ImageIcon, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ImageGrid from "@/components/ImageGrid";
 import { Link, useNavigate } from "react-router-dom";
@@ -18,11 +18,9 @@ const ImageGenerator = () => {
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generationTime, setGenerationTime] = useState<string>("");
-  const [userCanGenerate, setUserCanGenerate] = useState(true);
-  const [remainingCredits, setRemainingCredits] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { deductCredits, credits } = useAuth();
   const navigate = useNavigate();
   
   // Generation settings with updated default steps for fast mode
@@ -37,37 +35,6 @@ const ImageGenerator = () => {
     useSeed: false // Add flag to track if seed should be used
   });
 
-  // Check if user can generate images
-  useEffect(() => {
-    if (user) {
-      checkUserCredits();
-    }
-  }, [user]);
-
-  const checkUserCredits = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke("check-user-credits", {
-        body: { user_id: user.id }
-      });
-
-      if (error) {
-        console.error("Error checking credits:", error);
-        return;
-      }
-
-      setUserCanGenerate(data.can_generate);
-      if (data.subscription_plan !== "premium") {
-        setRemainingCredits(data.daily_credits - data.credits_used_today);
-      } else {
-        setRemainingCredits(-1); // -1 indicates unlimited
-      }
-    } catch (error) {
-      console.error("Error:", error);
-    }
-  };
-
   const generateImage = async () => {
     if (!prompt.trim()) {
       toast({
@@ -78,24 +45,13 @@ const ImageGenerator = () => {
       return;
     }
 
-    // Check if user is authenticated and redirect to auth page if not
-    if (!user) {
+    // Validate that the user has credits available
+    if (credits <= 0) {
       toast({
-        title: "Sign in required",
-        description: "Please sign in to generate images",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    // Check if user can generate an image
-    if (!userCanGenerate) {
-      toast({
-        title: "Credit limit reached",
-        description: "You've reached your daily limit. Upgrade to premium for unlimited generations.",
+        title: "No credits available",
+        description: "You don't have enough credits to generate an image.",
         variant: "destructive",
       });
-      navigate("/pricing");
       return;
     }
 
@@ -109,8 +65,20 @@ const ImageGenerator = () => {
     const startTime = new Date();
 
     try {
+      // Deduct credits before generating image
+      const deductResult = await deductCredits(4);
+      console.log("Deduct result:", deductResult);
+      
+      if (!deductResult.success) {
+        clearInterval(progressInterval);
+        setIsLoading(false);
+        // Toast is already handled in the deductCredits function
+        return;
+      }
+
       const seedToUse = generationSettings.useSeed ? generationSettings.seed : -1;
       
+      // Proceed with image generation only if credit deduction was successful
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: { 
           prompt,
@@ -134,8 +102,10 @@ const ImageGenerator = () => {
       const images = data.data.map((item: any) => `data:image/webp;base64,${item.b64_json}`);
       setGeneratedImages(images);
       
-      // Update user credits
-      await updateUserCredits();
+      toast({
+        title: "Image Generated",
+        description: `Used 4 credits. You have ${deductResult.remaining} credits remaining.`,
+      });
       
     } catch (error) {
       console.error('Error generating image:', error);
@@ -152,27 +122,6 @@ const ImageGenerator = () => {
         setProgress(0);
         setIsLoading(false);
       }, 500);
-    }
-  };
-
-  const updateUserCredits = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke("update-user-credits", {
-        body: { user_id: user.id }
-      });
-
-      if (error) {
-        console.error("Error updating credits:", error);
-        return;
-      }
-
-      // Check updated credits
-      checkUserCredits();
-      
-    } catch (error) {
-      console.error("Error:", error);
     }
   };
 
@@ -236,17 +185,13 @@ const ImageGenerator = () => {
         
         <div className="flex items-center">
           <h1 className="text-xl font-bold text-[#FFA725] flex items-center">
-            <Sparkles className="w-5 h-5 mr-1.5 text-[#FFA725]" />
+            <Sparkles className="w-5 h-5 mr-1.5 text-[#FFA725]" /> {/* Changed icon to Sparkles */}
             PixcraftAI
           </h1>
         </div>
         
         <div className="flex items-center gap-2">
-          {user && remainingCredits !== -1 && (
-            <span className="text-sm text-gray-300">
-              Credits: {remainingCredits} remaining
-            </span>
-          )}
+          {/* Space for balance */}
         </div>
       </div>
       
@@ -290,17 +235,6 @@ const ImageGenerator = () => {
                   <p className="text-gray-400">
                     Try Now!
                   </p>
-                  {user && !userCanGenerate && (
-                    <div className="mt-4 p-4 rounded-lg bg-red-900/30 border border-red-800">
-                      <p className="text-center text-red-300">
-                        You've reached your daily generation limit.
-                        <br />
-                        <Link to="/pricing" className="text-blue-400 hover:underline mt-2 block">
-                          Upgrade to premium for unlimited generations
-                        </Link>
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -338,7 +272,7 @@ const ImageGenerator = () => {
               
                 <Button
                   onClick={generateImage}
-                  disabled={isLoading || !prompt.trim() || (!user || !userCanGenerate)}
+                  disabled={isLoading || !prompt.trim()}
                   className="bg-[#2776FF] hover:bg-[#1665F2] text-white rounded-md px-6"
                 >
                   {isLoading ? (
